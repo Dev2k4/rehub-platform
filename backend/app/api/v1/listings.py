@@ -1,6 +1,5 @@
 import uuid
 import os
-import shutil
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +21,9 @@ router = APIRouter(prefix="/listings", tags=["Listings"])
 
 UPLOAD_DIR = "uploads/listings"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 @router.get("/", response_model=ListingPaginated)
 async def list_listings(
@@ -154,6 +156,9 @@ async def update_listing(
         
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to edit this listing")
+
+    if listing.status == ListingStatus.SOLD:
+        raise HTTPException(status_code=400, detail="Cannot modify sold listing")
         
     if data.status is not None and current_user.role != UserRole.ADMIN:
         if data.status != ListingStatus.HIDDEN:
@@ -175,6 +180,9 @@ async def delete_listing(
         
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to delete this listing")
+
+    if listing.status == ListingStatus.SOLD:
+        raise HTTPException(status_code=400, detail="Cannot delete sold listing")
         
     await crud_listing.soft_delete_listing(db, str(listing_id))
     return None
@@ -194,16 +202,26 @@ async def upload_listing_image(
         
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to add images")
-        
-    ext = file.filename.split(".")[-1]
-    if ext.lower() not in ["jpg", "jpeg", "png", "webp"]:
+
+    if file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+
+    if not file.filename or "." not in file.filename:
+        raise HTTPException(status_code=400, detail="Invalid file name")
+
+    ext = file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Unsupported file extension")
+
+    file_bytes = await file.read()
+    if len(file_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="File too large")
         
     unique_filename = f"{uuid.uuid4().hex}.{ext}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
     with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(file_bytes)
         
     image_url = f"/uploads/listings/{unique_filename}"
     new_image = await crud_listing.add_listing_image(db, str(listing_id), image_url, is_primary)

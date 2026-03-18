@@ -6,7 +6,6 @@ from sqlalchemy.future import select
 
 from app.api.dependencies import get_current_user, get_db
 from app.models.user import User
-from app.models.offer import Offer
 from app.models.listing import Listing
 from app.models.order import Order
 from app.models.enums import OfferStatus, ListingStatus, OrderStatus
@@ -131,6 +130,13 @@ async def update_offer_status(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to update this offer"
         )
+
+    # Do not allow changing completed terminal states.
+    if offer.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED, OfferStatus.EXPIRED}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot change offer in terminal status: {offer.status}"
+        )
     
     # Seller: chỉ được thay đổi PENDING offer
     if is_seller and offer.status != OfferStatus.PENDING:
@@ -138,6 +144,16 @@ async def update_offer_status(
             status_code=400,
             detail=f"Seller can only update PENDING offers. Current status: {offer.status}"
         )
+
+    if is_seller and status_update.status not in {
+        OfferStatus.ACCEPTED,
+        OfferStatus.REJECTED,
+        OfferStatus.COUNTERED,
+    }:
+        raise HTTPException(status_code=400, detail="Seller can only set ACCEPTED/REJECTED/COUNTERED")
+
+    if is_seller and status_update.status == OfferStatus.COUNTERED and status_update.offer_price is None:
+        raise HTTPException(status_code=400, detail="Countered status requires offer_price")
     
     # Buyer: chỉ được chấp nhận COUNTERED offers
     if is_buyer and offer.status != OfferStatus.COUNTERED:
@@ -145,6 +161,12 @@ async def update_offer_status(
             status_code=400,
             detail=f"Buyer can only accept or reject countered offers. Current status: {offer.status}"
         )
+
+    if is_buyer and status_update.status not in {OfferStatus.ACCEPTED, OfferStatus.REJECTED}:
+        raise HTTPException(status_code=400, detail="Buyer can only set ACCEPTED/REJECTED for countered offer")
+
+    if status_update.status == OfferStatus.ACCEPTED and listing.status == ListingStatus.SOLD:
+        raise HTTPException(status_code=400, detail="Listing already sold")
     
     # Cập nhật status
     updated_offer = await crud_offer.update_offer_status(db, offer_id, status_update)
@@ -163,8 +185,9 @@ async def update_offer_status(
         # Cập nhật listing status thành SOLD
         listing.status = ListingStatus.SOLD
         db.add(listing)
-        
-        await db.commit()
+
+    await db.commit()
+    await db.refresh(updated_offer)
     
     return updated_offer
 
