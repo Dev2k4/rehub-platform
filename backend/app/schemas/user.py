@@ -43,7 +43,15 @@ class UserMe(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UserPublicProfile(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
     province: Optional[str] = None
+    district: Optional[str] = None
     trust_score: float
     rating_avg: float
     rating_count: int
