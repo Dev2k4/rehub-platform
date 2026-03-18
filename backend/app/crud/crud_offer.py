@@ -139,6 +139,10 @@ async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: Off
     
     # Cập nhật status
     offer.status = new_status
+
+    # Counter offer can update the negotiated price.
+    if new_status == OfferStatus.COUNTERED and obj_in.offer_price is not None:
+        offer.offer_price = obj_in.offer_price
     
     # Nếu status chuyển sang ACCEPTED, tự động REJECT các offer PENDING khác
     if new_status == OfferStatus.ACCEPTED and old_status != OfferStatus.ACCEPTED:
@@ -156,6 +160,4 @@ async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: Off
             other_offer.status = OfferStatus.REJECTED
     
     db.add(offer)
-    await db.commit()
-    await db.refresh(offer)
     return offer
