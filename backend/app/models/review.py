@@ -7,7 +7,7 @@ class Review(SQLModel, table=True):
     __tablename__ = "reviews"
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    order_id: uuid.UUID = Field(foreign_key="orders.id", unique=True)
+    order_id: uuid.UUID = Field(foreign_key="orders.id", unique=True, ondelete="CASCADE")
     reviewer_id: uuid.UUID = Field(foreign_key="users.id")
     reviewee_id: uuid.UUID = Field(foreign_key="users.id")
     rating: int = Field(ge=1, le=5)
