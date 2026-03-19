@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <body style="font-family: Arial, sans-serif; color: #222; line-height: 1.6;">
+    <h2>Order created</h2>
+    <p>Hello {{ full_name }},</p>
+    {% if role == "buyer" %}
+    <p>Your order has been created successfully.</p>
+    {% else %}
+    <p>You received a new order for your listing.</p>
+    {% endif %}
+    <ul>
+      <li>Order ID: {{ order_id }}</li>
+      <li>Listing: {{ listing_title }}</li>
+      <li>Price: {{ final_price }}</li>
+    </ul>
+  </body>
+</html>
