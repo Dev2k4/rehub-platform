@@ -1,8 +1,12 @@
 import urllib.parse
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Resolve .env path: project_root/.env
+ENV_FILE = Path(__file__).parent.parent.parent.parent / ".env"
+
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "ReMarket API"
+    PROJECT_NAME: str = "ReHub API"
     API_V1_STR: str = "/api/v1"
     
     # Database
@@ -25,9 +29,24 @@ class Settings(BaseSettings):
 
     # Uploads
     UPLOAD_DIR: str = "uploads"
+
+    # Frontend host for generated links (email verification, password reset, ...)
+    FRONTEND_HOST: str = "http://localhost:5173"
+
+    # Email / SMTP
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    EMAILS_FROM_EMAIL: str = "daranbull1112@gmail.com"
+    EMAILS_FROM_NAME: str = "ReHub Platform"
+    REQUIRE_EMAIL_VERIFICATION: bool = False
+    EMAIL_VERIFICATION_EXPIRE_HOURS: int = 24
     
     model_config = SettingsConfigDict(
-        env_file="../.env",
+        env_file=str(ENV_FILE),
         env_file_encoding="utf-8",
         extra="ignore",
     )
