@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from app.models.enums import NotificationType
 from app.models.notification import Notification
 
 
@@ -17,11 +18,14 @@ async def get_user_notifications(db: AsyncSession, user_id: uuid.UUID) -> list[N
 async def create_notification(
 	db: AsyncSession,
 	user_id: uuid.UUID,
-	type: str,
+	type: NotificationType | str,
 	title: str,
 	message: str,
 	data: dict | None = None,
 ) -> Notification:
+	if isinstance(type, str):
+		type = NotificationType(type)
+
 	notification = Notification(
 		user_id=user_id,
 		type=type,
