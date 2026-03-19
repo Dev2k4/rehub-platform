@@ -45,11 +45,13 @@ async def create_direct_order(
 	return order
 
 
+@router.get("", response_model=list[OrderRead])
 @router.get("/me", response_model=list[OrderRead])
 async def get_my_orders(
 	current_user: Annotated[User, Depends(get_current_user)],
 	db: AsyncSession = Depends(get_db),
 ):
+	"""Get current user's orders (as buyer or seller)."""
 	return await crud_order.get_user_orders(db, current_user.id)
 
 

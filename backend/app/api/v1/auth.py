@@ -113,6 +113,7 @@ async def login(
 
 
 @router.post("/refresh-token", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     """Refresh access token using a valid refresh token. Implements token rotation."""
     hashed_rt = hash_token(data.refresh_token)
