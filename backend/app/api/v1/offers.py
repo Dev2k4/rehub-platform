@@ -8,7 +8,7 @@ from app.api.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.models.listing import Listing
 from app.models.order import Order
-from app.models.enums import OfferStatus, ListingStatus, OrderStatus
+from app.models.enums import OfferStatus, ListingStatus, OrderStatus, NotificationType
 from app.schemas.offer import OfferCreate, OfferRead, OfferStatusUpdate
 from app.crud import crud_notification, crud_offer
 
@@ -39,7 +39,7 @@ async def create_offer(
             await crud_notification.create_notification(
                 db=db,
                 user_id=listing.seller_id,
-                type="offer_received",
+                type=NotificationType.OFFER_RECEIVED,
                 title="New offer received",
                 message=f"You received a new offer for listing '{listing.title}'.",
                 data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
@@ -181,6 +181,7 @@ async def update_offer_status(
         raise HTTPException(status_code=400, detail="Listing already sold")
     
     # Cập nhật status
+    previous_status = offer.status
     updated_offer = await crud_offer.update_offer_status(db, offer_id, status_update)
     
     # Nếu status là ACCEPTED, tạo Order tự động và cập nhật listing
@@ -203,9 +204,9 @@ async def update_offer_status(
 
     if status_update.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED, OfferStatus.COUNTERED}:
         notification_type = {
-            OfferStatus.ACCEPTED: "offer_accepted",
-            OfferStatus.REJECTED: "offer_rejected",
-            OfferStatus.COUNTERED: "offer_countered",
+            OfferStatus.ACCEPTED: NotificationType.OFFER_ACCEPTED,
+            OfferStatus.REJECTED: NotificationType.OFFER_REJECTED,
+            OfferStatus.COUNTERED: NotificationType.OFFER_COUNTERED,
         }[status_update.status]
 
         if is_seller:
@@ -221,6 +222,16 @@ async def update_offer_status(
             type=notification_type,
             title="Offer status updated",
             message=message,
+            data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
+        )
+
+    if previous_status != OfferStatus.EXPIRED and updated_offer.status == OfferStatus.EXPIRED:
+        await crud_notification.create_notification(
+            db=db,
+            user_id=offer.buyer_id,
+            type=NotificationType.OFFER_EXPIRED,
+            title="Offer expired",
+            message="Your offer has expired due to timeout.",
             data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
         )
     

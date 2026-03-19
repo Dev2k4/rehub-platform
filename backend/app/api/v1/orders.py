@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db
 from app.crud import crud_listing, crud_notification, crud_order, crud_user
-from app.models.enums import ListingStatus, OrderStatus
+from app.models.enums import ListingStatus, OrderStatus, NotificationType
 from app.models.user import User
 from app.schemas.order import OrderDirectCreate, OrderRead
 from app.services.email_service import send_order_created_email, send_order_completed_email
@@ -37,7 +37,7 @@ async def create_direct_order(
 	await crud_notification.create_notification(
 		db=db,
 		user_id=listing.seller_id,
-		type="order_created",
+		type=NotificationType.ORDER_CREATED,
 		title="New order created",
 		message=f"A buyer placed an order for your listing '{listing.title}'.",
 		data={"order_id": str(order.id), "listing_id": str(listing.id)},
@@ -95,7 +95,7 @@ async def complete_order(
 	await crud_notification.create_notification(
 		db=db,
 		user_id=order.seller_id,
-		type="order_completed",
+		type=NotificationType.ORDER_COMPLETED,
 		title="Order completed",
 		message="Buyer marked the order as completed.",
 		data={"order_id": str(order.id), "listing_id": str(order.listing_id)},
@@ -124,7 +124,7 @@ async def cancel_order(
 	await crud_notification.create_notification(
 		db=db,
 		user_id=target_user_id,
-		type="order_cancelled",
+		type=NotificationType.ORDER_CANCELLED,
 		title="Order cancelled",
 		message="The order was cancelled by the counterparty.",
 		data={"order_id": str(order.id), "listing_id": str(order.listing_id)},

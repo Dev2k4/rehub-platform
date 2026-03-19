@@ -7,7 +7,7 @@ from app.api.dependencies import get_current_admin, get_db
 from app.crud import crud_notification
 from app.crud.crud_listing import get_listing, get_pending_listings
 from app.crud.crud_user import get_user_by_id, get_users_list, update_user_status
-from app.models.enums import ListingStatus
+from app.models.enums import ListingStatus, NotificationType
 from app.models.user import User
 from app.schemas.listing import ListingRead
 from app.schemas.user import UserMe, UserStatusUpdate
@@ -81,7 +81,7 @@ async def approve_listing(
     await crud_notification.create_notification(
         db=db,
         user_id=listing.seller_id,
-        type="listing_approved",
+        type=NotificationType.LISTING_APPROVED,
         title="Listing approved",
         message=f"Your listing '{listing.title}' has been approved.",
         data={"listing_id": str(listing.id)},
@@ -106,7 +106,7 @@ async def reject_listing_route(
     await crud_notification.create_notification(
         db=db,
         user_id=listing.seller_id,
-        type="listing_rejected",
+        type=NotificationType.LISTING_REJECTED,
         title="Listing rejected",
         message=f"Your listing '{listing.title}' has been rejected.",
         data={"listing_id": str(listing.id)},

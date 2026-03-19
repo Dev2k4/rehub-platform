@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db
 from app.crud import crud_notification, crud_order, crud_review
-from app.models.enums import OrderStatus
+from app.models.enums import OrderStatus, NotificationType
 from app.models.user import User
 from app.schemas.review import ReviewCreate, ReviewRead
 
@@ -47,7 +47,7 @@ async def create_review(
 	await crud_notification.create_notification(
 		db=db,
 		user_id=reviewee_id,
-		type="review_received",
+		type=NotificationType.REVIEW_RECEIVED,
 		title="New review received",
 		message="You received a new review from a completed order.",
 		data={"order_id": str(data.order_id), "review_id": str(review.id)},
