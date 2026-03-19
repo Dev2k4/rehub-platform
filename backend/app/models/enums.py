@@ -29,3 +29,17 @@ class OrderStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+
+
+class NotificationType(str, Enum):
+    OFFER_RECEIVED = "offer_received"
+    OFFER_ACCEPTED = "offer_accepted"
+    OFFER_REJECTED = "offer_rejected"
+    OFFER_COUNTERED = "offer_countered"
+    OFFER_EXPIRED = "offer_expired"
+    ORDER_CREATED = "order_created"
+    ORDER_COMPLETED = "order_completed"
+    ORDER_CANCELLED = "order_cancelled"
+    LISTING_APPROVED = "listing_approved"
+    LISTING_REJECTED = "listing_rejected"
+    REVIEW_RECEIVED = "review_received"
