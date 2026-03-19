@@ -47,4 +47,4 @@ volumes:
 
 networks:
   default:
-    name: remarket_network
+    name: rehub_network
