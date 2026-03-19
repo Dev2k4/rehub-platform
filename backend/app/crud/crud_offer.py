@@ -1,11 +1,28 @@
 import uuid
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, update
 from app.models.offer import Offer
 from app.models.listing import Listing
 from app.models.enums import OfferStatus, ListingStatus
 from app.schemas.offer import OfferCreate, OfferStatusUpdate
+from app.core.config import settings
+
+
+async def expire_stale_offers(db: AsyncSession) -> int:
+    """Expire PENDING/COUNTERED offers older than configured TTL."""
+    cutoff = datetime.utcnow() - timedelta(hours=settings.OFFER_EXPIRE_HOURS)
+    result = await db.execute(
+        update(Offer)
+        .where(
+            Offer.created_at <= cutoff,
+            Offer.status.in_([OfferStatus.PENDING, OfferStatus.COUNTERED]),
+        )
+        .values(status=OfferStatus.EXPIRED, updated_at=datetime.utcnow())
+    )
+    await db.commit()
+    return int(result.rowcount or 0)
 
 
 async def check_existing_pending_offer(
@@ -41,6 +58,8 @@ async def create_offer(db: AsyncSession, obj_in: OfferCreate, buyer_id: uuid.UUI
     Raises:
         ValueError: Nếu vi phạm ràng buộc nào đó.
     """
+    await expire_stale_offers(db)
+
     # Kiểm tra listing tồn tại
     result = await db.execute(select(Listing).where(Listing.id == obj_in.listing_id))
     listing = result.scalar_one_or_none()
@@ -79,6 +98,7 @@ async def get_user_sent_offers(db: AsyncSession, buyer_id: uuid.UUID, skip: int 
     """
     Lấy danh sách offer mà Buyer đã gửi đi (dành cho Buyer quản lý).
     """
+    await expire_stale_offers(db)
     result = await db.execute(
         select(Offer).where(Offer.buyer_id == buyer_id)
         .offset(skip)
@@ -92,6 +112,7 @@ async def get_seller_received_offers(db: AsyncSession, seller_id: uuid.UUID, ski
     Lấy danh sách offer mà Seller nhận được trên tất cả các tin đăng của mình.
     Join với Listing để lọc theo seller_id.
     """
+    await expire_stale_offers(db)
     result = await db.execute(
         select(Offer).join(Listing).where(Listing.seller_id == seller_id)
         .offset(skip)
@@ -105,6 +126,7 @@ async def get_offers_by_listing(db: AsyncSession, listing_id: uuid.UUID, skip: i
     Lấy toàn bộ offer cho 1 listing cụ thể.
     (Sẽ được kiểm tra quyền ở layer API - chỉ Seller mới xem được)
     """
+    await expire_stale_offers(db)
     result = await db.execute(
         select(Offer).where(Offer.listing_id == listing_id)
         .offset(skip)
@@ -115,6 +137,7 @@ async def get_offers_by_listing(db: AsyncSession, listing_id: uuid.UUID, skip: i
 
 async def get_offer_by_id(db: AsyncSession, offer_id: uuid.UUID) -> Offer:
     """Lấy offer theo ID."""
+    await expire_stale_offers(db)
     result = await db.execute(select(Offer).where(Offer.id == offer_id))
     return result.scalar_one_or_none()
     
@@ -129,6 +152,7 @@ async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: Off
     Khi ACCEPTED:
     - Tự động REJECT tất cả các offer PENDING khác trên cùng listing
     """
+    await expire_stale_offers(db)
     result = await db.execute(select(Offer).where(Offer.id == offer_id))
     offer = result.scalar_one_or_none()
     if not offer:
