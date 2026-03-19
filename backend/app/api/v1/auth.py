@@ -7,15 +7,25 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.api.dependencies import get_db, get_current_user
-from app.schemas.auth import RegisterRequest, TokenResponse, RefreshRequest
+from app.schemas.auth import RegisterRequest, TokenResponse, RefreshRequest, VerifyEmailRequest
 from app.crud.crud_user import (
     get_user_by_email,
     create_user,
     update_refresh_token,
     get_user_by_refresh_token,
+    mark_user_email_verified,
 )
-from app.core.security import verify_password, create_access_token, create_refresh_token, hash_token
+from app.core.config import settings
+from app.core.security import (
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    hash_token,
+    create_email_verification_token,
+    decode_email_verification_token,
+)
 from app.models.user import User
+from app.services.email_service import send_verify_email, send_welcome_email
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 limiter = Limiter(key_func=get_remote_address)
@@ -25,7 +35,10 @@ def _role_claim(role: object) -> str:
     return role.value if hasattr(role, "value") else str(role)
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=TokenResponse)
-async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(
+    data: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """Register a new user account."""
     # Check if email exists
     existing_user = await get_user_by_email(db, data.email)
@@ -44,6 +57,13 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
     # Save hashed refresh token
     await update_refresh_token(db, user.id, hash_token(refresh_token))
+
+    verification_token = create_email_verification_token(user.email)
+    await send_verify_email(
+        to_email=user.email,
+        full_name=user.full_name,
+        verification_token=verification_token,
+    )
 
     return TokenResponse(
         access_token=access_token,
@@ -71,6 +91,12 @@ async def login(
 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+
+    if settings.REQUIRE_EMAIL_VERIFICATION and not user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify your email before logging in.",
+        )
 
     # Generate tokens
     access_token = create_access_token(subject=str(user.id), role=_role_claim(user.role))
@@ -112,6 +138,22 @@ async def refresh_access_token(data: RefreshRequest, db: AsyncSession = Depends(
         refresh_token=new_refresh_token,
         user=user
     )
+
+
+@router.post("/verify-email", status_code=status.HTTP_200_OK)
+async def verify_email(data: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    """Verify user email using signed verification token."""
+    email = decode_email_verification_token(data.token)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+
+    user = await mark_user_email_verified(db, email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    await send_welcome_email(to_email=user.email, full_name=user.full_name)
+
+    return {"message": "Email verified successfully"}
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
