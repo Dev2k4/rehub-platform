@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db
-from app.crud import crud_listing, crud_notification, crud_order
+from app.crud import crud_listing, crud_notification, crud_order, crud_user
 from app.models.enums import ListingStatus, OrderStatus
 from app.models.user import User
 from app.schemas.order import OrderDirectCreate, OrderRead
+from app.services.email_service import send_order_created_email, send_order_completed_email
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -29,6 +30,10 @@ async def create_direct_order(
 		raise HTTPException(status_code=400, detail="Cannot buy your own listing")
 
 	order = await crud_order.create_direct_order(db, current_user.id, listing)
+	buyer = await crud_user.get_user_by_id(db, current_user.id)
+	seller = await crud_user.get_user_by_id(db, listing.seller_id)
+	if buyer and seller:
+		await send_order_created_email(buyer=buyer, seller=seller, order=order, listing_title=listing.title)
 	await crud_notification.create_notification(
 		db=db,
 		user_id=listing.seller_id,
@@ -81,6 +86,10 @@ async def complete_order(
 		raise HTTPException(status_code=400, detail=f"Cannot complete order in {order.status} state")
 
 	updated_order = await crud_order.complete_order(db, order)
+	buyer = await crud_user.get_user_by_id(db, order.buyer_id)
+	seller = await crud_user.get_user_by_id(db, order.seller_id)
+	if buyer and seller:
+		await send_order_completed_email(buyer=buyer, seller=seller, order=updated_order)
 	await crud_notification.create_notification(
 		db=db,
 		user_id=order.seller_id,
