@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # Uploads
     UPLOAD_DIR: str = "uploads"
 
+    # Offers
+    OFFER_EXPIRE_HOURS: int = 48
+    OFFER_EXPIRY_JOB_INTERVAL_MINUTES: int = 5
+
     # Frontend host for generated links (email verification, password reset, ...)
     FRONTEND_HOST: str = "http://localhost:5173"
 
