@@ -78,4 +78,4 @@ async def on_shutdown() -> None:
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to ReMarket API"}
+    return {"message": "Welcome to ReHub API"}
