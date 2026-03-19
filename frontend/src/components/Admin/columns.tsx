@@ -1,11 +1,10 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
-import type { UserPublic } from "@/client"
+import type { UserMe } from "@/client"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { UserActionsMenu } from "./UserActionsMenu"
 
-export type UserTableData = UserPublic & {
+export type UserTableData = UserMe & {
   isCurrentUser: boolean
 }
 
@@ -39,11 +38,11 @@ export const columns: ColumnDef<UserTableData>[] = [
     ),
   },
   {
-    accessorKey: "is_superuser",
+    accessorKey: "role",
     header: "Role",
     cell: ({ row }) => (
-      <Badge variant={row.original.is_superuser ? "default" : "secondary"}>
-        {row.original.is_superuser ? "Superuser" : "User"}
+      <Badge variant={row.original.role === "admin" ? "default" : "secondary"}>
+        {row.original.role === "admin" ? "Admin" : "User"}
       </Badge>
     ),
   },
@@ -61,15 +60,6 @@ export const columns: ColumnDef<UserTableData>[] = [
         <span className={row.original.is_active ? "" : "text-muted-foreground"}>
           {row.original.is_active ? "Active" : "Inactive"}
         </span>
-      </div>
-    ),
-  },
-  {
-    id: "actions",
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => (
-      <div className="flex justify-end">
-        <UserActionsMenu user={row.original} />
       </div>
     ),
   },

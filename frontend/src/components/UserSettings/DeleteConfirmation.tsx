@@ -1,7 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 
-import { UsersService } from "@/client"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,30 +12,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { LoadingButton } from "@/components/ui/loading-button"
-import useAuth from "@/hooks/useAuth"
-import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
 
 const DeleteConfirmation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccessToast, showErrorToast } = useCustomToast()
   const { handleSubmit } = useForm()
-  const { logout } = useAuth()
-
-  const mutation = useMutation({
-    mutationFn: () => UsersService.deleteUserMe(),
-    onSuccess: () => {
-      showSuccessToast("Your account has been successfully deleted")
-      logout()
-    },
-    onError: handleError.bind(showErrorToast),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] })
-    },
-  })
 
   const onSubmit = async () => {
-    mutation.mutate()
+    return
   }
 
   return (
@@ -57,20 +37,23 @@ const DeleteConfirmation = () => {
               click <strong>"Confirm"</strong> to proceed. This action cannot be
               undone.
             </DialogDescription>
+            <p className="text-sm text-muted-foreground">
+              Account deletion is not available in the current backend API.
+            </p>
           </DialogHeader>
 
           <DialogFooter className="mt-4">
             <DialogClose asChild>
-              <Button variant="outline" disabled={mutation.isPending}>
+              <Button variant="outline">
                 Cancel
               </Button>
             </DialogClose>
             <LoadingButton
               variant="destructive"
               type="submit"
-              loading={mutation.isPending}
+              disabled
             >
-              Delete
+              Unavailable
             </LoadingButton>
           </DialogFooter>
         </form>

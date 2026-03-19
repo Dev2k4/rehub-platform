@@ -2,6 +2,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator
 import uuid
 import re
+from datetime import datetime
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -34,7 +35,7 @@ class UserPublicResponse(BaseModel):
     rating_avg: float
     rating_count: int
     completed_orders: int
-    created_at: str | None = None
+    created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

@@ -20,6 +20,10 @@ from app.models.user import User
 router = APIRouter(prefix="/auth", tags=["Auth"])
 limiter = Limiter(key_func=get_remote_address)
 
+
+def _role_claim(role: object) -> str:
+    return role.value if hasattr(role, "value") else str(role)
+
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=TokenResponse)
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user account."""
@@ -35,7 +39,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     user = await create_user(db, data)
 
     # Generate tokens
-    access_token = create_access_token(subject=str(user.id), role=user.role.value)
+    access_token = create_access_token(subject=str(user.id), role=_role_claim(user.role))
     refresh_token = create_refresh_token()
 
     # Save hashed refresh token
@@ -69,7 +73,7 @@ async def login(
         raise HTTPException(status_code=400, detail="Inactive user")
 
     # Generate tokens
-    access_token = create_access_token(subject=str(user.id), role=user.role.value)
+    access_token = create_access_token(subject=str(user.id), role=_role_claim(user.role))
     refresh_token = create_refresh_token()
 
     # Update refresh token in DB
@@ -98,7 +102,7 @@ async def refresh_access_token(data: RefreshRequest, db: AsyncSession = Depends(
         )
 
     # Rotate: generate new tokens, revoke old
-    new_access_token = create_access_token(subject=str(user.id), role=user.role.value)
+    new_access_token = create_access_token(subject=str(user.id), role=_role_claim(user.role))
     new_refresh_token = create_refresh_token()
 
     await update_refresh_token(db, user.id, hash_token(new_refresh_token))

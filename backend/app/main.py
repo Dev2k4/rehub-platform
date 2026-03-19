@@ -5,6 +5,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.api.v1 import api_router
 from app.core.config import settings
+from app.db.init_db import init_db
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -35,6 +36,11 @@ async def health_check():
     return {"status": "ok"}
 
 app.include_router(utils_router, prefix=settings.API_V1_STR)
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    await init_db()
 
 @app.get("/")
 def root():

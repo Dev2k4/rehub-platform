@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_user
+from app.core.config import settings
 from app.models.user import User
 from app.models.enums import ListingStatus, UserRole
 from app.schemas.listing import (
@@ -19,12 +20,14 @@ from app.crud import crud_listing
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
-UPLOAD_DIR = "uploads/listings"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+UPLOAD_DIR = os.path.join(settings.UPLOAD_DIR, "listings")
+ABS_UPLOAD_DIR = os.path.abspath(UPLOAD_DIR)
+os.makedirs(ABS_UPLOAD_DIR, exist_ok=True)
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
+@router.get("", response_model=ListingPaginated, include_in_schema=False)
 @router.get("/", response_model=ListingPaginated)
 async def list_listings(
     keyword: Optional[str] = None,
@@ -132,6 +135,7 @@ async def get_listing(
     listing_dict["images"] = images
     return ListingWithImages(**listing_dict)
 
+@router.post("", response_model=ListingRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=ListingRead, status_code=status.HTTP_201_CREATED)
 async def create_listing(
     data: ListingCreate,
@@ -218,12 +222,14 @@ async def upload_listing_image(
         raise HTTPException(status_code=400, detail="File too large")
         
     unique_filename = f"{uuid.uuid4().hex}.{ext}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    file_path = os.path.abspath(os.path.join(ABS_UPLOAD_DIR, unique_filename))
+    if not file_path.startswith(f"{ABS_UPLOAD_DIR}{os.sep}"):
+        raise HTTPException(status_code=400, detail="Invalid upload path")
     
     with open(file_path, "wb") as buffer:
         buffer.write(file_bytes)
         
-    image_url = f"/uploads/listings/{unique_filename}"
+    image_url = f"/{settings.UPLOAD_DIR}/listings/{unique_filename}"
     new_image = await crud_listing.add_listing_image(db, str(listing_id), image_url, is_primary)
     return new_image
 

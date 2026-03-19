@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation } from "@tanstack/react-query"
 import {
   createFileRoute,
   Link as RouterLink,
@@ -9,7 +8,6 @@ import {
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { LoginService } from "@/client"
 import { AuthLayout } from "@/components/Common/AuthLayout"
 import {
   Form,
@@ -23,7 +21,6 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import { isLoggedIn } from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
 
 const searchSchema = z.object({
   token: z.string().catch(""),
@@ -68,7 +65,7 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPassword() {
   const { token } = Route.useSearch()
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showErrorToast } = useCustomToast()
   const navigate = useNavigate()
 
   const form = useForm<FormData>({
@@ -81,19 +78,11 @@ function ResetPassword() {
     },
   })
 
-  const mutation = useMutation({
-    mutationFn: (data: { new_password: string; token: string }) =>
-      LoginService.resetPassword({ requestBody: data }),
-    onSuccess: () => {
-      showSuccessToast("Password updated successfully")
-      form.reset()
-      navigate({ to: "/login" })
-    },
-    onError: handleError.bind(showErrorToast),
-  })
-
   const onSubmit = (data: FormData) => {
-    mutation.mutate({ new_password: data.new_password, token })
+    void data
+    void token
+    showErrorToast("Password reset is not available in the current backend API")
+    navigate({ to: "/login" })
   }
 
   return (
@@ -147,7 +136,6 @@ function ResetPassword() {
             <LoadingButton
               type="submit"
               className="w-full"
-              loading={mutation.isPending}
             >
               Reset Password
             </LoadingButton>

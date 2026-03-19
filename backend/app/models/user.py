@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from sqlmodel import Field, SQLModel
 from sqlalchemy import Column, String
-from datetime import datetime, timezone
+from datetime import datetime
 from app.models.enums import UserRole
 
 class User(SQLModel, table=True):
@@ -36,5 +36,5 @@ class User(SQLModel, table=True):
     is_active: bool = Field(default=True)
     hashed_refresh_token: Optional[str] = Field(max_length=255, default=None)
     
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

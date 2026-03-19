@@ -1,7 +1,9 @@
 import uuid
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
+
 from pydantic import BaseModel, Field
+
 from app.models.enums import OrderStatus
 
 
@@ -12,6 +14,10 @@ class OrderBase(BaseModel):
 class OrderCreate(OrderBase):
 	buyer_id: uuid.UUID
 	seller_id: uuid.UUID
+	listing_id: uuid.UUID
+
+
+class OrderDirectCreate(BaseModel):
 	listing_id: uuid.UUID
 
 

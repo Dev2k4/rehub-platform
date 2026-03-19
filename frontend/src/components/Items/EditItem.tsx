@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { type ItemPublic, ItemsService } from "@/client"
+import { type ListingWithImages, ListingsService } from "@/client"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -38,7 +38,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>
 
 interface EditItemProps {
-  item: ItemPublic
+  item: ListingWithImages
   onSuccess: () => void
 }
 
@@ -59,7 +59,7 @@ const EditItem = ({ item, onSuccess }: EditItemProps) => {
 
   const mutation = useMutation({
     mutationFn: (data: FormData) =>
-      ItemsService.updateItem({ id: item.id, requestBody: data }),
+      ListingsService.updateListingApiV1ListingsListingIdPatch({ listingId: item.id, requestBody: data }),
     onSuccess: () => {
       showSuccessToast("Item updated successfully")
       setIsOpen(false)

@@ -20,7 +20,7 @@ const baseItems: Item[] = [
 export function AppSidebar() {
   const { user: currentUser } = useAuth()
 
-  const items = currentUser?.is_superuser
+  const items = currentUser?.role === "admin"
     ? [...baseItems, { icon: Users, title: "Admin", path: "/admin" }]
     : baseItems
 

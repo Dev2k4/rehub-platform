@@ -10,7 +10,7 @@ from app.models.listing import Listing
 from app.models.order import Order
 from app.models.enums import OfferStatus, ListingStatus, OrderStatus
 from app.schemas.offer import OfferCreate, OfferRead, OfferStatusUpdate
-from app.crud import crud_offer
+from app.crud import crud_notification, crud_offer
 
 router = APIRouter(prefix="/offers", tags=["offers"])
 
@@ -32,6 +32,18 @@ async def create_offer(
     """
     try:
         offer = await crud_offer.create_offer(db, offer_in, current_user.id)
+
+        result = await db.execute(select(Listing).where(Listing.id == offer.listing_id))
+        listing = result.scalar_one_or_none()
+        if listing:
+            await crud_notification.create_notification(
+                db=db,
+                user_id=listing.seller_id,
+                type="offer_received",
+                title="New offer received",
+                message=f"You received a new offer for listing '{listing.title}'.",
+                data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
+            )
         return offer
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -188,6 +200,29 @@ async def update_offer_status(
 
     await db.commit()
     await db.refresh(updated_offer)
+
+    if status_update.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED, OfferStatus.COUNTERED}:
+        notification_type = {
+            OfferStatus.ACCEPTED: "offer_accepted",
+            OfferStatus.REJECTED: "offer_rejected",
+            OfferStatus.COUNTERED: "offer_countered",
+        }[status_update.status]
+
+        if is_seller:
+            target_user_id = offer.buyer_id
+            message = f"Your offer for '{listing.title}' was updated to '{status_update.status}'."
+        else:
+            target_user_id = listing.seller_id
+            message = f"Buyer responded to a counter offer for '{listing.title}' with '{status_update.status}'."
+
+        await crud_notification.create_notification(
+            db=db,
+            user_id=target_user_id,
+            type=notification_type,
+            title="Offer status updated",
+            message=message,
+            data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
+        )
     
     return updated_offer
 

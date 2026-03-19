@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from sqlmodel import Field, SQLModel
 from sqlalchemy import Column, String
-from datetime import datetime, timezone
+from datetime import datetime
 from app.models.enums import ConditionGrade, ListingStatus
 
 class Listing(SQLModel, table=True):
@@ -19,8 +19,8 @@ class Listing(SQLModel, table=True):
     condition_grade: ConditionGrade = Field(sa_column=Column(String(50)))
     status: ListingStatus = Field(default=ListingStatus.PENDING, sa_column=Column(String(50)))
     
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ListingImage(SQLModel, table=True):
     __tablename__ = "listing_images"
@@ -29,4 +29,4 @@ class ListingImage(SQLModel, table=True):
     listing_id: uuid.UUID = Field(foreign_key="listings.id", ondelete="CASCADE")
     image_url: str
     is_primary: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)

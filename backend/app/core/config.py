@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # Uploads
+    UPLOAD_DIR: str = "uploads"
     
     model_config = SettingsConfigDict(
         env_file="../.env",

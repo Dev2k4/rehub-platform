@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from sqlmodel import Field, SQLModel
 from sqlalchemy import Column, String
-from datetime import datetime, timezone
+from datetime import datetime
 from app.models.enums import OfferStatus
 
 class Offer(SQLModel, table=True):
@@ -15,5 +15,5 @@ class Offer(SQLModel, table=True):
     offer_price: Decimal = Field(decimal_places=2, max_digits=12)
     status: OfferStatus = Field(default=OfferStatus.PENDING, sa_column=Column(String(50)))
     
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

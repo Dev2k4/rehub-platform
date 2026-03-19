@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { type ItemCreate, ItemsService } from "@/client"
+import { ConditionGrade, type ListingCreate, ListingsService } from "@/client"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -33,28 +33,33 @@ import { handleError } from "@/utils"
 const formSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
+  price: z.coerce.number().positive({ message: "Price must be greater than 0" }),
+  category_id: z.string().min(1, { message: "Category ID is required" }),
 })
 
 type FormData = z.infer<typeof formSchema>
+type FormInput = z.input<typeof formSchema>
 
 const AddItem = () => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
 
-  const form = useForm<FormData>({
+  const form = useForm<FormInput, unknown, FormData>({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
       title: "",
       description: "",
+      price: 0,
+      category_id: "",
     },
   })
 
   const mutation = useMutation({
-    mutationFn: (data: ItemCreate) =>
-      ItemsService.createItem({ requestBody: data }),
+    mutationFn: (data: ListingCreate) =>
+      ListingsService.createListingApiV1ListingsPost({ requestBody: data }),
     onSuccess: () => {
       showSuccessToast("Item created successfully")
       form.reset()
@@ -67,7 +72,14 @@ const AddItem = () => {
   })
 
   const onSubmit = (data: FormData) => {
-    mutation.mutate(data)
+    mutation.mutate({
+      title: data.title,
+      description: data.description,
+      price: data.price,
+      category_id: data.category_id,
+      is_negotiable: true,
+      condition_grade: ConditionGrade.LIKE_NEW,
+    })
   }
 
   return (
@@ -117,6 +129,48 @@ const AddItem = () => {
                     <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Input placeholder="Description" type="text" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Price <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="100"
+                        type="number"
+                        step="0.01"
+                        name={field.name}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        value={typeof field.value === "number" ? field.value : ""}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        required
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Category ID <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Category UUID" type="text" {...field} required />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
