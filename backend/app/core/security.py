@@ -34,3 +34,26 @@ def hash_token(token: str) -> str:
 
 def decode_access_token(token: str) -> dict[str, Any]:
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+
+def create_email_verification_token(email: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=settings.EMAIL_VERIFICATION_EXPIRE_HOURS)
+    to_encode = {
+        "exp": expire,
+        "sub": email,
+        "type": "email_verification",
+    }
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_email_verification_token(token: str) -> str | None:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "email_verification":
+            return None
+        email = payload.get("sub")
+        if not isinstance(email, str):
+            return None
+        return email
+    except Exception:
+        return None
