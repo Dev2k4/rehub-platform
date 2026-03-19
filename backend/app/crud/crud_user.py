@@ -83,3 +83,20 @@ async def update_user(db: AsyncSession, user_id, data) -> User:
     # Return refreshed user
     result = await db.execute(select(User).where(User.id == uuid.UUID(str(user_id))))
     return result.scalar_one()
+
+
+async def mark_user_email_verified(db: AsyncSession, email: str) -> Optional[User]:
+    from datetime import datetime, timezone
+
+    user = await get_user_by_email(db, email)
+    if not user:
+        return None
+
+    await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(is_email_verified=True, updated_at=datetime.now(timezone.utc))
+    )
+    await db.commit()
+    await db.refresh(user)
+    return user
