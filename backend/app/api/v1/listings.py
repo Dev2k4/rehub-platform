@@ -3,6 +3,7 @@ import os
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import get_db, get_current_user
 from app.core.config import settings
@@ -16,7 +17,7 @@ from app.schemas.listing import (
     ListingPaginated,
     ListingImageRead
 )
-from app.crud import crud_listing
+from app.crud import crud_listing, crud_category
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
@@ -143,7 +144,15 @@ async def create_listing(
     db: AsyncSession = Depends(get_db)
 ):
     """Requires JWT: Create a new listing. Status default to PENDING."""
-    new_listing = await crud_listing.create_listing(db, data, str(current_user.id))
+    category = await crud_category.get_category_by_id(db, str(data.category_id))
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    try:
+        new_listing = await crud_listing.create_listing(db, data, str(current_user.id))
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid category_id")
     return new_listing
 
 @router.patch("/{listing_id}", response_model=ListingRead)
@@ -167,6 +176,11 @@ async def update_listing(
     if data.status is not None and current_user.role != UserRole.ADMIN:
         if data.status != ListingStatus.HIDDEN:
             raise HTTPException(status_code=403, detail="Only admins can approve/alter statuses besides hiding.")
+
+    if data.category_id is not None:
+        category = await crud_category.get_category_by_id(db, str(data.category_id))
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
             
     updated_listing = await crud_listing.update_listing(db, str(listing_id), data)
     return updated_listing
