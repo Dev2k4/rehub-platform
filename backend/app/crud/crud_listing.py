@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import delete, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,7 +57,7 @@ async def update_listing(db: AsyncSession, listing_id: str, obj_in: ListingUpdat
     if not update_data:
         return await get_listing(db, listing_id)
 
-    update_data["updated_at"] = datetime.now(timezone.utc)
+    update_data["updated_at"] = datetime.utcnow()
 
     await db.execute(
         update(Listing)
@@ -71,7 +71,7 @@ async def soft_delete_listing(db: AsyncSession, listing_id: str) -> None:
     await db.execute(
         update(Listing)
         .where(Listing.id == _to_uuid(listing_id))
-        .values(status=ListingStatus.HIDDEN, updated_at=datetime.now(timezone.utc))
+        .values(status=ListingStatus.HIDDEN, updated_at=datetime.utcnow())
     )
     await db.commit()
 
