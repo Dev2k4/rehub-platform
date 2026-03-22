@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_, or_, update
@@ -10,16 +10,24 @@ from app.schemas.offer import OfferCreate, OfferStatusUpdate
 from app.core.config import settings
 
 
+def utc_now() -> datetime:
+    """
+    Return timezone-naive UTC datetime for database compatibility.
+    Database columns use TIMESTAMP WITHOUT TIME ZONE.
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 async def expire_stale_offers(db: AsyncSession) -> int:
     """Expire PENDING/COUNTERED offers older than configured TTL."""
-    cutoff = datetime.utcnow() - timedelta(hours=settings.OFFER_EXPIRE_HOURS)
+    cutoff = utc_now() - timedelta(hours=settings.OFFER_EXPIRE_HOURS)
     result = await db.execute(
         update(Offer)
         .where(
             Offer.created_at <= cutoff,
             Offer.status.in_([OfferStatus.PENDING, OfferStatus.COUNTERED]),
         )
-        .values(status=OfferStatus.EXPIRED, updated_at=datetime.utcnow())
+        .values(status=OfferStatus.EXPIRED, updated_at=utc_now())
     )
     await db.commit()
     return int(result.rowcount or 0)
@@ -143,34 +151,78 @@ async def get_offer_by_id(db: AsyncSession, offer_id: uuid.UUID) -> Offer:
     
 async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: OfferStatusUpdate) -> tuple[Offer, list[Offer]]:
     """
-    Cập nhật trạng thái offer.
+    Cập nhật trạng thái offer với proper locking for ACCEPT operations.
     Logic:
     - Seller có thể chuyển từ PENDING sang: ACCEPTED, REJECTED, COUNTERED
     - Buyer có thể chấp nhận Counter (chuyển từ COUNTERED sang ACCEPTED)
     - Buyer có thể hủy offer PENDING của mình (chuyển sang REJECTED)
 
     Khi ACCEPTED:
+    - Lock listing để đảm bảo vẫn ACTIVE
+    - Lock offer để update
     - Tự động REJECT tất cả các offer PENDING/COUNTERED khác trên cùng listing
 
     Returns:
         tuple: (updated_offer, list_of_rejected_offers)
+
+    Raises:
+        ValueError: If validation fails
     """
     await expire_stale_offers(db)
-    result = await db.execute(select(Offer).where(Offer.id == offer_id))
-    offer = result.scalar_one_or_none()
-    if not offer:
-        raise ValueError("Offer not found")
-    
-    old_status = offer.status
+
     new_status = obj_in.status
-    
+
+    # If accepting offer, need to lock listing first to prevent race conditions
+    if new_status == OfferStatus.ACCEPTED:
+        # Get offer first to know listing_id
+        result = await db.execute(select(Offer).where(Offer.id == offer_id))
+        offer = result.scalar_one_or_none()
+        if not offer:
+            raise ValueError("Offer not found")
+
+        # Lock the listing to ensure it's still ACTIVE
+        result = await db.execute(
+            select(Listing)
+            .where(Listing.id == offer.listing_id)
+            .with_for_update()
+        )
+        listing = result.scalar_one_or_none()
+
+        if not listing:
+            raise ValueError("Listing not found")
+
+        # Double-check listing is still available
+        if listing.status != ListingStatus.ACTIVE:
+            raise ValueError("Listing is no longer available")
+
+        # Now lock the offer for update
+        result = await db.execute(
+            select(Offer)
+            .where(Offer.id == offer_id)
+            .with_for_update()
+        )
+        offer = result.scalar_one()
+    else:
+        # For non-ACCEPT operations, simple lock on offer
+        result = await db.execute(
+            select(Offer)
+            .where(Offer.id == offer_id)
+            .with_for_update()
+        )
+        offer = result.scalar_one_or_none()
+        if not offer:
+            raise ValueError("Offer not found")
+
+    old_status = offer.status
+
     # Cập nhật status
     offer.status = new_status
+    offer.updated_at = utc_now()
 
     # Counter offer can update the negotiated price.
     if new_status == OfferStatus.COUNTERED and obj_in.offer_price is not None:
         offer.offer_price = obj_in.offer_price
-    
+
     # Nếu status chuyển sang ACCEPTED, tự động REJECT các offer PENDING/COUNTERED khác
     rejected_offers = []
     if new_status == OfferStatus.ACCEPTED and old_status != OfferStatus.ACCEPTED:
@@ -182,11 +234,16 @@ async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: Off
                     Offer.status.in_([OfferStatus.PENDING, OfferStatus.COUNTERED])
                 )
             )
+            .with_for_update()
         )
         other_offers = list(result.scalars().all())
         for other_offer in other_offers:
             other_offer.status = OfferStatus.REJECTED
+            other_offer.updated_at = utc_now()
             rejected_offers.append(other_offer)
 
     db.add(offer)
+    # Note: No commit here - let the calling code handle transaction commit
+    # to allow for additional operations (like creating order) in same transaction
+
     return offer, rejected_offers
