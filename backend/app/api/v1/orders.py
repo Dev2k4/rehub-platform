@@ -29,11 +29,18 @@ async def create_direct_order(
 	if listing.seller_id == current_user.id:
 		raise HTTPException(status_code=400, detail="Cannot buy your own listing")
 
-	order = await crud_order.create_direct_order(db, current_user.id, listing)
+	try:
+		order, rejected_offers = await crud_order.create_direct_order(db, current_user.id, listing)
+	except ValueError as e:
+		raise HTTPException(status_code=400, detail=str(e))
+
+	# Send emails
 	buyer = await crud_user.get_user_by_id(db, current_user.id)
 	seller = await crud_user.get_user_by_id(db, listing.seller_id)
 	if buyer and seller:
 		await send_order_created_email(buyer=buyer, seller=seller, order=order, listing_title=listing.title)
+
+	# Notify seller about new order
 	await crud_notification.create_notification(
 		db=db,
 		user_id=listing.seller_id,
@@ -42,6 +49,28 @@ async def create_direct_order(
 		message=f"A buyer placed an order for your listing '{listing.title}'.",
 		data={"order_id": str(order.id), "listing_id": str(listing.id)},
 	)
+
+	# Notify buyer about order creation
+	await crud_notification.create_notification(
+		db=db,
+		user_id=current_user.id,
+		type=NotificationType.ORDER_CREATED,
+		title="Order created",
+		message=f"Your order for '{listing.title}' has been created successfully.",
+		data={"order_id": str(order.id), "listing_id": str(listing.id)},
+	)
+
+	# Notify other buyers whose offers were rejected due to Buy Now
+	for rejected_offer in rejected_offers:
+		await crud_notification.create_notification(
+			db=db,
+			user_id=rejected_offer.buyer_id,
+			type=NotificationType.OFFER_REJECTED,
+			title="Offer rejected",
+			message=f"Your offer for '{listing.title}' was rejected because the item was purchased by another buyer.",
+			data={"offer_id": str(rejected_offer.id), "listing_id": str(listing.id)},
+		)
+
 	return order
 
 
@@ -92,6 +121,8 @@ async def complete_order(
 	seller = await crud_user.get_user_by_id(db, order.seller_id)
 	if buyer and seller:
 		await send_order_completed_email(buyer=buyer, seller=seller, order=updated_order)
+
+	# Notify seller
 	await crud_notification.create_notification(
 		db=db,
 		user_id=order.seller_id,
@@ -100,6 +131,17 @@ async def complete_order(
 		message="Buyer marked the order as completed.",
 		data={"order_id": str(order.id), "listing_id": str(order.listing_id)},
 	)
+
+	# Notify buyer
+	await crud_notification.create_notification(
+		db=db,
+		user_id=order.buyer_id,
+		type=NotificationType.ORDER_COMPLETED,
+		title="Order completed",
+		message="Your order has been marked as completed.",
+		data={"order_id": str(order.id), "listing_id": str(order.listing_id)},
+	)
+
 	return updated_order
 
 
