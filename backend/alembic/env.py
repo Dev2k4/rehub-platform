@@ -1,4 +1,6 @@
 import asyncio
+import sys
+from pathlib import Path
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -7,6 +9,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
 from alembic import context
+
+# Add parent directory to Python path for module imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from app.core.config import settings
 
 # This is the Alembic Config object, which provides
