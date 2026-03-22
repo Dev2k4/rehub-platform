@@ -1,8 +1,10 @@
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -17,21 +19,62 @@ offer_expiry_task: asyncio.Task | None = None
 
 limiter = Limiter(key_func=get_remote_address)
 
+
+async def _offer_expiry_worker() -> None:
+    """Background worker to expire stale offers."""
+    while True:
+        try:
+            async with AsyncSessionLocal() as session:
+                expired_count = await crud_offer.expire_stale_offers(session)
+                if expired_count:
+                    logger.info("Expired %s stale offers", expired_count)
+        except Exception:
+            logger.exception("Offer expiry worker failed")
+
+        await asyncio.sleep(settings.OFFER_EXPIRY_JOB_INTERVAL_MINUTES * 60)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager for startup/shutdown events."""
+    global offer_expiry_task
+
+    # Startup
+    await init_db()
+    offer_expiry_task = asyncio.create_task(_offer_expiry_worker())
+    logger.info("Application started")
+
+    yield
+
+    # Shutdown
+    if offer_expiry_task:
+        offer_expiry_task.cancel()
+        try:
+            await offer_expiry_task
+        except asyncio.CancelledError:
+            pass
+    logger.info("Application shutdown complete")
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Set all CORS enabled origins
+# GZip compression for responses
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# CORS - use explicit origins from config for security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For base template simplicity. In prod, use split list from settings.BACKEND_CORS_ORIGINS
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
@@ -45,36 +88,6 @@ async def health_check():
 
 app.include_router(utils_router, prefix=settings.API_V1_STR)
 
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    await init_db()
-
-    async def _offer_expiry_worker() -> None:
-        while True:
-            try:
-                async with AsyncSessionLocal() as session:
-                    expired_count = await crud_offer.expire_stale_offers(session)
-                    if expired_count:
-                        logger.info("Expired %s stale offers", expired_count)
-            except Exception:
-                logger.exception("Offer expiry worker failed")
-
-            await asyncio.sleep(settings.OFFER_EXPIRY_JOB_INTERVAL_MINUTES * 60)
-
-    global offer_expiry_task
-    offer_expiry_task = asyncio.create_task(_offer_expiry_worker())
-
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    global offer_expiry_task
-    if offer_expiry_task:
-        offer_expiry_task.cancel()
-        try:
-            await offer_expiry_task
-        except asyncio.CancelledError:
-            pass
 
 @app.get("/")
 def root():
