@@ -35,7 +35,9 @@ def _role_claim(role: object) -> str:
     return role.value if hasattr(role, "value") else str(role)
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=TokenResponse)
+@limiter.limit("3/hour")  # Strict limit on registration to prevent abuse
 async def register(
+    request: Request,  # Required for limiter
     data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):
