@@ -33,6 +33,34 @@ async def get_listing_images(db: AsyncSession, listing_id: str) -> list[ListingI
     result = await db.execute(select(ListingImage).where(ListingImage.listing_id == _to_uuid(listing_id)))
     return list(result.scalars().all())
 
+
+async def get_images_for_listings(
+    db: AsyncSession, listing_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[ListingImage]]:
+    """
+    Batch load images for multiple listings in a single query.
+    Returns a dict mapping listing_id -> list of images.
+    This fixes N+1 query problem when fetching listings with images.
+    """
+    if not listing_ids:
+        return {}
+
+    result = await db.execute(
+        select(ListingImage)
+        .where(ListingImage.listing_id.in_(listing_ids))
+        .order_by(ListingImage.listing_id, ListingImage.is_primary.desc())
+    )
+    images = result.scalars().all()
+
+    # Group images by listing_id
+    images_by_listing: dict[uuid.UUID, list[ListingImage]] = {}
+    for img in images:
+        if img.listing_id not in images_by_listing:
+            images_by_listing[img.listing_id] = []
+        images_by_listing[img.listing_id].append(img)
+
+    return images_by_listing
+
 async def add_listing_image(db: AsyncSession, listing_id: str, image_url: str, is_primary: bool = False) -> ListingImage:
     # If this is the primary image, unfollow others
     if is_primary:
