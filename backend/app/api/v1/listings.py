@@ -4,11 +4,13 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.future import select
 
 from app.api.dependencies import get_db, get_current_user
 from app.core.config import settings
 from app.models.user import User
-from app.models.enums import ListingStatus, UserRole
+from app.models.offer import Offer
+from app.models.enums import ListingStatus, UserRole, OfferStatus
 from app.schemas.listing import (
     ListingRead,
     ListingCreate,
@@ -54,12 +56,14 @@ async def list_listings(
         limit=limit
     )
     
-    # We populate the images for each listing.
+    # Batch load all images in ONE query (fixes N+1 problem)
+    listing_ids = [item.id for item in items]
+    images_by_listing = await crud_listing.get_images_for_listings(db, listing_ids)
+
     listings_with_images = []
     for item in items:
-        images = await crud_listing.get_listing_images(db, str(item.id))
         listing_dict = item.model_dump()
-        listing_dict["images"] = images
+        listing_dict["images"] = images_by_listing.get(item.id, [])
         listings_with_images.append(ListingWithImages(**listing_dict))
 
     return ListingPaginated(
@@ -88,11 +92,14 @@ async def get_my_listings(
         limit=limit
     )
     
+    # Batch load all images in ONE query (fixes N+1 problem)
+    listing_ids = [item.id for item in items]
+    images_by_listing = await crud_listing.get_images_for_listings(db, listing_ids)
+
     listings_with_images = []
     for item in items:
-        images = await crud_listing.get_listing_images(db, str(item.id))
         listing_dict = item.model_dump()
-        listing_dict["images"] = images
+        listing_dict["images"] = images_by_listing.get(item.id, [])
         listings_with_images.append(ListingWithImages(**listing_dict))
 
     return ListingPaginated(
@@ -112,11 +119,20 @@ async def delete_listing_image_route(
     image = await crud_listing.get_listing_image(db, str(image_id))
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
-        
+
     listing = await crud_listing.get_listing(db, str(image.listing_id))
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to delete this image")
-        
+
+    # Cannot delete last image of an ACTIVE listing
+    if listing.status == ListingStatus.ACTIVE:
+        images = await crud_listing.get_listing_images(db, str(listing.id))
+        if len(images) <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete the last image of an active listing"
+            )
+
     await crud_listing.delete_listing_image(db, str(image_id))
     return None
 
@@ -166,13 +182,28 @@ async def update_listing(
     listing = await crud_listing.get_listing(db, str(listing_id))
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
-        
+
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to edit this listing")
 
     if listing.status == ListingStatus.SOLD:
         raise HTTPException(status_code=400, detail="Cannot modify sold listing")
-        
+
+    # Check for active offers (only for non-admin users)
+    if current_user.role != UserRole.ADMIN:
+        result = await db.execute(
+            select(Offer).where(
+                Offer.listing_id == listing.id,
+                Offer.status.in_([OfferStatus.PENDING, OfferStatus.COUNTERED])
+            )
+        )
+        active_offers = result.scalars().first()
+        if active_offers:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot modify listing while there are pending or countered offers"
+            )
+
     if data.status is not None and current_user.role != UserRole.ADMIN:
         if data.status != ListingStatus.HIDDEN:
             raise HTTPException(status_code=403, detail="Only admins can approve/alter statuses besides hiding.")
@@ -181,7 +212,7 @@ async def update_listing(
         category = await crud_category.get_category_by_id(db, str(data.category_id))
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
-            
+
     updated_listing = await crud_listing.update_listing(db, str(listing_id), data)
     return updated_listing
 
