@@ -167,23 +167,35 @@ async def update_offer_status(
     if is_seller and status_update.status == OfferStatus.COUNTERED and status_update.offer_price is None:
         raise HTTPException(status_code=400, detail="Countered status requires offer_price")
     
-    # Buyer: chỉ được chấp nhận COUNTERED offers
-    if is_buyer and offer.status != OfferStatus.COUNTERED:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Buyer can only accept or reject countered offers. Current status: {offer.status}"
-        )
-
-    if is_buyer and status_update.status not in {OfferStatus.ACCEPTED, OfferStatus.REJECTED}:
-        raise HTTPException(status_code=400, detail="Buyer can only set ACCEPTED/REJECTED for countered offer")
+    # Buyer: có thể cancel offer PENDING của mình, hoặc respond COUNTERED offers
+    if is_buyer:
+        # Buyer can cancel their own PENDING offer
+        if offer.status == OfferStatus.PENDING:
+            if status_update.status != OfferStatus.REJECTED:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Buyer can only cancel (REJECTED) their pending offer"
+                )
+        # Buyer can accept/reject countered offers
+        elif offer.status == OfferStatus.COUNTERED:
+            if status_update.status not in {OfferStatus.ACCEPTED, OfferStatus.REJECTED}:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Buyer can only set ACCEPTED/REJECTED for countered offer"
+                )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Buyer cannot update offer with status: {offer.status}"
+            )
 
     if status_update.status == OfferStatus.ACCEPTED and listing.status == ListingStatus.SOLD:
         raise HTTPException(status_code=400, detail="Listing already sold")
     
     # Cập nhật status
     previous_status = offer.status
-    updated_offer = await crud_offer.update_offer_status(db, offer_id, status_update)
-    
+    updated_offer, rejected_offers = await crud_offer.update_offer_status(db, offer_id, status_update)
+
     # Nếu status là ACCEPTED, tạo Order tự động và cập nhật listing
     if status_update.status == OfferStatus.ACCEPTED:
         order = Order(
@@ -194,13 +206,46 @@ async def update_offer_status(
             status=OrderStatus.PENDING
         )
         db.add(order)
-        
+
         # Cập nhật listing status thành SOLD
         listing.status = ListingStatus.SOLD
         db.add(listing)
 
     await db.commit()
     await db.refresh(updated_offer)
+
+    # Gửi notification cho các buyers khác bị auto-reject
+    if rejected_offers:
+        for rejected_offer in rejected_offers:
+            await crud_notification.create_notification(
+                db=db,
+                user_id=rejected_offer.buyer_id,
+                type=NotificationType.OFFER_REJECTED,
+                title="Offer rejected",
+                message=f"Your offer for '{listing.title}' was rejected because another offer was accepted.",
+                data={"offer_id": str(rejected_offer.id), "listing_id": str(listing.id)},
+            )
+
+    # Gửi ORDER_CREATED notification khi accept offer tạo order
+    if status_update.status == OfferStatus.ACCEPTED:
+        # Notify buyer
+        await crud_notification.create_notification(
+            db=db,
+            user_id=offer.buyer_id,
+            type=NotificationType.ORDER_CREATED,
+            title="Order created",
+            message=f"Your offer for '{listing.title}' was accepted. Order has been created.",
+            data={"listing_id": str(listing.id)},
+        )
+        # Notify seller
+        await crud_notification.create_notification(
+            db=db,
+            user_id=listing.seller_id,
+            type=NotificationType.ORDER_CREATED,
+            title="Order created",
+            message=f"You accepted an offer for '{listing.title}'. Order has been created.",
+            data={"listing_id": str(listing.id)},
+        )
 
     if status_update.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED, OfferStatus.COUNTERED}:
         notification_type = {

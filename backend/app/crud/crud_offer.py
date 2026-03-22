@@ -141,16 +141,19 @@ async def get_offer_by_id(db: AsyncSession, offer_id: uuid.UUID) -> Offer:
     result = await db.execute(select(Offer).where(Offer.id == offer_id))
     return result.scalar_one_or_none()
     
-async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: OfferStatusUpdate) -> Offer:
+async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: OfferStatusUpdate) -> tuple[Offer, list[Offer]]:
     """
     Cập nhật trạng thái offer.
     Logic:
     - Seller có thể chuyển từ PENDING sang: ACCEPTED, REJECTED, COUNTERED
     - Buyer có thể chấp nhận Counter (chuyển từ COUNTERED sang ACCEPTED)
-    - Bất kỳ ai cũng có thể hủy bỏ (chuyển sang REJECTED)
-    
+    - Buyer có thể hủy offer PENDING của mình (chuyển sang REJECTED)
+
     Khi ACCEPTED:
-    - Tự động REJECT tất cả các offer PENDING khác trên cùng listing
+    - Tự động REJECT tất cả các offer PENDING/COUNTERED khác trên cùng listing
+
+    Returns:
+        tuple: (updated_offer, list_of_rejected_offers)
     """
     await expire_stale_offers(db)
     result = await db.execute(select(Offer).where(Offer.id == offer_id))
@@ -168,20 +171,22 @@ async def update_offer_status(db: AsyncSession, offer_id: uuid.UUID, obj_in: Off
     if new_status == OfferStatus.COUNTERED and obj_in.offer_price is not None:
         offer.offer_price = obj_in.offer_price
     
-    # Nếu status chuyển sang ACCEPTED, tự động REJECT các offer PENDING khác
+    # Nếu status chuyển sang ACCEPTED, tự động REJECT các offer PENDING/COUNTERED khác
+    rejected_offers = []
     if new_status == OfferStatus.ACCEPTED and old_status != OfferStatus.ACCEPTED:
         result = await db.execute(
             select(Offer).where(
                 and_(
                     Offer.listing_id == offer.listing_id,
                     Offer.id != offer.id,
-                    Offer.status == OfferStatus.PENDING
+                    Offer.status.in_([OfferStatus.PENDING, OfferStatus.COUNTERED])
                 )
             )
         )
         other_offers = list(result.scalars().all())
         for other_offer in other_offers:
             other_offer.status = OfferStatus.REJECTED
-    
+            rejected_offers.append(other_offer)
+
     db.add(offer)
-    return offer
+    return offer, rejected_offers
