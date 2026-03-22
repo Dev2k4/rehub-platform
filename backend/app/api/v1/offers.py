@@ -191,10 +191,13 @@ async def update_offer_status(
 
     if status_update.status == OfferStatus.ACCEPTED and listing.status == ListingStatus.SOLD:
         raise HTTPException(status_code=400, detail="Listing already sold")
-    
-    # Cập nhật status
+
+    # Cập nhật status với locking to prevent race conditions
     previous_status = offer.status
-    updated_offer, rejected_offers = await crud_offer.update_offer_status(db, offer_id, status_update)
+    try:
+        updated_offer, rejected_offers = await crud_offer.update_offer_status(db, offer_id, status_update)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Nếu status là ACCEPTED, tạo Order tự động và cập nhật listing
     if status_update.status == OfferStatus.ACCEPTED:
