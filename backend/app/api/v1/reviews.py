@@ -15,44 +15,45 @@ router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
 @router.post("", response_model=ReviewRead, status_code=status.HTTP_201_CREATED)
 async def create_review(
-	data: ReviewCreate,
-	current_user: Annotated[User, Depends(get_current_user)],
-	db: AsyncSession = Depends(get_db),
+    data: ReviewCreate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
 ):
-	order = await crud_order.get_order_by_id(db, data.order_id)
-	if not order:
-		raise HTTPException(status_code=404, detail="Order not found")
+    order = await crud_order.get_order_by_id(db, data.order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
 
-	if order.status != OrderStatus.COMPLETED:
-		raise HTTPException(status_code=400, detail="Cannot review an incomplete order")
+    if order.status != OrderStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Cannot review an incomplete order")
 
-	if order.buyer_id != current_user.id and order.seller_id != current_user.id:
-		raise HTTPException(status_code=403, detail="Not authorized to review this order")
+    if order.buyer_id != current_user.id and order.seller_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to review this order")
 
-	existing = await crud_review.get_review_by_order(db, data.order_id)
-	if existing:
-		raise HTTPException(status_code=400, detail="Review already exists for this order")
+    # Check if current user has already reviewed this order
+    existing = await crud_review.get_review_by_order_and_reviewer(db, data.order_id, current_user.id)
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already reviewed this order")
 
-	# Determine reviewee: if current user is buyer, reviewee is seller, else buyer
-	reviewee_id = order.seller_id if current_user.id == order.buyer_id else order.buyer_id
+    # Determine reviewee: if current user is buyer, reviewee is seller, else buyer
+    reviewee_id = order.seller_id if current_user.id == order.buyer_id else order.buyer_id
 
-	review = await crud_review.create_review(
-		db,
-		order_id=data.order_id,
-		reviewer_id=current_user.id,
-		reviewee_id=reviewee_id,
-		rating=data.rating,
-		comment=data.comment
-	)
-	await crud_notification.create_notification(
-		db=db,
-		user_id=reviewee_id,
-		type=NotificationType.REVIEW_RECEIVED,
-		title="New review received",
-		message="You received a new review from a completed order.",
-		data={"order_id": str(data.order_id), "review_id": str(review.id)},
-	)
-	return review
+    review = await crud_review.create_review(
+        db,
+        order_id=data.order_id,
+        reviewer_id=current_user.id,
+        reviewee_id=reviewee_id,
+        rating=data.rating,
+        comment=data.comment
+    )
+    await crud_notification.create_notification(
+        db=db,
+        user_id=reviewee_id,
+        type=NotificationType.REVIEW_RECEIVED,
+        title="New review received",
+        message="You received a new review from a completed order.",
+        data={"order_id": str(data.order_id), "review_id": str(review.id)},
+    )
+    return review
 
 
 @router.get("/user/{user_id}", response_model=list[ReviewRead])
