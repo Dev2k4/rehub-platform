@@ -29,9 +29,10 @@ class ListingRead(ListingBase):
     id: uuid.UUID
     seller_id: uuid.UUID
     status: ListingStatus
+    rejection_reason: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 class ListingImageRead(BaseModel):
