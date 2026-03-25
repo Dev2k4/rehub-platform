@@ -1,5 +1,12 @@
-import { Menu, Search, Package, PlusCircle, Bell, User } from "lucide-react"
-import { Link } from "@tanstack/react-router"
+import { FiMenu, FiSearch, FiPackage, FiPlusCircle, FiBell } from "react-icons/fi"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
+import { Box, Button, Input as ChakraInput, HStack, VStack } from "@chakra-ui/react"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { UserDropdownMenu } from "./UserDropdownMenu"
+import { AuthButtons } from "./AuthButtons"
+import { logoutUser } from "@/features/auth/api/auth.api"
+import { clearTokens } from "@/features/auth/utils/auth.storage"
 
 type MarketplaceHeaderProps = {
   keyword: string
@@ -8,67 +15,163 @@ type MarketplaceHeaderProps = {
 }
 
 export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu }: MarketplaceHeaderProps) {
+  const { user, isAuthenticated, isLoading } = useAuthUser()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+    } catch (error) {
+      console.error("Logout error:", error)
+    } finally {
+      clearTokens()
+      queryClient.invalidateQueries({ queryKey: ["auth"] })
+      navigate({ to: "/" })
+    }
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-lg md:px-6 md:py-4">
-      <div className="mx-auto flex max-w-[1400px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 md:gap-8">
-        {/* Top Header Mobile / Full Header Left Desktop */}
-        <div className="flex items-center justify-between w-full sm:w-auto">
-          <div className="flex items-center gap-3 md:gap-4">
-            <button
-              type="button"
-              className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200"
+    <Box
+      as="header"
+      position="sticky"
+      top={0}
+      zIndex={50}
+      borderBottom="1px"
+      borderColor="gray.200"
+      bg="rgba(255, 255, 255, 0.8)"
+      backdropFilter="blur(8px)"
+      px={{ base: 4, md: 6 }}
+      py={{ base: 3, md: 4 }}
+      boxShadow="sm"
+    >
+      <VStack maxW="1400px" mx="auto" gap={3} align="stretch">
+        {/* Top Row: Logo + Mobile Menu Button + Mobile Action Button */}
+        <HStack justify="space-between" w="full">
+          <HStack gap={{ base: 3, md: 4 }}>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onOpenCategoryMenu}
+              p={0}
+              w="40px"
+              h="40px"
+              display={{ base: "flex", lg: "none" }}
+              alignItems="center"
+              justifyContent="center"
+              bg="gray.100"
+              _hover={{ bg: "gray.200" }}
             >
-              <Menu className="h-5 w-5" />
-            </button>
-            
-            <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600">
-                <Package className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-semibold text-gray-900">ReHub</span>
+              <FiMenu className="w-5 h-5" />
+            </Button>
+
+            <Link to="/" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Box
+                w="40px"
+                h="40px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                borderRadius="xl"
+                bgGradient="linear(to-br, blue.600, purple.600)"
+              >
+                <FiPackage className="w-6 h-6 text-white" />
+              </Box>
+              <Box fontSize="xl" fontWeight="semibold" color="gray.900" display={{ base: "none", sm: "block" }}>
+                ReHub
+              </Box>
             </Link>
-          </div>
+          </HStack>
 
-          {/* Mobile Right Icons (hidden on sm+) */}
-          <div className="flex sm:hidden items-center gap-2">
-            <Link to="/" className="flex items-center justify-center rounded-full bg-blue-600 h-10 w-10 text-white hover:bg-blue-700">
-              <PlusCircle className="h-5 w-5" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Search Input */}
-        <div className="flex-1 w-full max-w-2xl">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              value={keyword}
-              onChange={(event) => onKeywordChange(event.target.value)}
-              placeholder="Tìm kiếm sản phẩm, danh mục, hoặc người bán..."
-              className="w-full rounded-full border-none bg-gray-100 py-3 pl-12 pr-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-        </div>
-
-        {/* Desktop Right Icons (hidden on mobile) */}
-        <div className="hidden sm:flex items-center gap-2">
-          <button className="relative rounded-full p-2.5 text-gray-600 transition-colors hover:bg-gray-100">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-          </button>
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>Đăng tin</span>
+          {/* Mobile Right Icon */}
+          <Link to="/" style={{ display: "flex" }}>
+            <Button
+              size="sm"
+              colorScheme="blue"
+              borderRadius="full"
+              w="40px"
+              h="40px"
+              p={0}
+              display={{ base: "flex", sm: "none" }}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <FiPlusCircle className="w-5 h-5" />
+            </Button>
           </Link>
-          <button className="rounded-full p-2.5 text-gray-600 transition-colors hover:bg-gray-100">
-            <User className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-    </header>
+        </HStack>
+
+        {/* Search Row */}
+        <Box position="relative" flex={1} w="full" maxW="2xl">
+          <FiSearch
+            style={{
+              position: "absolute",
+              left: "16px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontSize: "20px",
+              color: "#a0aec0",
+            }}
+          />
+          <ChakraInput
+            value={keyword}
+            onChange={(event) => onKeywordChange(event.target.value)}
+            placeholder="Tìm kiếm sản phẩm, danh mục, hoặc người bán..."
+            borderRadius="full"
+            bg="gray.100"
+            border="none"
+            pl="45px"
+            pr="16px"
+            py="12px"
+            fontSize="sm"
+            _focus={{
+              bg: "white",
+              boxShadow: "0 0 0 2px rgba(66, 153, 225, 0.2)",
+            }}
+          />
+        </Box>
+
+        {/* Desktop Right Section */}
+        <HStack justify="flex-end" gap={2} display={{ base: "none", sm: "flex" }}>
+          <Box position="relative">
+            <Button variant="ghost" size="sm" p={2.5} borderRadius="full">
+              <FiBell className="w-5 h-5" />
+            </Button>
+            <Box
+              position="absolute"
+              right="6px"
+              top="6px"
+              w="2"
+              h="2"
+              borderRadius="full"
+              bg="red.500"
+            />
+          </Box>
+
+          <Link to="/">
+            <Button
+              colorScheme="blue"
+              borderRadius="full"
+              size="sm"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <FiPlusCircle className="w-4 h-4" />
+              <span>Đăng tin</span>
+            </Button>
+          </Link>
+
+          {/* Auth Section */}
+          {isLoading ? (
+            <Box w="40px" h="10" bg="gray.200" borderRadius="full" animation="pulse 2s infinite" />
+          ) : isAuthenticated && user ? (
+            <UserDropdownMenu user={user} onLogout={handleLogout} />
+          ) : (
+            <AuthButtons />
+          )}
+        </HStack>
+      </VStack>
+    </Box>
   )
 }

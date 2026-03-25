@@ -1,4 +1,4 @@
-import { X, Bell, User, ChevronRight } from "lucide-react"
+import { FiX, FiBell, FiUser, FiChevronRight } from "react-icons/fi"
 import type { CategoryTree } from "@/client"
 
 type CategoryOverlayProps = {
@@ -39,7 +39,7 @@ export function CategoryOverlay({
             onClick={onClose}
             className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
           >
-            <X className="h-5 w-5" />
+            <FiX className="h-5 w-5" />
           </button>
         </div>
 
@@ -53,7 +53,7 @@ export function CategoryOverlay({
             }`}
           >
             <span>Tất cả ngành hàng</span>
-            <ChevronRight className={`h-4 w-4 ${selectedCategoryId === "" ? "text-blue-500" : "text-slate-400"}`} />
+            <FiChevronRight className={`h-4 w-4 ${selectedCategoryId === "" ? "text-blue-500" : "text-slate-400"}`} />
           </button>
           
           {categories.map((category) => {
@@ -68,7 +68,7 @@ export function CategoryOverlay({
                 }`}
               >
                 <span className="line-clamp-1">{category.name}</span>
-                <ChevronRight className={`h-4 w-4 ${active ? "text-blue-500" : "text-slate-400"}`} />
+                <FiChevronRight className={`h-4 w-4 ${active ? "text-blue-500" : "text-slate-400"}`} />
               </button>
             )
           })}
@@ -79,7 +79,7 @@ export function CategoryOverlay({
           <div className="flex items-center gap-3">
             <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
               <div className="relative">
-                <Bell className="h-5 w-5" />
+                <FiBell className="h-5 w-5" />
                 <span className="absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-red-500" />
               </div>
               <span className="flex-1 text-left">Thông báo</span>
@@ -87,7 +87,7 @@ export function CategoryOverlay({
           </div>
           <div className="mt-1 flex items-center gap-3">
             <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
-              <User className="h-5 w-5" />
+              <FiUser className="h-5 w-5" />
               <span className="flex-1 text-left">Tài khoản cá nhân</span>
             </button>
           </div>

@@ -1,5 +1,13 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Box,
+  Button,
+  Stack,
+  Text,
+  VStack,
+  Input as ChakraInput,
+} from "@chakra-ui/react";
 import { registerSchema, type RegisterInput } from "@/features/auth/utils/auth.schemas";
 import { useRegisterMutation } from "@/features/auth/hooks/useRegisterMutation";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
@@ -41,104 +49,113 @@ export function RegisterForm({ onError }: RegisterFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
-      {/* Email */}
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email
-        </label>
-        <input
-          {...register("email")}
-          type="email"
-          placeholder="example@email.com"
-          className={`w-full px-4 py-2 mt-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.email ? "border-red-500" : "border-gray-300"
-          }`}
-        />
-        {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
-      </div>
+    <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
+      <Stack gap={4}>
+        {/* Email */}
+        <Box>
+          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+            Email
+          </label>
+          <ChakraInput
+            {...register("email")}
+            type="email"
+            placeholder="example@email.com"
+            borderColor={errors.email ? "red.500" : "gray.300"}
+          />
+          {errors.email && (
+            <Text color="red.500" fontSize="sm" mt={1}>
+              {errors.email.message}
+            </Text>
+          )}
+        </Box>
 
-      {/* Full Name */}
-      <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-          Họ và tên
-        </label>
-        <input
-          {...register("fullName")}
-          type="text"
-          placeholder="Nguyễn Văn A"
-          className={`w-full px-4 py-2 mt-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.fullName ? "border-red-500" : "border-gray-300"
-          }`}
-        />
-        {errors.fullName && <p className="text-sm text-red-500 mt-1">{errors.fullName.message}</p>}
-      </div>
+        {/* Full Name */}
+        <Box>
+          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+            Họ và tên
+          </label>
+          <ChakraInput
+            {...register("fullName")}
+            type="text"
+            placeholder="Nguyễn Văn A"
+            borderColor={errors.fullName ? "red.500" : "gray.300"}
+          />
+          {errors.fullName && (
+            <Text color="red.500" fontSize="sm" mt={1}>
+              {errors.fullName.message}
+            </Text>
+          )}
+        </Box>
 
-      {/* Password */}
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Mật khẩu
-        </label>
-        <input
-          {...register("password")}
-          type="password"
-          placeholder="••••••••"
-          className={`w-full px-4 py-2 mt-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.password ? "border-red-500" : "border-gray-300"
-          }`}
-        />
-        {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>}
+        {/* Password */}
+        <Box>
+          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+            Mật khẩu
+          </label>
+          <ChakraInput
+            {...register("password")}
+            type="password"
+            placeholder="••••••••"
+            borderColor={errors.password ? "red.500" : "gray.300"}
+          />
+          {errors.password && (
+            <Text color="red.500" fontSize="sm" mt={1}>
+              {errors.password.message}
+            </Text>
+          )}
 
-        {/* Password requirements */}
-        {password && (
-          <div className="mt-2 text-sm space-y-1">
-            <div className={password.length >= 8 ? "text-green-600" : "text-gray-500"}>
-              ✓ Ít nhất 8 ký tự
-            </div>
-            <div className={/[A-Z]/.test(password) ? "text-green-600" : "text-gray-500"}>
-              ✓ Chứa chữ hoa
-            </div>
-            <div className={/[a-z]/.test(password) ? "text-green-600" : "text-gray-500"}>
-              ✓ Chứa chữ thường
-            </div>
-            <div className={/[0-9]/.test(password) ? "text-green-600" : "text-gray-500"}>
-              ✓ Chứa chữ số
-            </div>
-          </div>
+          {/* Password requirements */}
+          {password && (
+            <VStack align="start" gap={1} mt={2} fontSize="sm">
+              <Text color={password.length >= 8 ? "green.600" : "gray.500"}>
+                ✓ Ít nhất 8 ký tự
+              </Text>
+              <Text color={/[A-Z]/.test(password) ? "green.600" : "gray.500"}>
+                ✓ Chứa chữ hoa
+              </Text>
+              <Text color={/[a-z]/.test(password) ? "green.600" : "gray.500"}>
+                ✓ Chứa chữ thường
+              </Text>
+              <Text color={/[0-9]/.test(password) ? "green.600" : "gray.500"}>
+                ✓ Chứa chữ số
+              </Text>
+            </VStack>
+          )}
+        </Box>
+
+        {/* Remember Me */}
+        <Box>
+          <input
+            {...register("rememberMe")}
+            type="checkbox"
+            id="rememberMe"
+            style={{ marginRight: "0.5rem" }}
+          />
+          <label htmlFor="rememberMe" style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+            Giữ tôi đăng nhập
+          </label>
+        </Box>
+
+        {/* Error Message */}
+        {registerMutation.isError && (
+          <Box bg="red.50" border="1px" borderColor="red.200" borderRadius="md" p={4}>
+            <Text fontSize="sm" color="red.800">
+              {(registerMutation.error as any)?.message ||
+                "Đã xảy ra lỗi. Vui lòng thử lại."}
+            </Text>
+          </Box>
         )}
-      </div>
 
-      {/* Remember Me */}
-      <div className="flex items-center">
-        <input
-          {...register("rememberMe")}
-          type="checkbox"
-          id="rememberMe"
-          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-        />
-        <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700">
-          Giữ tôi đăng nhập
-        </label>
-      </div>
-
-      {/* Error Message */}
-      {registerMutation.isError && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-800">
-            {(registerMutation.error as any)?.message ||
-              "Đã xảy ra lỗi. Vui lòng thử lại."}
-          </p>
-        </div>
-      )}
-
-      {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={isSubmitting || registerMutation.isPending}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-      >
-        {isSubmitting || registerMutation.isPending ? "Đang xử lý..." : "Đăng ký"}
-      </button>
-    </form>
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          disabled={isSubmitting || registerMutation.isPending}
+          colorScheme="blue"
+          width="full"
+        >
+          {isSubmitting || registerMutation.isPending ? "Đang xử lý..." : "Đăng ký"}
+        </Button>
+      </Stack>
+    </Box>
   );
 }

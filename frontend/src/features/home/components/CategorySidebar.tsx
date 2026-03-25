@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react"
+import { FiChevronRight } from "react-icons/fi"
 import type { CategoryTree } from "@/client"
 
 type CategorySidebarProps = {
@@ -25,7 +25,7 @@ export function CategorySidebar({ categories, selectedCategoryId, onSelectCatego
               Đang bán
             </span>
           </div>
-          <ChevronRight className={`h-4 w-4 ${selectedCategoryId === "" ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
+          <FiChevronRight className={`h-4 w-4 ${selectedCategoryId === "" ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
         </button>
 
         <div className="mt-1 flex flex-col space-y-1">
@@ -45,7 +45,7 @@ export function CategorySidebar({ categories, selectedCategoryId, onSelectCatego
                     {category.name}
                   </span>
                 </div>
-                <ChevronRight className={`h-4 w-4 shrink-0 ${active ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
+                <FiChevronRight className={`h-4 w-4 shrink-0 ${active ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
               </button>
             )
           })}

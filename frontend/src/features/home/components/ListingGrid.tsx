@@ -1,4 +1,4 @@
-import { Tag } from "lucide-react"
+import { FiTag } from "react-icons/fi"
 import type { CategoryTree, ListingWithImages } from "@/client"
 import { formatCurrencyVnd, formatPostedTime, getListingImageUrl } from "@/features/home/utils/marketplace.utils"
 
@@ -45,7 +45,7 @@ export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
               <div className="text-price text-lg leading-none">{formatCurrencyVnd(listing.price)}</div>
 
               <div className="flex items-center gap-1 text-xs text-slate-500">
-                <Tag className="h-3.5 w-3.5" />
+                <FiTag className="h-3.5 w-3.5" />
                 <span className="line-clamp-1">{category?.name ?? "Danh mục chưa xác định"}</span>
               </div>
 

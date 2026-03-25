@@ -1,3 +1,4 @@
+import { ChakraProvider } from "@chakra-ui/react"
 import {
   MutationCache,
   QueryCache,
@@ -53,8 +54,10 @@ declare module "@tanstack/react-router" {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ChakraProvider value={{} as any}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ChakraProvider>
   </StrictMode>,
 )
