@@ -1,0 +1,182 @@
+import { AuthService } from "@/client";
+import type { RegisterInput } from "../utils/auth.schemas";
+import type { AuthResponse, AuthError } from "@/features/auth/types/auth.types";
+import { AuthErrorCode } from "@/features/auth/types/auth.types";
+import { ApiError } from "@/client";
+
+export async function registerUser(data: RegisterInput): Promise<AuthResponse> {
+  try {
+    const response = await AuthService.registerApiV1AuthRegisterPost({
+      requestBody: {
+        email: data.email,
+        password: data.password,
+        full_name: data.fullName,
+      },
+    });
+
+    return response as AuthResponse;
+  } catch (error) {
+    throw mapAuthError(error);
+  }
+}
+
+export async function loginUser(email: string, password: string): Promise<AuthResponse> {
+  try {
+    const response = await AuthService.loginApiV1AuthLoginPost({
+      formData: {
+        username: email, // OAuth2PasswordRequestForm expects 'username'
+        password: password,
+      },
+    });
+
+    return response as AuthResponse;
+  } catch (error) {
+    throw mapAuthError(error);
+  }
+}
+
+export async function verifyEmailToken(token: string): Promise<{ message: string }> {
+  try {
+    // The verify-email endpoint isn't in the generated client yet,
+    // so we make a direct fetch call
+    const response = await fetch(`${import.meta.env.VITE_API_URL || "http://10.0.0.47:8000"}/api/v1/auth/verify-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const fakeError = {
+        status: response.status,
+        body: errorData,
+      } as unknown as ApiError;
+      throw fakeError;
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw mapAuthError(error);
+  }
+}
+
+export async function logoutUser(): Promise<void> {
+  try {
+    await AuthService.logoutApiV1AuthLogoutPost();
+  } catch (error) {
+    // Even if logout fails on server, clear local tokens
+    throw mapAuthError(error);
+  }
+}
+
+export async function refreshAccessToken(refreshToken: string): Promise<AuthResponse> {
+  try {
+    const response = await AuthService.refreshAccessTokenApiV1AuthRefreshTokenPost({
+      requestBody: {
+        refresh_token: refreshToken,
+      },
+    });
+
+    return response as AuthResponse;
+  } catch (error) {
+    throw mapAuthError(error);
+  }
+}
+
+function mapAuthError(error: unknown): AuthError {
+  if (error instanceof ApiError) {
+    switch (error.status) {
+      case 409:
+        return {
+          code: AuthErrorCode.EMAIL_ALREADY_EXISTS,
+          message: "Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.",
+          statusCode: 409,
+        };
+      case 401:
+        // Could be invalid credentials or invalid token
+        const detail = (error.body as any)?.detail || "";
+        if (detail.includes("Email") || detail.includes("password")) {
+          return {
+            code: AuthErrorCode.INVALID_CREDENTIALS,
+            message: "Email hoặc mật khẩu không chính xác",
+            statusCode: 401,
+          };
+        }
+        return {
+          code: AuthErrorCode.INVALID_TOKEN,
+          message: "Token không hợp lệ. Vui lòng đăng nhập lại.",
+          statusCode: 401,
+        };
+      case 403:
+        return {
+          code: AuthErrorCode.EMAIL_NOT_VERIFIED,
+          message: "Email chưa được xác thực. Vui lòng kiểm tra email của bạn.",
+          statusCode: 403,
+        };
+      case 400:
+        const detail400 = (error.body as any)?.detail || "";
+        if (detail400.includes("Inactive")) {
+          return {
+            code: AuthErrorCode.INACTIVE_USER,
+            message: "Tài khoản của bạn đã bị vô hiệu hóa. Liên hệ hỗ trợ để được giúp đỡ.",
+            statusCode: 400,
+          };
+        }
+        if (detail400.includes("Invalid") || detail400.includes("expired")) {
+          return {
+            code: AuthErrorCode.INVALID_TOKEN,
+            message: "Mã xác thực không hợp lệ hoặc đã hết hạn.",
+            statusCode: 400,
+          };
+        }
+        return {
+          code: AuthErrorCode.UNKNOWN_ERROR,
+          message: detail400 || "Lỗi xác thực. Vui lòng thử lại.",
+          statusCode: 400,
+        };
+      case 429:
+        return {
+          code: AuthErrorCode.RATE_LIMIT_EXCEEDED,
+          message: "Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút.",
+          statusCode: 429,
+        };
+      case 422:
+        const validationErrors = (error.body as any)?.detail;
+        const firstError =
+          Array.isArray(validationErrors) &&
+          validationErrors[0] &&
+          "msg" in validationErrors[0]
+            ? validationErrors[0].msg
+            : "Dữ liệu không hợp lệ";
+        return {
+          code: AuthErrorCode.UNKNOWN_ERROR,
+          message: firstError,
+          statusCode: 422,
+        };
+      default:
+        const defaultDetail = (error.body as any)?.detail || "Có lỗi xảy ra. Vui lòng thử lại.";
+        return {
+          code: AuthErrorCode.UNKNOWN_ERROR,
+          message: defaultDetail,
+          statusCode: error.status,
+        };
+    }
+  }
+
+  // Network error
+  if (error instanceof Error) {
+    if (error.message.includes("fetch") || error.message.includes("network")) {
+      return {
+        code: AuthErrorCode.NETWORK_ERROR,
+        message: "Lỗi mạng. Vui lòng kiểm tra kết nối internet của bạn.",
+      };
+    }
+  }
+
+  return {
+    code: AuthErrorCode.UNKNOWN_ERROR,
+    message: "Có lỗi không xác định xảy ra. Vui lòng thử lại.",
+  };
+}
