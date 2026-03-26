@@ -217,6 +217,7 @@ export function ProfileForm({
                 type="button"
                 onClick={onCancel}
                 variant="outline"
+                px={6}
                 disabled={isLoading}
               >
                 Hủy

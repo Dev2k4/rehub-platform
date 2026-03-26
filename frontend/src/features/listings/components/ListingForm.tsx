@@ -1,6 +1,6 @@
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Box,
   Button,
@@ -13,9 +13,9 @@ import {
   SimpleGrid,
   IconButton,
   Image,
-} from "@chakra-ui/react"
-import { FiCamera, FiTrash2 } from "react-icons/fi"
-import { useState } from "react"
+} from "@chakra-ui/react";
+import { FiCamera, FiTrash2 } from "react-icons/fi";
+import { useState } from "react";
 
 const listingSchema = z.object({
   title: z.string().min(5, "Tiêu đề ít nhất 5 ký tự").max(200),
@@ -24,15 +24,15 @@ const listingSchema = z.object({
   category_id: z.coerce.number().positive("Chọn danh mục"),
   condition_grade: z.string().min(1, "Chọn tình trạng"),
   is_negotiable: z.boolean().default(false),
-})
+});
 
-type ListingFormData = z.infer<typeof listingSchema>
+type ListingFormData = z.infer<typeof listingSchema>;
 
 interface ListingFormProps {
-  initialData?: Partial<ListingFormData>
-  onSubmit: (data: ListingFormData) => void
-  isLoading?: boolean
-  onCancel?: () => void
+  initialData?: Partial<ListingFormData>;
+  onSubmit: (data: ListingFormData) => void;
+  isLoading?: boolean;
+  onCancel?: () => void;
 }
 
 export function ListingForm({
@@ -41,8 +41,8 @@ export function ListingForm({
   isLoading = false,
   onCancel,
 }: ListingFormProps) {
-  const [previewImages, setPreviewImages] = useState<string[]>([])
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const {
     register,
@@ -55,32 +55,39 @@ export function ListingForm({
       condition_grade: "GOOD",
       is_negotiable: false,
     },
-  })
+  });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    setSelectedFiles([...selectedFiles, ...files])
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles([...selectedFiles, ...files]);
 
     files.forEach((file) => {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (event) => {
-        setPreviewImages((prev) => [...prev, event.target?.result as string])
-      }
-      reader.readAsDataURL(file)
-    })
-  }
+        setPreviewImages((prev) => [...prev, event.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
   const removeImage = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
-    setPreviewImages((prev) => prev.filter((_, i) => i !== index))
-  }
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
       <Stack gap={6}>
         {/* Title */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Tiêu đề
           </label>
           <ChakraInput
@@ -98,7 +105,14 @@ export function ListingForm({
 
         {/* Description */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Mô tả
           </label>
           <Textarea
@@ -116,7 +130,14 @@ export function ListingForm({
 
         {/* Price */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Giá (VNĐ)
           </label>
           <ChakraInput
@@ -134,7 +155,14 @@ export function ListingForm({
 
         {/* Category */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Danh mục
           </label>
           <NativeSelect.Root>
@@ -158,7 +186,14 @@ export function ListingForm({
 
         {/* Condition */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Tình trạng
           </label>
           <NativeSelect.Root>
@@ -193,7 +228,14 @@ export function ListingForm({
 
         {/* Images */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Hình ảnh
           </label>
           <Box
@@ -258,15 +300,31 @@ export function ListingForm({
         {/* Actions */}
         <Flex gap={3} justify="flex-end" pt={4}>
           {onCancel && (
-            <Button type="button" onClick={onCancel} variant="outline" disabled={isLoading}>
+            <Button
+              type="button"
+              onClick={onCancel}
+              variant="outline"
+              px={6}
+              disabled={isLoading}
+            >
               Hủy
             </Button>
           )}
-          <Button type="submit" colorScheme="blue" disabled={isLoading}>
+          <Button
+            type="submit"
+            bg="blue.600"
+            color="white"
+            _hover={{ bg: "blue.700" }}
+            _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
+            borderRadius="md"
+            fontWeight="medium"
+            px={8}
+            disabled={isLoading}
+          >
             {initialData ? "Cập nhật" : "Đăng tin"}
           </Button>
         </Flex>
       </Stack>
     </Box>
-  )
+  );
 }

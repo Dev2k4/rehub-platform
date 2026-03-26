@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react"
-import { Box, Container, Heading, Text, Flex } from "@chakra-ui/react"
-import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
-import { CategorySidebar } from "@/features/home/components/CategorySidebar"
-import { ListingGrid } from "@/features/home/components/ListingGrid"
-import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
-import { ListingModal } from "@/features/listings/components/ListingModal"
-import { useCreateListing } from "@/features/listings/hooks/useMyListings"
-import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData"
+import { useMemo, useState } from "react";
+import { Box, Container, Heading, Text, Flex } from "@chakra-ui/react";
+import { CategoryOverlay } from "@/features/home/components/CategoryOverlay";
+import { CategorySidebar } from "@/features/home/components/CategorySidebar";
+import { ListingGrid } from "@/features/home/components/ListingGrid";
+import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader";
+import { ListingModal } from "@/features/listings/components/ListingModal";
+import { useCreateListing } from "@/features/listings/hooks/useMyListings";
+import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData";
 
 export function HomeMarketplacePage() {
-  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false)
-  const [isListingModalOpen, setIsListingModalOpen] = useState(false)
+  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false);
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
   const {
     selectedCategoryId,
     setSelectedCategoryId,
@@ -20,26 +20,26 @@ export function HomeMarketplacePage() {
     listingsQuery,
     categoryMap,
     flatCategories,
-  } = useMarketplaceData()
+  } = useMarketplaceData();
 
-  const createMutation = useCreateListing()
+  const createMutation = useCreateListing();
 
   const selectedCategoryName = useMemo(() => {
     if (!selectedCategoryId) {
-      return "Tất cả sản phẩm"
+      return "Tất cả sản phẩm";
     }
 
-    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục"
-  }, [selectedCategoryId, categoryMap])
+    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục";
+  }, [selectedCategoryId, categoryMap]);
 
   const handleCreateListing = async (data: any) => {
     try {
-      await createMutation.mutateAsync(data)
-      setIsListingModalOpen(false)
+      await createMutation.mutateAsync(data);
+      setIsListingModalOpen(false);
     } catch (error) {
-      console.error("Error creating listing:", error)
+      console.error("Error creating listing:", error);
     }
-  }
+  };
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -56,27 +56,45 @@ export function HomeMarketplacePage() {
         selectedCategoryId={selectedCategoryId}
         onClose={() => setCategoryOverlayOpen(false)}
         onSelectCategory={(id) => {
-          setSelectedCategoryId(id)
-          setCategoryOverlayOpen(false)
+          setSelectedCategoryId(id);
+          setCategoryOverlayOpen(false);
         }}
       />
 
-      <Container maxW="1400px" px={{ base: 4, md: 6 }} py={6}>
+      <Container maxW="1400px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
         <Box
           mb={6}
           borderRadius="2xl"
-          bgGradient="linear(to-r, blue.600, purple.600)"
-          p={6}
+          bg="blue.600"
+          p={8}
           color="white"
-          boxShadow="md"
+          boxShadow="lg"
+          position="relative"
+          overflow="hidden"
         >
-          <Text fontSize="xs" textTransform="uppercase" letterSpacing="wider" color="blue.100" fontWeight="medium">
+          <Text
+            fontSize="xs"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            color="blue.100"
+            fontWeight="medium"
+          >
             Marketplace
           </Text>
-          <Heading as="h1" mt={1} fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold">
+          <Heading
+            as="h1"
+            mt={1}
+            fontSize={{ base: "2xl", md: "3xl" }}
+            fontWeight="bold"
+          >
             Khám phá sản phẩm
           </Heading>
-          <Text mt={2} fontSize={{ base: "sm", md: "md" }} color="blue.50">
+          <Text
+            mt={2}
+            fontSize={{ base: "sm", md: "md" }}
+            color="whiteAlpha.900"
+            fontWeight="medium"
+          >
             Hàng nghìn sản phẩm từ những người bán uy tín đang chờ đón bạn.
           </Text>
         </Box>
@@ -86,7 +104,9 @@ export function HomeMarketplacePage() {
             {selectedCategoryName}
           </Heading>
           <Text fontSize="sm" fontWeight="medium" color="gray.500">
-            {listingsQuery.data ? `${listingsQuery.data.total} kết quả` : "Đang tải..."}
+            {listingsQuery.data
+              ? `${listingsQuery.data.total} kết quả`
+              : "Đang tải..."}
           </Text>
         </Flex>
 
@@ -99,19 +119,42 @@ export function HomeMarketplacePage() {
 
           <Box as="main" flex={1} minW={0}>
             {categoriesQuery.isLoading || listingsQuery.isLoading ? (
-              <Box borderRadius="2xl" border="1px" borderColor="gray.200" bg="white" p={8} fontSize="sm" color="gray.500">
+              <Box
+                borderRadius="2xl"
+                border="1px"
+                borderColor="gray.200"
+                bg="white"
+                p={8}
+                fontSize="sm"
+                color="gray.500"
+              >
                 Đang tải dữ liệu...
               </Box>
             ) : null}
 
             {categoriesQuery.isError || listingsQuery.isError ? (
-              <Box borderRadius="2xl" border="1px" borderColor="red.200" bg="red.50" p={8} fontSize="sm" color="red.700">
-                Không thể tải dữ liệu. Vui lòng kiểm tra cấu hình VITE_API_URL và trạng thái server.
+              <Box
+                borderRadius="2xl"
+                border="1px"
+                borderColor="red.200"
+                bg="red.50"
+                p={8}
+                fontSize="sm"
+                color="red.700"
+              >
+                Không thể tải dữ liệu. Vui lòng kiểm tra cấu hình VITE_API_URL
+                và trạng thái server.
               </Box>
             ) : null}
 
-            {!categoriesQuery.isLoading && !listingsQuery.isLoading && !categoriesQuery.isError && !listingsQuery.isError ? (
-              <ListingGrid listings={listingsQuery.data?.items ?? []} categoryMap={categoryMap} />
+            {!categoriesQuery.isLoading &&
+            !listingsQuery.isLoading &&
+            !categoriesQuery.isError &&
+            !listingsQuery.isError ? (
+              <ListingGrid
+                listings={listingsQuery.data?.items ?? []}
+                categoryMap={categoryMap}
+              />
             ) : null}
           </Box>
         </Flex>
@@ -125,5 +168,5 @@ export function HomeMarketplacePage() {
         isLoading={createMutation.isPending}
       />
     </Box>
-  )
+  );
 }
