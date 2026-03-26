@@ -8,7 +8,7 @@ import {
   Flex,
   Separator,
 } from "@chakra-ui/react"
-import { FiList, FiUser, FiLogOut } from "react-icons/fi"
+import { FiList, FiUser, FiLogOut, FiShield } from "react-icons/fi"
 import type { UserMe } from "@/client"
 
 interface UserDropdownMenuProps {
@@ -58,6 +58,30 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
 
             {/* Menu Items */}
             <Box py={2}>
+              {user.role === "admin" && (
+                <>
+                  <Menu.Item value="admin" asChild>
+                    <Link to="/admin">
+                      <Flex
+                        align="center"
+                        gap={3}
+                        px={4}
+                        py={2}
+                        fontSize="sm"
+                        color="gray.700"
+                        _hover={{ bg: "gray.50" }}
+                        transition="all 0.2s"
+                        cursor="pointer"
+                      >
+                        <FiShield />
+                        <span>Quản trị</span>
+                      </Flex>
+                    </Link>
+                  </Menu.Item>
+                  <Separator my={2} />
+                </>
+              )}
+
               <Menu.Item value="my-listings" asChild>
                 <Link to="/my-listings">
                   <Flex
