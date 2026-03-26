@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db, get_current_user
+from app.api.dependencies import get_db, get_current_user, get_current_user_optional
 from app.core.config import settings
 from app.models.user import User
 from app.models.enums import ListingStatus, UserRole
@@ -122,15 +122,36 @@ async def delete_listing_image_route(
 @router.get("/{listing_id}", response_model=ListingWithImages)
 async def get_listing(
     listing_id: uuid.UUID,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get a specific listing along with its full details and images."""
+    """
+    Get a specific listing along with its full details and images.
+
+    Access rules:
+    - ACTIVE listings: anyone can view
+    - PENDING/HIDDEN/REJECTED listings: only seller or admin can view
+    - SOLD listings: anyone can view (as reference)
+    """
     item = await crud_listing.get_listing(db, str(listing_id))
     if not item:
         raise HTTPException(status_code=404, detail="Listing not found")
-        
+
+    # Check access permission based on status
+    can_view = False
+    if item.status in {ListingStatus.ACTIVE, ListingStatus.SOLD}:
+        # Public listings - anyone can view
+        can_view = True
+    elif current_user:
+        # Private listings - only seller or admin can view
+        if str(item.seller_id) == str(current_user.id) or current_user.role == UserRole.ADMIN:
+            can_view = True
+
+    if not can_view:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
     images = await crud_listing.get_listing_images(db, str(item.id))
-    
+
     listing_dict = item.model_dump()
     listing_dict["images"] = images
     return ListingWithImages(**listing_dict)

@@ -75,7 +75,7 @@ async def create_category(
     except Exception as e: # Catch IntegrityError for slug collision logic
         raise HTTPException(status_code=409, detail="Could not create category. Duplicate slug or name.")
 
-@router.patch("/{category_id}", response_model=CategoryRead)
+@router.put("/{category_id}", response_model=CategoryRead)
 async def update_category(
     category_id: uuid.UUID,
     data: CategoryUpdate,
@@ -86,14 +86,22 @@ async def update_category(
     category = await crud_category.get_category_by_id(db, str(category_id))
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
-        
+
     if data.parent_id:
         # Cannot be its own parent
         if str(category_id) == str(data.parent_id):
             raise HTTPException(status_code=400, detail="Category cannot be its own parent")
+
         parent = await crud_category.get_category_by_id(db, str(data.parent_id))
         if not parent:
             raise HTTPException(status_code=400, detail="Parent category does not exist")
+
+        # Check circular reference
+        if await crud_category.check_circular_parent(db, category_id, data.parent_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot set this parent - would create circular reference"
+            )
 
     try:
         updated_category = await crud_category.update_category(db, str(category_id), data)
@@ -111,12 +119,20 @@ async def delete_category(
     category = await crud_category.get_category_by_id(db, str(category_id))
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
-        
+
     # Check for children
     children = await crud_category.get_children_categories(db, str(category_id))
     if children:
         raise HTTPException(status_code=400, detail="Cannot delete category containing sub-categories.")
-        
+
+    # Check for listings using this category
+    listings_count = await crud_category.count_listings_by_category(db, str(category_id))
+    if listings_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete category - {listings_count} listing(s) are using it."
+        )
+
     await crud_category.delete_category(db, str(category_id))
     return None
 
@@ -144,7 +160,7 @@ async def admin_create_category(
         raise HTTPException(status_code=409, detail="Could not create category. Duplicate slug or name.")
 
 
-@admin_categories_router.patch("/{category_id}", response_model=CategoryRead)
+@admin_categories_router.put("/{category_id}", response_model=CategoryRead)
 async def admin_update_category(
     category_id: uuid.UUID,
     data: CategoryUpdate,
@@ -159,9 +175,17 @@ async def admin_update_category(
     if data.parent_id:
         if str(category_id) == str(data.parent_id):
             raise HTTPException(status_code=400, detail="Category cannot be its own parent")
+
         parent = await crud_category.get_category_by_id(db, str(data.parent_id))
         if not parent:
             raise HTTPException(status_code=400, detail="Parent category does not exist")
+
+        # Check circular reference
+        if await crud_category.check_circular_parent(db, category_id, data.parent_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot set this parent - would create circular reference"
+            )
 
     try:
         return await crud_category.update_category(db, str(category_id), data)
@@ -183,6 +207,14 @@ async def admin_delete_category(
     children = await crud_category.get_children_categories(db, str(category_id))
     if children:
         raise HTTPException(status_code=400, detail="Cannot delete category containing sub-categories.")
+
+    # Check for listings using this category
+    listings_count = await crud_category.count_listings_by_category(db, str(category_id))
+    if listings_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete category - {listings_count} listing(s) are using it."
+        )
 
     await crud_category.delete_category(db, str(category_id))
     return None

@@ -67,13 +67,18 @@ async def approve_listing(
     admin_user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """Admin only: Approve a listing."""
+    """Admin only: Approve a pending listing."""
     listing = await get_listing(db, str(listing_id))
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
 
-    # We use update_listing directly or explicitly change status.
-    # Note: Using update_listing schema simulation
+    # Chỉ approve listing đang PENDING
+    if listing.status != ListingStatus.PENDING:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot approve listing with status '{listing.status}'. Only PENDING listings can be approved."
+        )
+
     listing.status = ListingStatus.ACTIVE
     db.add(listing)
     await db.commit()
@@ -94,10 +99,17 @@ async def reject_listing_route(
     admin_user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """Admin only: Reject a listing."""
+    """Admin only: Reject a listing (PENDING or ACTIVE)."""
     listing = await get_listing(db, str(listing_id))
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+
+    # Chỉ reject listing đang PENDING hoặc ACTIVE
+    if listing.status not in {ListingStatus.PENDING, ListingStatus.ACTIVE}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot reject listing with status '{listing.status}'. Only PENDING or ACTIVE listings can be rejected."
+        )
 
     listing.status = ListingStatus.REJECTED
     db.add(listing)

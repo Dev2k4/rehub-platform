@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,8 +7,14 @@ from sqlalchemy.future import select
 
 from app.models.enums import ListingStatus, OrderStatus
 from app.models.listing import Listing
+from app.models.offer import Offer
 from app.models.order import Order
 from app.models.user import User
+
+
+def _utc_now_naive() -> datetime:
+	"""Return naive UTC datetime (compatible with 'timestamp without time zone')."""
+	return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 async def get_order_by_id(db: AsyncSession, order_id: uuid.UUID) -> Order | None:
@@ -25,7 +31,32 @@ async def get_user_orders(db: AsyncSession, user_id: uuid.UUID) -> list[Order]:
 	return list(result.scalars().all())
 
 
-async def create_direct_order(db: AsyncSession, buyer_id: uuid.UUID, listing: Listing) -> Order:
+async def create_direct_order(db: AsyncSession, buyer_id: uuid.UUID, listing_id: uuid.UUID) -> Order:
+	"""
+	Tạo order với SELECT FOR UPDATE để tránh race condition.
+	Lock listing row trước khi kiểm tra và tạo order.
+
+	Raises:
+		ValueError: Nếu listing không tồn tại, không ACTIVE, hoặc buyer là seller.
+	"""
+	# SELECT FOR UPDATE để lock listing row
+	result = await db.execute(
+		select(Listing)
+		.where(Listing.id == listing_id)
+		.with_for_update()
+	)
+	listing = result.scalar_one_or_none()
+
+	if not listing:
+		raise ValueError("Listing not found")
+
+	if listing.status != ListingStatus.ACTIVE:
+		raise ValueError("Listing is not available for purchase")
+
+	if listing.seller_id == buyer_id:
+		raise ValueError("Cannot buy your own listing")
+
+	# Tạo order và update listing trong cùng transaction
 	order = Order(
 		buyer_id=buyer_id,
 		seller_id=listing.seller_id,
@@ -35,6 +66,7 @@ async def create_direct_order(db: AsyncSession, buyer_id: uuid.UUID, listing: Li
 	)
 	db.add(order)
 	listing.status = ListingStatus.SOLD
+
 	await db.commit()
 	await db.refresh(order)
 	return order
@@ -42,7 +74,7 @@ async def create_direct_order(db: AsyncSession, buyer_id: uuid.UUID, listing: Li
 
 async def complete_order(db: AsyncSession, order: Order) -> Order:
 	order.status = OrderStatus.COMPLETED
-	order.updated_at = datetime.utcnow()
+	order.updated_at = _utc_now_naive()
 
 	# Update seller's completed_orders
 	await db.execute(
@@ -56,9 +88,15 @@ async def complete_order(db: AsyncSession, order: Order) -> Order:
 	return order
 
 
-async def cancel_order(db: AsyncSession, order: Order) -> Order:
+async def cancel_order(db: AsyncSession, order: Order, offer_id: uuid.UUID | None = None) -> Order:
+	"""
+	Cancel order và revert listing status về ACTIVE.
+	Nếu order được tạo từ offer, cũng update offer status về REJECTED.
+	"""
+	from app.models.enums import OfferStatus
+
 	order.status = OrderStatus.CANCELLED
-	order.updated_at = datetime.utcnow()
+	order.updated_at = _utc_now_naive()
 
 	# Revert listing status to ACTIVE
 	await db.execute(
@@ -67,6 +105,20 @@ async def cancel_order(db: AsyncSession, order: Order) -> Order:
 		.values(status=ListingStatus.ACTIVE)
 	)
 
+	# Nếu có offer_id, update offer status về REJECTED
+	if offer_id:
+		await db.execute(
+			update(Offer)
+			.where(Offer.id == offer_id)
+			.values(status=OfferStatus.REJECTED)
+		)
+
 	await db.commit()
 	await db.refresh(order)
 	return order
+
+
+async def get_listing_for_order(db: AsyncSession, listing_id: uuid.UUID) -> Listing | None:
+	"""Get listing by ID để trả về cho API layer."""
+	result = await db.execute(select(Listing).where(Listing.id == listing_id))
+	return result.scalar_one_or_none()

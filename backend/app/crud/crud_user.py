@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -6,6 +7,11 @@ from sqlalchemy import update
 from app.models.user import User
 from app.schemas.auth import RegisterRequest
 from app.core.security import hash_password
+
+
+def _utc_now_naive() -> datetime:
+    """Return naive UTC datetime (compatible with 'timestamp without time zone')."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
@@ -30,11 +36,10 @@ async def get_users_list(db: AsyncSession, skip: int = 0, limit: int = 100):
     return result.scalars().all()
 
 async def update_user_status(db: AsyncSession, user_id: str, is_active: bool) -> Optional[User]:
-    from datetime import datetime, timezone
     await db.execute(
         update(User)
         .where(User.id == uuid.UUID(str(user_id)))
-        .values(is_active=is_active, updated_at=datetime.now(timezone.utc))
+        .values(is_active=is_active, updated_at=_utc_now_naive())
     )
     await db.commit()
     return await get_user_by_id(db, user_id)
@@ -64,14 +69,13 @@ async def update_refresh_token(db: AsyncSession, user_id: str, hashed_token: Opt
 
 async def update_user(db: AsyncSession, user_id, data) -> User:
     """Partial update: only update fields that were explicitly set."""
-    from datetime import datetime, timezone
     update_data = data.model_dump(exclude_unset=True)
     if not update_data:
         # Nothing to update, just return current user
         result = await db.execute(select(User).where(User.id == uuid.UUID(str(user_id))))
         return result.scalar_one()
 
-    update_data["updated_at"] = datetime.now(timezone.utc)
+    update_data["updated_at"] = _utc_now_naive()
 
     await db.execute(
         update(User)
@@ -86,8 +90,6 @@ async def update_user(db: AsyncSession, user_id, data) -> User:
 
 
 async def mark_user_email_verified(db: AsyncSession, email: str) -> Optional[User]:
-    from datetime import datetime, timezone
-
     user = await get_user_by_email(db, email)
     if not user:
         return None
@@ -95,7 +97,7 @@ async def mark_user_email_verified(db: AsyncSession, email: str) -> Optional[Use
     await db.execute(
         update(User)
         .where(User.id == user.id)
-        .values(is_email_verified=True, updated_at=datetime.now(timezone.utc))
+        .values(is_email_verified=True, updated_at=_utc_now_naive())
     )
     await db.commit()
     await db.refresh(user)

@@ -29,21 +29,26 @@ async def create_review(
 	if order.buyer_id != current_user.id and order.seller_id != current_user.id:
 		raise HTTPException(status_code=403, detail="Not authorized to review this order")
 
-	existing = await crud_review.get_review_by_order(db, data.order_id)
+	# Check nếu user này đã review order chưa (cho phép cả buyer và seller review)
+	existing = await crud_review.get_review_by_order_and_reviewer(db, data.order_id, current_user.id)
 	if existing:
-		raise HTTPException(status_code=400, detail="Review already exists for this order")
+		raise HTTPException(status_code=400, detail="You have already reviewed this order")
 
 	# Determine reviewee: if current user is buyer, reviewee is seller, else buyer
 	reviewee_id = order.seller_id if current_user.id == order.buyer_id else order.buyer_id
 
-	review = await crud_review.create_review(
-		db,
-		order_id=data.order_id,
-		reviewer_id=current_user.id,
-		reviewee_id=reviewee_id,
-		rating=data.rating,
-		comment=data.comment
-	)
+	try:
+		review = await crud_review.create_review(
+			db,
+			order_id=data.order_id,
+			reviewer_id=current_user.id,
+			reviewee_id=reviewee_id,
+			rating=data.rating,
+			comment=data.comment
+		)
+	except ValueError as e:
+		raise HTTPException(status_code=400, detail=str(e))
+
 	await crud_notification.create_notification(
 		db=db,
 		user_id=reviewee_id,
@@ -60,9 +65,8 @@ async def get_user_reviews(user_id: uuid.UUID, db: AsyncSession = Depends(get_db
 	return await crud_review.get_user_reviews(db, user_id)
 
 
-@router.get("/{order_id}", response_model=ReviewRead)
-async def get_review(order_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-	review = await crud_review.get_review_by_order(db, order_id)
-	if not review:
-		raise HTTPException(status_code=404, detail="Review not found")
-	return review
+@router.get("/{order_id}", response_model=list[ReviewRead])
+async def get_reviews_for_order(order_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+	"""Lấy tất cả reviews cho 1 order (có thể có từ buyer và seller)."""
+	reviews = await crud_review.get_reviews_by_order(db, order_id)
+	return reviews

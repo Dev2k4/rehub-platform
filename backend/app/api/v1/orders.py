@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db
-from app.crud import crud_listing, crud_notification, crud_order, crud_user
-from app.models.enums import ListingStatus, OrderStatus, NotificationType
+from app.crud import crud_notification, crud_order, crud_user
+from app.models.enums import OrderStatus, NotificationType
 from app.models.user import User
 from app.schemas.order import OrderDirectCreate, OrderRead
 from app.services.email_service import send_order_created_email, send_order_completed_email
@@ -20,16 +20,18 @@ async def create_direct_order(
 	current_user: Annotated[User, Depends(get_current_user)],
 	db: AsyncSession = Depends(get_db),
 ):
-	"""Buy Now endpoint"""
-	listing = await crud_listing.get_listing(db, data.listing_id)
-	if not listing:
-		raise HTTPException(status_code=404, detail="Listing not found")
-	if listing.status != ListingStatus.ACTIVE:
-		raise HTTPException(status_code=400, detail="Listing is not available for purchase")
-	if listing.seller_id == current_user.id:
-		raise HTTPException(status_code=400, detail="Cannot buy your own listing")
+	"""Buy Now endpoint với race condition protection."""
+	try:
+		order = await crud_order.create_direct_order(db, current_user.id, data.listing_id)
+	except ValueError as e:
+		raise HTTPException(status_code=400, detail=str(e))
 
-	order = await crud_order.create_direct_order(db, current_user.id, listing)
+	# Lấy listing để gửi notification
+	listing = await crud_order.get_listing_for_order(db, data.listing_id)
+	if not listing:
+		# Order đã tạo thành công, chỉ là không gửi được notification
+		return order
+
 	buyer = await crud_user.get_user_by_id(db, current_user.id)
 	seller = await crud_user.get_user_by_id(db, listing.seller_id)
 	if buyer and seller:
