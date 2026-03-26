@@ -1,4 +1,5 @@
 import { FiChevronRight } from "react-icons/fi"
+import { Box, Heading, Button, VStack, Flex, Text } from "@chakra-ui/react"
 import type { CategoryTree } from "@/client"
 
 type CategorySidebarProps = {
@@ -9,48 +10,71 @@ type CategorySidebarProps = {
 
 export function CategorySidebar({ categories, selectedCategoryId, onSelectCategory }: CategorySidebarProps) {
   return (
-    <aside className="hidden w-[260px] shrink-0 lg:block">
-      <div className="sticky top-24 rounded-2xl border border-gray-200/50 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Danh mục</h2>
-        
-        <button
-          type="button"
-          onClick={() => onSelectCategory("")}
-          className={`flex w-full items-center justify-between rounded-xl p-3 text-left transition ${
-            selectedCategoryId === "" ? "bg-blue-50/50" : "hover:bg-gray-50 group"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <span className={`text-sm font-medium ${selectedCategoryId === "" ? "text-blue-600" : "text-gray-700 group-hover:text-gray-900"}`}>
-              Đang bán
-            </span>
-          </div>
-          <FiChevronRight className={`h-4 w-4 ${selectedCategoryId === "" ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
-        </button>
+    <Box as="aside" display={{ base: "none", lg: "block" }} w="260px" flexShrink={0}>
+      <Box position="sticky" top="96px" borderRadius="2xl" border="1px" borderColor="gray.200" bg="white" p={6} boxShadow="sm">
+        <Heading as="h2" size="md" mb={4} color="gray.900">
+          Danh mục
+        </Heading>
 
-        <div className="mt-1 flex flex-col space-y-1">
+        <Button
+          onClick={() => onSelectCategory("")}
+          variant="ghost"
+          w="full"
+          justifyContent="space-between"
+          borderRadius="xl"
+          p={3}
+          h="auto"
+          bg={selectedCategoryId === "" ? "blue.50" : "transparent"}
+          _hover={{ bg: selectedCategoryId === "" ? "blue.50" : "gray.50" }}
+          transition="all 0.2s"
+        >
+          <Flex align="center" gap={3}>
+            <Text
+              fontSize="sm"
+              fontWeight="medium"
+              color={selectedCategoryId === "" ? "blue.600" : "gray.700"}
+              _groupHover={{ color: selectedCategoryId === "" ? "blue.600" : "gray.900" }}
+            >
+              Đang bán
+            </Text>
+          </Flex>
+          <Box as={FiChevronRight} w={4} h={4} color={selectedCategoryId === "" ? "blue.500" : "gray.400"} />
+        </Button>
+
+        <VStack gap={1} mt={1} align="stretch">
           {categories.map((category) => {
             const active = selectedCategoryId === category.id
             return (
-              <button
+              <Button
                 key={category.id}
-                type="button"
                 onClick={() => onSelectCategory(category.id)}
-                className={`flex w-full items-center justify-between rounded-xl p-3 text-left transition ${
-                  active ? "bg-blue-50/50" : "hover:bg-gray-50 group"
-                }`}
+                variant="ghost"
+                w="full"
+                justifyContent="space-between"
+                borderRadius="xl"
+                p={3}
+                h="auto"
+                bg={active ? "blue.50" : "transparent"}
+                _hover={{ bg: active ? "blue.50" : "gray.50" }}
+                transition="all 0.2s"
               >
-                <div className="flex items-center gap-3">
-                  <span className={`text-sm font-medium line-clamp-1 ${active ? "text-blue-600" : "text-gray-700 group-hover:text-gray-900"}`}>
+                <Flex align="center" gap={3} flex={1} overflow="hidden">
+                  <Text
+                    fontSize="sm"
+                    fontWeight="medium"
+                    color={active ? "blue.600" : "gray.700"}
+                    _groupHover={{ color: active ? "blue.600" : "gray.900" }}
+                    lineClamp={1}
+                  >
                     {category.name}
-                  </span>
-                </div>
-                <FiChevronRight className={`h-4 w-4 shrink-0 ${active ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
-              </button>
+                  </Text>
+                </Flex>
+                <Box as={FiChevronRight} w={4} h={4} flexShrink={0} color={active ? "blue.500" : "gray.400"} />
+              </Button>
             )
           })}
-        </div>
-      </div>
-    </aside>
+        </VStack>
+      </Box>
+    </Box>
   )
 }

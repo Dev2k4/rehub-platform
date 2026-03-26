@@ -1,4 +1,5 @@
 import { FiTag } from "react-icons/fi"
+import { Box, SimpleGrid, Heading, Text, Flex, Image } from "@chakra-ui/react"
 import type { CategoryTree, ListingWithImages } from "@/client"
 import { formatCurrencyVnd, formatPostedTime, getListingImageUrl } from "@/features/home/utils/marketplace.utils"
 
@@ -10,53 +11,88 @@ type ListingGridProps = {
 export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
   if (listings.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+      <Box
+        borderRadius="2xl"
+        border="2px dashed"
+        borderColor="gray.300"
+        bg="white"
+        p={8}
+        textAlign="center"
+        fontSize="sm"
+        color="gray.500"
+      >
         Không có sản phẩm phù hợp với bộ lọc hiện tại.
-      </div>
+      </Box>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <SimpleGrid columns={{ base: 2, sm: 2, lg: 3, xl: 4 }} gap={3}>
       {listings.map((listing) => {
         const category = categoryMap.get(listing.category_id)
         const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
 
         return (
-          <article
+          <Box
             key={listing.id}
-            className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            as="article"
+            overflow="hidden"
+            borderRadius="2xl"
+            border="1px"
+            borderColor="gray.200"
+            bg="white"
+            boxShadow="sm"
+            transition="all 0.2s"
+            _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
+            role="group"
           >
-            <div className="aspect-listing overflow-hidden bg-slate-100">
+            <Box aspectRatio={1} overflow="hidden" bg="gray.100">
               {firstImageUrl ? (
-                <img
+                <Image
                   src={firstImageUrl}
                   alt={listing.title}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  w="full"
+                  h="full"
+                  objectFit="cover"
+                  transition="transform 0.3s"
+                  _groupHover={{ transform: "scale(1.05)" }}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-xs text-slate-400">Chưa có ảnh</div>
+                <Flex h="full" align="center" justify="center" fontSize="xs" color="gray.400">
+                  Chưa có ảnh
+                </Flex>
               )}
-            </div>
+            </Box>
 
-            <div className="space-y-2 p-3">
-              <h3 className="line-clamp-2 min-h-10 text-sm font-semibold text-slate-900">{listing.title}</h3>
+            <Box p={3} display="flex" flexDir="column" gap={2}>
+              <Heading
+                as="h3"
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+                lineClamp={2}
+                minH="40px"
+              >
+                {listing.title}
+              </Heading>
 
-              <div className="text-price text-lg leading-none">{formatCurrencyVnd(listing.price)}</div>
+              <Text fontSize="lg" fontWeight="bold" color="blue.600" lineHeight="none">
+                {formatCurrencyVnd(listing.price)}
+              </Text>
 
-              <div className="flex items-center gap-1 text-xs text-slate-500">
-                <FiTag className="h-3.5 w-3.5" />
-                <span className="line-clamp-1">{category?.name ?? "Danh mục chưa xác định"}</span>
-              </div>
+              <Flex align="center" gap={1} fontSize="xs" color="gray.500">
+                <Box as={FiTag} w="3.5" h="3.5" />
+                <Text lineClamp={1}>{category?.name ?? "Danh mục chưa xác định"}</Text>
+              </Flex>
 
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>{listing.condition_grade.replace(/_/g, " ")}</span>
-                <span>{formatPostedTime(listing.created_at)}</span>
-              </div>
-            </div>
-          </article>
+              <Flex align="center" justify="space-between" fontSize="xs" color="gray.500">
+                <Text>{listing.condition_grade.replace(/_/g, " ")}</Text>
+                <Text>{formatPostedTime(listing.created_at)}</Text>
+              </Flex>
+            </Box>
+          </Box>
         )
       })}
-    </div>
+    </SimpleGrid>
   )
 }

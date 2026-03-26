@@ -1,4 +1,5 @@
-import { FiX, FiBell, FiUser, FiChevronRight } from "react-icons/fi"
+import { FiBell, FiUser, FiChevronRight } from "react-icons/fi"
+import { Drawer, Portal, Box, Button, CloseButton, VStack, Flex, Text } from "@chakra-ui/react"
 import type { CategoryTree } from "@/client"
 
 type CategoryOverlayProps = {
@@ -16,83 +17,140 @@ export function CategoryOverlay({
   onClose,
   onSelectCategory,
 }: CategoryOverlayProps) {
-  if (!open) {
-    return null
-  }
-
   return (
-    <div className="fixed inset-0 z-[70] flex lg:hidden">
-      {/* Backdrop */}
-      <button
-        type="button"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
-        aria-label="Đóng menu danh mục"
-        onClick={onClose}
-      />
+    <Drawer.Root open={open} onOpenChange={(e) => !e.open && onClose()} placement="start">
+      <Portal>
+        <Drawer.Backdrop bg="blackAlpha.600" backdropFilter="blur(4px)" display={{ base: "block", lg: "none" }} />
+        <Drawer.Positioner display={{ base: "flex", lg: "none" }}>
+          <Drawer.Content maxW="280px" w="80vw" h="full" bg="white" boxShadow="2xl">
+            <Drawer.Header
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+              borderBottom="1px"
+              borderColor="gray.200"
+              px={5}
+              py={4}
+            >
+              <Drawer.Title fontSize="md" fontWeight="semibold" color="gray.900">
+                Danh mục
+              </Drawer.Title>
+              <Drawer.CloseTrigger asChild position="relative" top="auto" right="auto">
+                <CloseButton size="sm" />
+              </Drawer.CloseTrigger>
+            </Drawer.Header>
 
-      {/* Sidebar Drawer */}
-      <aside className="relative flex w-[280px] max-w-[80vw] flex-col bg-white shadow-2xl h-full animate-in slide-in-from-left">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Danh mục</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
-          >
-            <FiX className="h-5 w-5" />
-          </button>
-        </div>
+            {/* Category List */}
+            <Drawer.Body flex={1} overflowY="auto" p={4}>
+              <VStack gap={1} align="stretch">
+                <Button
+                  onClick={() => {
+                    onSelectCategory("")
+                    onClose()
+                  }}
+                  variant="ghost"
+                  w="full"
+                  justifyContent="space-between"
+                  borderRadius="xl"
+                  px={3}
+                  py={2.5}
+                  h="auto"
+                  bg={selectedCategoryId === "" ? "blue.50" : "transparent"}
+                  color={selectedCategoryId === "" ? "blue.600" : "gray.700"}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  _hover={{ bg: selectedCategoryId === "" ? "blue.50" : "gray.50" }}
+                  transition="all 0.2s"
+                >
+                  <span>Tất cả ngành hàng</span>
+                  <Box as={FiChevronRight} w={4} h={4} color={selectedCategoryId === "" ? "blue.500" : "gray.400"} />
+                </Button>
 
-        {/* Category List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-1">
-          <button
-            type="button"
-            onClick={() => onSelectCategory("")}
-            className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-              selectedCategoryId === "" ? "bg-blue-50 text-blue-600" : "text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            <span>Tất cả ngành hàng</span>
-            <FiChevronRight className={`h-4 w-4 ${selectedCategoryId === "" ? "text-blue-500" : "text-slate-400"}`} />
-          </button>
-          
-          {categories.map((category) => {
-            const active = selectedCategoryId === category.id
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => onSelectCategory(category.id)}
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                  active ? "bg-blue-50 text-blue-600" : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <span className="line-clamp-1">{category.name}</span>
-                <FiChevronRight className={`h-4 w-4 ${active ? "text-blue-500" : "text-slate-400"}`} />
-              </button>
-            )
-          })}
-        </div>
+                {categories.map((category) => {
+                  const active = selectedCategoryId === category.id
+                  return (
+                    <Button
+                      key={category.id}
+                      onClick={() => {
+                        onSelectCategory(category.id)
+                        onClose()
+                      }}
+                      variant="ghost"
+                      w="full"
+                      justifyContent="space-between"
+                      borderRadius="xl"
+                      px={3}
+                      py={2.5}
+                      h="auto"
+                      bg={active ? "blue.50" : "transparent"}
+                      color={active ? "blue.600" : "gray.700"}
+                      fontSize="sm"
+                      fontWeight="medium"
+                      _hover={{ bg: active ? "blue.50" : "gray.50" }}
+                      transition="all 0.2s"
+                    >
+                      <Text lineClamp={1}>{category.name}</Text>
+                      <Box as={FiChevronRight} w={4} h={4} color={active ? "blue.500" : "gray.400"} />
+                    </Button>
+                  )
+                })}
+              </VStack>
+            </Drawer.Body>
 
-        {/* Bottom Actions for Mobile */}
-        <div className="border-t border-slate-200 p-4">
-          <div className="flex items-center gap-3">
-            <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
-              <div className="relative">
-                <FiBell className="h-5 w-5" />
-                <span className="absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-red-500" />
-              </div>
-              <span className="flex-1 text-left">Thông báo</span>
-            </button>
-          </div>
-          <div className="mt-1 flex items-center gap-3">
-            <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
-              <FiUser className="h-5 w-5" />
-              <span className="flex-1 text-left">Tài khoản cá nhân</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-    </div>
+            {/* Bottom Actions for Mobile */}
+            <Box borderTop="1px" borderColor="gray.200" p={4}>
+              <VStack gap={1} align="stretch">
+                <Button
+                  variant="ghost"
+                  w="full"
+                  justifyContent="flex-start"
+                  borderRadius="xl"
+                  px={3}
+                  py={2.5}
+                  h="auto"
+                  fontSize="sm"
+                  fontWeight="medium"
+                  color="gray.700"
+                  _hover={{ bg: "gray.50" }}
+                  transition="all 0.2s"
+                >
+                  <Flex align="center" gap={3} w="full">
+                    <Box position="relative">
+                      <Box as={FiBell} w={5} h={5} />
+                      <Box position="absolute" right={0} top={0} w="1.5" h="1.5" borderRadius="full" bg="red.500" />
+                    </Box>
+                    <Text flex={1} textAlign="left">
+                      Thông báo
+                    </Text>
+                  </Flex>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  w="full"
+                  justifyContent="flex-start"
+                  borderRadius="xl"
+                  px={3}
+                  py={2.5}
+                  h="auto"
+                  fontSize="sm"
+                  fontWeight="medium"
+                  color="gray.700"
+                  _hover={{ bg: "gray.50" }}
+                  transition="all 0.2s"
+                >
+                  <Flex align="center" gap={3} w="full">
+                    <Box as={FiUser} w={5} h={5} />
+                    <Text flex={1} textAlign="left">
+                      Tài khoản cá nhân
+                    </Text>
+                  </Flex>
+                </Button>
+              </VStack>
+            </Box>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Portal>
+    </Drawer.Root>
   )
 }

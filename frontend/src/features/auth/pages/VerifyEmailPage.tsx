@@ -1,46 +1,50 @@
-import { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
-import { getAccessToken } from "@/features/auth/utils/auth.storage";
-import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm";
+import { useEffect } from "react"
+import { useNavigate, Link } from "@tanstack/react-router"
+import { Box, Container, Heading, Text, Link as ChakraLink, VStack } from "@chakra-ui/react"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
+import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm"
 
 export function VerifyEmailPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Redirect if not logged in (no access token)
   useEffect(() => {
     if (!getAccessToken()) {
-      navigate({ to: "/auth/login" });
+      navigate({ to: "/auth/login" })
     }
-  }, [navigate]);
+  }, [navigate])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full mx-auto">
+    <Box minH="100vh" bg="gray.50" display="flex" flexDir="column" justifyContent="center" py={12} px={4}>
+      <Container maxW="md">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">ReHub</h1>
-          <h2 className="mt-6 text-2xl font-bold text-gray-900">Xác thực Email</h2>
-          <p className="mt-2 text-sm text-gray-600">
+        <VStack gap={2} textAlign="center" mb={8}>
+          <Heading as="h1" size="2xl" color="gray.900">
+            ReHub
+          </Heading>
+          <Heading as="h2" size="lg" color="gray.900" mt={6}>
+            Xác thực Email
+          </Heading>
+          <Text fontSize="sm" color="gray.600" mt={2}>
             Chúng tôi đã gửi một email xác thực đến bạn
-          </p>
-        </div>
+          </Text>
+        </VStack>
 
         {/* Form */}
-        <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
+        <Box bg="white" py={8} px={6} boxShadow="md" borderRadius="lg">
           <VerifyEmailForm />
-        </div>
+        </Box>
 
         {/* Footer */}
-        <div className="text-center mt-8 space-y-4">
-          <p className="text-xs text-gray-500">
+        <VStack gap={4} mt={8} textAlign="center">
+          <Text fontSize="xs" color="gray.500">
             Các vấn đề về xác thực?{" "}
-            <Link to="/auth/login" className="text-blue-600 hover:text-blue-700">
-              Quay lại đăng nhập
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+            <ChakraLink asChild color="blue.600" _hover={{ color: "blue.700" }}>
+              <Link to="/auth/login">Quay lại đăng nhập</Link>
+            </ChakraLink>
+          </Text>
+        </VStack>
+      </Container>
+    </Box>
+  )
 }

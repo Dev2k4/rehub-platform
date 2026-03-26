@@ -1,20 +1,30 @@
 import { Link } from "@tanstack/react-router"
+import { HStack, Button, Link as ChakraLink } from "@chakra-ui/react"
 
 export function AuthButtons() {
   return (
-    <div className="flex gap-2">
-      <Link
-        to="/auth/login"
-        className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-      >
-        Đăng nhập
-      </Link>
-      <Link
-        to="/auth/register"
-        className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Đăng ký
-      </Link>
-    </div>
+    <HStack gap={2}>
+      <ChakraLink asChild>
+        <Link to="/auth/login">
+          <Button
+            variant="ghost"
+            colorScheme="blue"
+            size="sm"
+          >
+            Đăng nhập
+          </Button>
+        </Link>
+      </ChakraLink>
+      <ChakraLink asChild>
+        <Link to="/auth/register">
+          <Button
+            colorScheme="blue"
+            size="sm"
+          >
+            Đăng ký
+          </Button>
+        </Link>
+      </ChakraLink>
+    </HStack>
   )
 }

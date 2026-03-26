@@ -1,12 +1,16 @@
 import { useMemo, useState } from "react"
+import { Box, Container, Heading, Text, Flex } from "@chakra-ui/react"
 import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
 import { CategorySidebar } from "@/features/home/components/CategorySidebar"
 import { ListingGrid } from "@/features/home/components/ListingGrid"
 import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
+import { ListingModal } from "@/features/listings/components/ListingModal"
+import { useCreateListing } from "@/features/listings/hooks/useMyListings"
 import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData"
 
 export function HomeMarketplacePage() {
   const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false)
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false)
   const {
     selectedCategoryId,
     setSelectedCategoryId,
@@ -18,6 +22,8 @@ export function HomeMarketplacePage() {
     flatCategories,
   } = useMarketplaceData()
 
+  const createMutation = useCreateListing()
+
   const selectedCategoryName = useMemo(() => {
     if (!selectedCategoryId) {
       return "Tất cả sản phẩm"
@@ -26,12 +32,22 @@ export function HomeMarketplacePage() {
     return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục"
   }, [selectedCategoryId, categoryMap])
 
+  const handleCreateListing = async (data: any) => {
+    try {
+      await createMutation.mutateAsync(data)
+      setIsListingModalOpen(false)
+    } catch (error) {
+      console.error("Error creating listing:", error)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <Box minH="100vh" bg="gray.50">
       <MarketplaceHeader
         keyword={keyword}
         onKeywordChange={setKeyword}
         onOpenCategoryMenu={() => setCategoryOverlayOpen(true)}
+        onOpenListingModal={() => setIsListingModalOpen(true)}
       />
 
       <CategoryOverlay
@@ -45,44 +61,69 @@ export function HomeMarketplacePage() {
         }}
       />
 
-      <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-6">
-        <div className="mb-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white shadow-md">
-          <p className="text-xs uppercase tracking-wider text-blue-100 font-medium">Marketplace</p>
-          <h1 className="mt-1 text-2xl font-bold md:text-3xl">Khám phá sản phẩm</h1>
-          <p className="mt-2 text-sm text-blue-50 md:text-base">Hàng nghìn sản phẩm từ những người bán uy tín đang chờ đón bạn.</p>
-        </div>
+      <Container maxW="1400px" px={{ base: 4, md: 6 }} py={6}>
+        <Box
+          mb={6}
+          borderRadius="2xl"
+          bgGradient="linear(to-r, blue.600, purple.600)"
+          p={6}
+          color="white"
+          boxShadow="md"
+        >
+          <Text fontSize="xs" textTransform="uppercase" letterSpacing="wider" color="blue.100" fontWeight="medium">
+            Marketplace
+          </Text>
+          <Heading as="h1" mt={1} fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold">
+            Khám phá sản phẩm
+          </Heading>
+          <Text mt={2} fontSize={{ base: "sm", md: "md" }} color="blue.50">
+            Hàng nghìn sản phẩm từ những người bán uy tín đang chờ đón bạn.
+          </Text>
+        </Box>
 
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-900">{selectedCategoryName}</h2>
-          <div className="text-sm font-medium text-slate-500">
+        <Flex mb={4} align="center" justify="space-between" gap={3}>
+          <Heading as="h2" fontSize="lg" fontWeight="semibold" color="gray.900">
+            {selectedCategoryName}
+          </Heading>
+          <Text fontSize="sm" fontWeight="medium" color="gray.500">
             {listingsQuery.data ? `${listingsQuery.data.total} kết quả` : "Đang tải..."}
-          </div>
-        </div>
+          </Text>
+        </Flex>
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <Flex direction={{ base: "column", lg: "row" }} gap={6}>
           <CategorySidebar
             categories={flatCategories}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={setSelectedCategoryId}
           />
 
-          <main className="flex-1 min-w-0">
+          <Box as="main" flex={1} minW={0}>
             {categoriesQuery.isLoading || listingsQuery.isLoading ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Đang tải dữ liệu...</div>
+              <Box borderRadius="2xl" border="1px" borderColor="gray.200" bg="white" p={8} fontSize="sm" color="gray.500">
+                Đang tải dữ liệu...
+              </Box>
             ) : null}
 
             {categoriesQuery.isError || listingsQuery.isError ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-sm text-red-700">
+              <Box borderRadius="2xl" border="1px" borderColor="red.200" bg="red.50" p={8} fontSize="sm" color="red.700">
                 Không thể tải dữ liệu. Vui lòng kiểm tra cấu hình VITE_API_URL và trạng thái server.
-              </div>
+              </Box>
             ) : null}
 
             {!categoriesQuery.isLoading && !listingsQuery.isLoading && !categoriesQuery.isError && !listingsQuery.isError ? (
               <ListingGrid listings={listingsQuery.data?.items ?? []} categoryMap={categoryMap} />
             ) : null}
-          </main>
-        </div>
-      </div>
-    </div>
+          </Box>
+        </Flex>
+      </Container>
+
+      {/* Listing Modal */}
+      <ListingModal
+        isOpen={isListingModalOpen}
+        onOpenChange={setIsListingModalOpen}
+        onSubmit={handleCreateListing}
+        isLoading={createMutation.isPending}
+      />
+    </Box>
   )
 }

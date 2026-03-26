@@ -1,47 +1,51 @@
-import { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
-import { getAccessToken } from "@/features/auth/utils/auth.storage";
-import { LoginForm } from "@/features/auth/components/LoginForm";
+import { useEffect } from "react"
+import { useNavigate, Link } from "@tanstack/react-router"
+import { Box, Container, Heading, Text, Link as ChakraLink, VStack } from "@chakra-ui/react"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
+import { LoginForm } from "@/features/auth/components/LoginForm"
 
 export function LoginPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Redirect if already logged in
   useEffect(() => {
     if (getAccessToken()) {
-      navigate({ to: "/" });
+      navigate({ to: "/" })
     }
-  }, [navigate]);
+  }, [navigate])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full mx-auto">
+    <Box minH="100vh" bg="gray.50" display="flex" flexDir="column" justifyContent="center" py={12} px={4}>
+      <Container maxW="md">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">ReHub</h1>
-          <h2 className="mt-6 text-2xl font-bold text-gray-900">Đăng nhập</h2>
-          <p className="mt-2 text-sm text-gray-600">
+        <VStack gap={2} textAlign="center" mb={8}>
+          <Heading as="h1" size="2xl" color="gray.900">
+            ReHub
+          </Heading>
+          <Heading as="h2" size="lg" color="gray.900" mt={6}>
+            Đăng nhập
+          </Heading>
+          <Text fontSize="sm" color="gray.600" mt={2}>
             Hoặc{" "}
-            <Link to="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              tạo tài khoản mới
-            </Link>
-          </p>
-        </div>
+            <ChakraLink asChild color="blue.600" fontWeight="medium" _hover={{ color: "blue.700" }}>
+              <Link to="/auth/register">tạo tài khoản mới</Link>
+            </ChakraLink>
+          </Text>
+        </VStack>
 
         {/* Form */}
-        <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
+        <Box bg="white" py={8} px={6} boxShadow="md" borderRadius="lg">
           <LoginForm />
-        </div>
+        </Box>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-500 mt-8">
+        <Text textAlign="center" fontSize="xs" color="gray.500" mt={8}>
           Nếu bạn gặp sự cố với việc đăng nhập,{" "}
-          <a href="#" className="text-blue-600 hover:text-blue-700">
+          <ChakraLink href="#" color="blue.600" _hover={{ color: "blue.700" }}>
             liên hệ hỗ trợ
-          </a>
-        </p>
-      </div>
-    </div>
-  );
+          </ChakraLink>
+        </Text>
+      </Container>
+    </Box>
+  )
 }

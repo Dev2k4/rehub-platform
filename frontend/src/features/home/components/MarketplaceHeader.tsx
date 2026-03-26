@@ -1,7 +1,7 @@
 import { FiMenu, FiSearch, FiPackage, FiPlusCircle, FiBell } from "react-icons/fi"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Box, Button, Input as ChakraInput, HStack, VStack } from "@chakra-ui/react"
+import { Box, Flex, IconButton, Button, Input, Text, Link as ChakraLink } from "@chakra-ui/react"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { UserDropdownMenu } from "./UserDropdownMenu"
 import { AuthButtons } from "./AuthButtons"
@@ -12,9 +12,10 @@ type MarketplaceHeaderProps = {
   keyword: string
   onKeywordChange: (value: string) => void
   onOpenCategoryMenu: () => void
+  onOpenListingModal?: () => void
 }
 
-export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu }: MarketplaceHeaderProps) {
+export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu, onOpenListingModal }: MarketplaceHeaderProps) {
   const { user, isAuthenticated, isLoading } = useAuthUser()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -39,139 +40,151 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
       zIndex={50}
       borderBottom="1px"
       borderColor="gray.200"
-      bg="rgba(255, 255, 255, 0.8)"
-      backdropFilter="blur(8px)"
+      bg="whiteAlpha.800"
+      backdropFilter="blur(12px)"
       px={{ base: 4, md: 6 }}
       py={{ base: 3, md: 4 }}
       boxShadow="sm"
     >
-      <VStack maxW="1400px" mx="auto" gap={3} align="stretch">
-        {/* Top Row: Logo + Mobile Menu Button + Mobile Action Button */}
-        <HStack justify="space-between" w="full">
-          <HStack gap={{ base: 3, md: 4 }}>
-            <Button
-              variant="ghost"
-              size="sm"
+      <Flex
+        mx="auto"
+        maxW="1400px"
+        direction={{ base: "column", sm: "row" }}
+        gap={{ base: 3, sm: 6, md: 8 }}
+        align={{ sm: "center" }}
+        justify={{ sm: "space-between" }}
+      >
+        {/* Top Header Mobile / Full Header Left Desktop */}
+        <Flex align="center" justify="space-between" w={{ base: "full", sm: "auto" }}>
+          <Flex align="center" gap={{ base: 3, md: 4 }}>
+            <IconButton
+              display={{ base: "inline-flex", lg: "none" }}
+              aria-label="Open category menu"
               onClick={onOpenCategoryMenu}
-              p={0}
-              w="40px"
-              h="40px"
-              display={{ base: "flex", lg: "none" }}
-              alignItems="center"
-              justifyContent="center"
+              h={10}
+              w={10}
+              borderRadius="xl"
               bg="gray.100"
+              color="gray.700"
               _hover={{ bg: "gray.200" }}
             >
-              <FiMenu className="w-5 h-5" />
-            </Button>
+              <FiMenu size={20} />
+            </IconButton>
 
-            <Link to="/" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Box
-                w="40px"
-                h="40px"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                borderRadius="xl"
-                bgGradient="linear(to-br, blue.600, purple.600)"
-              >
-                <FiPackage className="w-6 h-6 text-white" />
-              </Box>
-              <Box fontSize="xl" fontWeight="semibold" color="gray.900" display={{ base: "none", sm: "block" }}>
-                ReHub
-              </Box>
-            </Link>
-          </HStack>
+            <ChakraLink asChild>
+              <Link to="/">
+                <Flex align="center" gap={2}>
+                  <Box
+                    display="flex"
+                    h={10}
+                    w={10}
+                    alignItems="center"
+                    justifyContent="center"
+                    borderRadius="xl"
+                    bgGradient="linear(to-br, blue.600, purple.600)"
+                  >
+                    <Box as={FiPackage} w={6} h={6} color="white" />
+                  </Box>
+                  <Text fontSize="xl" fontWeight="semibold" color="gray.900">
+                    ReHub
+                  </Text>
+                </Flex>
+              </Link>
+            </ChakraLink>
+          </Flex>
 
-          {/* Mobile Right Icon */}
-          <Link to="/" style={{ display: "flex" }}>
-            <Button
-              size="sm"
-              colorScheme="blue"
+          {/* Mobile Right Icons (hidden on sm+) */}
+          <Flex display={{ base: "flex", sm: "none" }} align="center" gap={2}>
+            <IconButton
+              aria-label="Post listing"
+              onClick={onOpenListingModal}
               borderRadius="full"
-              w="40px"
-              h="40px"
-              p={0}
-              display={{ base: "flex", sm: "none" }}
-              alignItems="center"
-              justifyContent="center"
+              bg="blue.600"
+              color="white"
+              h={10}
+              w={10}
+              _hover={{ bg: "blue.700" }}
             >
-              <FiPlusCircle className="w-5 h-5" />
-            </Button>
-          </Link>
-        </HStack>
+              <FiPlusCircle size={20} />
+            </IconButton>
+          </Flex>
+        </Flex>
 
-        {/* Search Row */}
-        <Box position="relative" flex={1} w="full" maxW="2xl">
-          <FiSearch
-            style={{
-              position: "absolute",
-              left: "16px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              fontSize: "20px",
-              color: "#a0aec0",
-            }}
-          />
-          <ChakraInput
-            value={keyword}
-            onChange={(event) => onKeywordChange(event.target.value)}
-            placeholder="Tìm kiếm sản phẩm, danh mục, hoặc người bán..."
-            borderRadius="full"
-            bg="gray.100"
-            border="none"
-            pl="45px"
-            pr="16px"
-            py="12px"
-            fontSize="sm"
-            _focus={{
-              bg: "white",
-              boxShadow: "0 0 0 2px rgba(66, 153, 225, 0.2)",
-            }}
-          />
-        </Box>
-
-        {/* Desktop Right Section */}
-        <HStack justify="flex-end" gap={2} display={{ base: "none", sm: "flex" }}>
+        {/* Search Input */}
+        <Box flex={1} w="full" maxW="2xl">
           <Box position="relative">
-            <Button variant="ghost" size="sm" p={2.5} borderRadius="full">
-              <FiBell className="w-5 h-5" />
-            </Button>
-            <Box
-              position="absolute"
-              right="6px"
-              top="6px"
-              w="2"
-              h="2"
+            <Box position="absolute" left={4} top="50%" transform="translateY(-50%)" zIndex={1}>
+              <FiSearch size={20} color="gray" />
+            </Box>
+            <Input
+              value={keyword}
+              onChange={(event) => onKeywordChange(event.target.value)}
+              placeholder="Tìm kiếm sản phẩm, danh mục, hoặc người bán..."
+              w="full"
               borderRadius="full"
-              bg="red.500"
+              border="none"
+              bg="gray.100"
+              py={3}
+              pl={12}
+              pr={4}
+              fontSize="sm"
+              color="gray.900"
+              transition="all 0.2s"
+              _placeholder={{ color: "gray.500" }}
+              _focus={{ bg: "white", ring: "2", ringColor: "blue.500", ringOffset: "2", ringOffsetColor: "transparent" }}
             />
           </Box>
+        </Box>
 
-          <Link to="/">
-            <Button
-              colorScheme="blue"
-              borderRadius="full"
-              size="sm"
-              display="flex"
-              alignItems="center"
-              gap={2}
-            >
-              <FiPlusCircle className="w-4 h-4" />
-              <span>Đăng tin</span>
-            </Button>
-          </Link>
+        {/* Desktop Right Icons (hidden on mobile) */}
+        <Flex display={{ base: "none", sm: "flex" }} align="center" gap={2}>
+          <IconButton
+            aria-label="Notifications"
+            position="relative"
+            borderRadius="full"
+            p={2.5}
+            color="gray.600"
+            variant="ghost"
+            _hover={{ bg: "gray.100" }}
+          >
+            <FiBell size={20} />
+            <Box position="absolute" right="6px" top="6px" h={2} w={2} borderRadius="full" bg="red.500" />
+          </IconButton>
 
-          {/* Auth Section */}
+          <ChakraLink asChild>
+            <Link to="/">
+              <Button
+                onClick={(e) => {
+                  e.preventDefault()
+                  onOpenListingModal?.()
+                }}
+                borderRadius="full"
+                bg="blue.600"
+                color="white"
+                px={4}
+                py={2.5}
+                fontSize="sm"
+                fontWeight="medium"
+                _hover={{ bg: "blue.700" }}
+              >
+                <Flex align="center" gap={2}>
+                  <FiPlusCircle size={16} />
+                  <span>Đăng tin</span>
+                </Flex>
+              </Button>
+            </Link>
+          </ChakraLink>
+
+          {/* Auth Section: Login buttons OR User menu */}
           {isLoading ? (
-            <Box w="40px" h="10" bg="gray.200" borderRadius="full" animation="pulse 2s infinite" />
+            <Box w={10} h={10} bg="gray.200" borderRadius="full" animation="pulse 2s infinite" />
           ) : isAuthenticated && user ? (
             <UserDropdownMenu user={user} onLogout={handleLogout} />
           ) : (
             <AuthButtons />
           )}
-        </HStack>
-      </VStack>
+        </Flex>
+      </Flex>
     </Box>
   )
 }
