@@ -1,18 +1,17 @@
-import {
-  Dialog,
-  Portal,
-  CloseButton,
-} from "@chakra-ui/react"
-import { ListingForm } from "@/features/listings/components/ListingForm"
-import type { ListingRead } from "@/client"
+import { Dialog, Portal, CloseButton } from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
+import { ListingForm } from "@/features/listings/components/ListingForm";
+import { getCategoriesTree } from "@/features/home/api/marketplace.api";
+import { flattenCategories } from "@/features/home/utils/marketplace.utils";
+import type { ListingRead } from "@/client";
 
 type ListingModalProps = {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  editingListing?: ListingRead | null
-  onSubmit: (data: any) => Promise<void>
-  isLoading?: boolean
-}
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingListing?: ListingRead | null;
+  onSubmit: (data: any) => Promise<void>;
+  isLoading?: boolean;
+};
 
 export function ListingModal({
   isOpen,
@@ -21,22 +20,49 @@ export function ListingModal({
   onSubmit,
   isLoading = false,
 }: ListingModalProps) {
+  const categoriesQuery = useQuery({
+    queryKey: ["categories", "tree"],
+    queryFn: () => getCategoriesTree(),
+    enabled: isOpen,
+  });
+
+  const flatCategories = categoriesQuery.data
+    ? flattenCategories(categoriesQuery.data)
+    : [];
   const handleFormSubmit = async (data: any) => {
-    await onSubmit(data)
-    onOpenChange(false)
-  }
+    await onSubmit(data);
+    onOpenChange(false);
+  };
 
   const handleCancel = () => {
-    onOpenChange(false)
-  }
+    onOpenChange(false);
+  };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(e) => onOpenChange(e.open)} size="xl">
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(e) => onOpenChange(e.open)}
+      size="xl"
+      placement="center"
+      motionPreset="slide-in-bottom"
+    >
       <Portal>
         <Dialog.Backdrop bg="blackAlpha.600" />
         <Dialog.Positioner>
-          <Dialog.Content maxW="2xl" maxH="90vh" overflowY="auto" bg="white" borderRadius="lg">
-            <Dialog.Header p={6} borderBottomWidth="1px" display="flex" justifyContent="space-between" alignItems="center">
+          <Dialog.Content
+            maxW="2xl"
+            maxH="90vh"
+            overflowY="auto"
+            bg="white"
+            borderRadius="lg"
+          >
+            <Dialog.Header
+              p={6}
+              borderBottomWidth="1px"
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <Dialog.Title fontSize="xl" fontWeight="semibold">
                 {editingListing ? "Sửa tin đăng" : "Đăng tin mới"}
               </Dialog.Title>
@@ -52,12 +78,13 @@ export function ListingModal({
                         title: editingListing.title,
                         description: editingListing.description || "",
                         price: parseInt(editingListing.price),
-                        category_id: parseInt(editingListing.category_id),
+                        category_id: editingListing.category_id,
                         condition_grade: editingListing.condition_grade,
                         is_negotiable: editingListing.is_negotiable,
                       }
                     : undefined
                 }
+                categories={flatCategories}
                 onSubmit={handleFormSubmit}
                 onCancel={handleCancel}
                 isLoading={isLoading}
@@ -67,5 +94,5 @@ export function ListingModal({
         </Dialog.Positioner>
       </Portal>
     </Dialog.Root>
-  )
+  );
 }

@@ -16,12 +16,13 @@ import {
 } from "@chakra-ui/react";
 import { FiCamera, FiTrash2 } from "react-icons/fi";
 import { useState } from "react";
+import type { CategoryTree } from "@/client";
 
 const listingSchema = z.object({
   title: z.string().min(5, "Tiêu đề ít nhất 5 ký tự").max(200),
   description: z.string().min(20, "Mô tả ít nhất 20 ký tự").max(2000),
   price: z.coerce.number().positive("Giá phải lớn hơn 0"),
-  category_id: z.coerce.number().positive("Chọn danh mục"),
+  category_id: z.string().min(1, "Chọn danh mục"),
   condition_grade: z.string().min(1, "Chọn tình trạng"),
   is_negotiable: z.boolean().default(false),
 });
@@ -30,6 +31,7 @@ type ListingFormData = z.infer<typeof listingSchema>;
 
 interface ListingFormProps {
   initialData?: Partial<ListingFormData>;
+  categories?: CategoryTree[];
   onSubmit: (data: ListingFormData) => void;
   isLoading?: boolean;
   onCancel?: () => void;
@@ -37,6 +39,7 @@ interface ListingFormProps {
 
 export function ListingForm({
   initialData,
+  categories = [],
   onSubmit,
   isLoading = false,
   onCancel,
@@ -80,21 +83,29 @@ export function ListingForm({
       <Stack gap={6}>
         {/* Title */}
         <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+          <Text
+            display="block"
+            fontSize="sm"
+            fontWeight="semibold"
+            mb={2}
+            color="gray.700"
           >
             Tiêu đề
-          </label>
+          </Text>
           <ChakraInput
             {...register("title")}
             type="text"
             placeholder="Ví dụ: Điện thoại iPhone 13 Pro Max"
-            borderColor={errors.title ? "red.500" : "gray.300"}
+            bg="gray.50"
+            borderRadius="xl"
+            border="1px solid"
+            borderColor={errors.title ? "red.500" : "gray.200"}
+            _focus={{
+              bg: "white",
+              borderColor: "blue.500",
+              ring: "1px",
+              ringColor: "blue.500",
+            }}
           />
           {errors.title && (
             <Text color="red.500" fontSize="sm" mt={1}>
@@ -105,21 +116,29 @@ export function ListingForm({
 
         {/* Description */}
         <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+          <Text
+            display="block"
+            fontSize="sm"
+            fontWeight="semibold"
+            mb={2}
+            color="gray.700"
           >
             Mô tả
-          </label>
+          </Text>
           <Textarea
             {...register("description")}
             placeholder="Mô tả chi tiết về sản phẩm..."
             minH="120px"
-            borderColor={errors.description ? "red.500" : "gray.300"}
+            bg="gray.50"
+            borderRadius="xl"
+            border="1px solid"
+            borderColor={errors.description ? "red.500" : "gray.200"}
+            _focus={{
+              bg: "white",
+              borderColor: "blue.500",
+              ring: "1px",
+              ringColor: "blue.500",
+            }}
           />
           {errors.description && (
             <Text color="red.500" fontSize="sm" mt={1}>
@@ -130,21 +149,30 @@ export function ListingForm({
 
         {/* Price */}
         <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+          <Text
+            display="block"
+            fontSize="sm"
+            fontWeight="semibold"
+            mb={2}
+            color="gray.700"
           >
             Giá (VNĐ)
-          </label>
+          </Text>
           <ChakraInput
+            id="price"
             {...register("price")}
             type="number"
             placeholder="0"
-            borderColor={errors.price ? "red.500" : "gray.300"}
+            bg="gray.50"
+            borderRadius="xl"
+            border="1px solid"
+            borderColor={errors.price ? "red.500" : "gray.200"}
+            _focus={{
+              bg: "white",
+              borderColor: "blue.500",
+              ring: "1px",
+              ringColor: "blue.500",
+            }}
           />
           {errors.price && (
             <Text color="red.500" fontSize="sm" mt={1}>
@@ -155,26 +183,35 @@ export function ListingForm({
 
         {/* Category */}
         <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+          <Text
+            display="block"
+            fontSize="sm"
+            fontWeight="semibold"
+            mb={2}
+            color="gray.700"
           >
             Danh mục
-          </label>
+          </Text>
           <NativeSelect.Root>
             <NativeSelect.Field
               {...register("category_id")}
-              borderColor={errors.category_id ? "red.500" : "gray.300"}
+              bg="gray.50"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor={errors.category_id ? "red.500" : "gray.200"}
+              _focus={{
+                bg: "white",
+                borderColor: "blue.500",
+                ring: "1px",
+                ringColor: "blue.500",
+              }}
             >
               <option value="">Chọn danh mục</option>
-              <option value="1">Điện tử</option>
-              <option value="2">Quần áo</option>
-              <option value="3">Sách</option>
-              <option value="4">Đồ gia dụng</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
             </NativeSelect.Field>
           </NativeSelect.Root>
           {errors.category_id && (
@@ -186,25 +223,36 @@ export function ListingForm({
 
         {/* Condition */}
         <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+          <Text
+            display="block"
+            fontSize="sm"
+            fontWeight="semibold"
+            mb={2}
+            color="gray.700"
           >
             Tình trạng
-          </label>
+          </Text>
           <NativeSelect.Root>
             <NativeSelect.Field
               {...register("condition_grade")}
-              borderColor={errors.condition_grade ? "red.500" : "gray.300"}
+              bg="gray.50"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor={errors.condition_grade ? "red.500" : "gray.200"}
+              _focus={{
+                bg: "white",
+                borderColor: "blue.500",
+                ring: "1px",
+                ringColor: "blue.500",
+              }}
             >
-              <option value="NEW">Mới</option>
-              <option value="LIKE_NEW">Như mới</option>
-              <option value="GOOD">Tốt</option>
-              <option value="FAIR">Trung bình</option>
+              <option value="brand_new">Mới (Chưa khui seal)</option>
+              <option value="like_new">Như mới (Đã khui seal, ít dùng)</option>
+              <option value="good">Tốt (Có chút trầy xước nhẹ)</option>
+              <option value="fair">
+                Trung bình (Ngoại hình cũ, hiệu năng tốt)
+              </option>
+              <option value="poor">Cũ (Trầy xước nhiều hoặc có lỗi nhẹ)</option>
             </NativeSelect.Field>
           </NativeSelect.Root>
           {errors.condition_grade && (
@@ -216,33 +264,40 @@ export function ListingForm({
 
         {/* Negotiable */}
         <Box>
-          <label style={{ fontSize: "0.875rem" }}>
+          <Flex align="center" gap={2} cursor="pointer" as="label">
             <input
               {...register("is_negotiable")}
               type="checkbox"
-              style={{ marginRight: "0.5rem" }}
+              style={{
+                width: "16px",
+                height: "16px",
+                cursor: "pointer",
+                accentColor: "#2563EB",
+              }}
             />
-            Có thể thương lượng giá
-          </label>
+            <Text fontSize="sm" fontWeight="medium" color="gray.700">
+              Có thể thương lượng giá
+            </Text>
+          </Flex>
         </Box>
 
         {/* Images */}
         <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+          <Text
+            display="block"
+            fontSize="sm"
+            fontWeight="semibold"
+            mb={2}
+            color="gray.700"
           >
             Hình ảnh
-          </label>
+          </Text>
           <Box
             border="2px dashed"
-            borderColor="gray.300"
-            borderRadius="lg"
-            p={6}
+            borderColor="gray.200"
+            borderRadius="xl"
+            p={8}
+            bg="gray.50"
             textAlign="center"
             cursor="pointer"
             _hover={{ borderColor: "blue.500", bg: "blue.50" }}
@@ -304,7 +359,10 @@ export function ListingForm({
               type="button"
               onClick={onCancel}
               variant="outline"
-              px={6}
+              px={8}
+              h="48px"
+              borderRadius="xl"
+              fontWeight="medium"
               disabled={isLoading}
             >
               Hủy
@@ -316,9 +374,11 @@ export function ListingForm({
             color="white"
             _hover={{ bg: "blue.700" }}
             _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
-            borderRadius="md"
-            fontWeight="medium"
-            px={8}
+            borderRadius="xl"
+            fontWeight="bold"
+            px={10}
+            h="48px"
+            transition="all 0.2s"
             disabled={isLoading}
           >
             {initialData ? "Cập nhật" : "Đăng tin"}
