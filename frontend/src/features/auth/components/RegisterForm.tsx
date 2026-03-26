@@ -8,7 +8,10 @@ import {
   VStack,
   Input as ChakraInput,
 } from "@chakra-ui/react";
-import { registerSchema, type RegisterInput } from "@/features/auth/utils/auth.schemas";
+import {
+  registerSchema,
+  type RegisterInput,
+} from "@/features/auth/utils/auth.schemas";
 import { useRegisterMutation } from "@/features/auth/hooks/useRegisterMutation";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
 
@@ -53,7 +56,14 @@ export function RegisterForm({ onError }: RegisterFormProps) {
       <Stack gap={4}>
         {/* Email */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Email
           </label>
           <ChakraInput
@@ -71,7 +81,14 @@ export function RegisterForm({ onError }: RegisterFormProps) {
 
         {/* Full Name */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Họ và tên
           </label>
           <ChakraInput
@@ -89,7 +106,14 @@ export function RegisterForm({ onError }: RegisterFormProps) {
 
         {/* Password */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Mật khẩu
           </label>
           <ChakraInput
@@ -131,14 +155,23 @@ export function RegisterForm({ onError }: RegisterFormProps) {
             id="rememberMe"
             style={{ marginRight: "0.5rem" }}
           />
-          <label htmlFor="rememberMe" style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+          <label
+            htmlFor="rememberMe"
+            style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}
+          >
             Giữ tôi đăng nhập
           </label>
         </Box>
 
         {/* Error Message */}
         {registerMutation.isError && (
-          <Box bg="red.50" border="1px" borderColor="red.200" borderRadius="md" p={4}>
+          <Box
+            bg="red.50"
+            border="1px"
+            borderColor="red.200"
+            borderRadius="md"
+            p={4}
+          >
             <Text fontSize="sm" color="red.800">
               {(registerMutation.error as any)?.message ||
                 "Đã xảy ra lỗi. Vui lòng thử lại."}
@@ -150,10 +183,17 @@ export function RegisterForm({ onError }: RegisterFormProps) {
         <Button
           type="submit"
           disabled={isSubmitting || registerMutation.isPending}
-          colorScheme="blue"
+          bg="blue.600"
+          color="white"
+          _hover={{ bg: "blue.700" }}
+          _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
           width="full"
+          borderRadius="md"
+          fontWeight="medium"
         >
-          {isSubmitting || registerMutation.isPending ? "Đang xử lý..." : "Đăng ký"}
+          {isSubmitting || registerMutation.isPending
+            ? "Đang xử lý..."
+            : "Đăng ký"}
         </Button>
       </Stack>
     </Box>

@@ -8,7 +8,10 @@ import {
   Link as ChakraLink,
   Input as ChakraInput,
 } from "@chakra-ui/react";
-import { loginSchema, type LoginInput } from "@/features/auth/utils/auth.schemas";
+import {
+  loginSchema,
+  type LoginInput,
+} from "@/features/auth/utils/auth.schemas";
 import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
 
@@ -65,7 +68,14 @@ export function LoginForm({ onError }: LoginFormProps) {
       <Stack gap={4}>
         {/* Email */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Email
           </label>
           <ChakraInput
@@ -83,7 +93,14 @@ export function LoginForm({ onError }: LoginFormProps) {
 
         {/* Password */}
         <Box>
-          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              marginBottom: "0.5rem",
+            }}
+          >
             Mật khẩu
           </label>
           <ChakraInput
@@ -107,15 +124,26 @@ export function LoginForm({ onError }: LoginFormProps) {
             id="rememberMe"
             style={{ marginRight: "0.5rem" }}
           />
-          <label htmlFor="rememberMe" style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+          <label
+            htmlFor="rememberMe"
+            style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}
+          >
             Giữ tôi đăng nhập
           </label>
         </Box>
 
         {/* Error Message */}
         {loginMutation.isError && (
-          <Box bg="red.50" border="1px" borderColor="red.200" borderRadius="md" p={4}>
-            <Text fontSize="sm" color="red.800">{getErrorMessage()}</Text>
+          <Box
+            bg="red.50"
+            border="1px"
+            borderColor="red.200"
+            borderRadius="md"
+            p={4}
+          >
+            <Text fontSize="sm" color="red.800">
+              {getErrorMessage()}
+            </Text>
           </Box>
         )}
 
@@ -123,10 +151,17 @@ export function LoginForm({ onError }: LoginFormProps) {
         <Button
           type="submit"
           disabled={isSubmitting || loginMutation.isPending}
-          colorScheme="blue"
+          bg="blue.600"
+          color="white"
+          _hover={{ bg: "blue.700" }}
+          _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
           width="full"
+          borderRadius="md"
+          fontWeight="medium"
         >
-          {isSubmitting || loginMutation.isPending ? "Đang xử lý..." : "Đăng nhập"}
+          {isSubmitting || loginMutation.isPending
+            ? "Đang xử lý..."
+            : "Đăng nhập"}
         </Button>
 
         {/* Forgot Password Link */}

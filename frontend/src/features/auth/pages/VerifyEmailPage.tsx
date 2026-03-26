@@ -1,37 +1,71 @@
-import { useEffect } from "react"
-import { useNavigate, Link } from "@tanstack/react-router"
-import { Box, Container, Heading, Text, Link as ChakraLink, VStack } from "@chakra-ui/react"
-import { getAccessToken } from "@/features/auth/utils/auth.storage"
-import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm"
+import { useEffect } from "react";
+import { useNavigate, Link } from "@tanstack/react-router";
+import {
+  Box,
+  Container,
+  Heading,
+  Text,
+  Link as ChakraLink,
+  VStack,
+  Flex,
+} from "@chakra-ui/react";
+import { FiPackage } from "react-icons/fi";
+import { getAccessToken } from "@/features/auth/utils/auth.storage";
+import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm";
 
 export function VerifyEmailPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // Redirect if not logged in (no access token)
   useEffect(() => {
     if (!getAccessToken()) {
-      navigate({ to: "/auth/login" })
+      navigate({ to: "/auth/login" });
     }
-  }, [navigate])
+  }, [navigate]);
 
   return (
-    <Box minH="100vh" bg="gray.50" display="flex" flexDir="column" justifyContent="center" py={12} px={4}>
-      <Container maxW="md">
+    <Box
+      minH="100vh"
+      bg="gray.50"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      py={12}
+      px={4}
+    >
+      <Container maxW="md" w="full">
         {/* Header */}
         <VStack gap={2} textAlign="center" mb={8}>
-          <Heading as="h1" size="2xl" color="gray.900">
+          <Flex
+            h={14}
+            w={14}
+            alignItems="center"
+            justifyContent="center"
+            borderRadius="xl"
+            bgGradient="linear(to-br, blue.600, purple.600)"
+            mb={2}
+          >
+            <Box as={FiPackage} w={7} h={7} color="white" />
+          </Flex>
+          <Heading as="h1" size="xl" color="gray.900" fontWeight="bold">
             ReHub
           </Heading>
-          <Heading as="h2" size="lg" color="gray.900" mt={6}>
+          <Heading
+            as="h2"
+            size="md"
+            color="gray.700"
+            fontWeight="semibold"
+            mt={4}
+          >
             Xác thực Email
           </Heading>
-          <Text fontSize="sm" color="gray.600" mt={2}>
+          <Text fontSize="sm" color="gray.500" mt={1}>
             Chúng tôi đã gửi một email xác thực đến bạn
           </Text>
         </VStack>
 
         {/* Form */}
-        <Box bg="white" py={8} px={6} boxShadow="md" borderRadius="lg">
+        <Box bg="white" py={8} px={6} boxShadow="md" borderRadius="xl">
           <VerifyEmailForm />
         </Box>
 
@@ -46,5 +80,5 @@ export function VerifyEmailPage() {
         </VStack>
       </Container>
     </Box>
-  )
+  );
 }
