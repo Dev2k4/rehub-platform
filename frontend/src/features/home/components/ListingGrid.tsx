@@ -1,5 +1,6 @@
 import { FiTag } from "react-icons/fi"
 import { Box, SimpleGrid, Heading, Text, Flex, Image } from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
 import type { CategoryTree, ListingWithImages } from "@/client"
 import { formatCurrencyVnd, formatPostedTime, getListingImageUrl } from "@/features/home/utils/marketplace.utils"
 
@@ -33,19 +34,25 @@ export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
         const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
 
         return (
-          <Box
+          <Link
             key={listing.id}
-            as="article"
-            overflow="hidden"
-            borderRadius="2xl"
-            border="1px"
-            borderColor="gray.200"
-            bg="white"
-            boxShadow="sm"
-            transition="all 0.2s"
-            _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
-            role="group"
+            to="/listings/$id"
+            params={{ id: listing.id }}
+            style={{ textDecoration: "none" }}
           >
+            <Box
+              as="article"
+              overflow="hidden"
+              borderRadius="2xl"
+              border="1px"
+              borderColor="gray.200"
+              bg="white"
+              boxShadow="sm"
+              transition="all 0.2s"
+              _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
+              role="group"
+              cursor="pointer"
+            >
             <Box aspectRatio={1} overflow="hidden" bg="gray.100">
               {firstImageUrl ? (
                 <Image
@@ -91,6 +98,7 @@ export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
               </Flex>
             </Box>
           </Box>
+          </Link>
         )
       })}
     </SimpleGrid>
