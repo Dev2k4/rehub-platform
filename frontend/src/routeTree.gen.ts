@@ -14,6 +14,8 @@ import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as SellersIdRouteImport } from './routes/sellers.$id'
+import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
 import { Route as AuthRegisterRouteImport } from './routes/auth.register'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
@@ -45,6 +47,16 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const SellersIdRoute = SellersIdRouteImport.update({
+  id: '/sellers/$id',
+  path: '/sellers/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsIdRoute = ListingsIdRouteImport.update({
+  id: '/listings/$id',
+  path: '/listings/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   id: '/auth/verify-email',
@@ -88,6 +100,8 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/listings/$id': typeof ListingsIdRoute
+  '/sellers/$id': typeof SellersIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -100,6 +114,8 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/listings/$id': typeof ListingsIdRoute
+  '/sellers/$id': typeof SellersIdRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -114,6 +130,8 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/listings/$id': typeof ListingsIdRoute
+  '/sellers/$id': typeof SellersIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -129,6 +147,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
+    | '/listings/$id'
+    | '/sellers/$id'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -141,6 +161,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
+    | '/listings/$id'
+    | '/sellers/$id'
     | '/admin'
   id:
     | '__root__'
@@ -154,6 +176,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
+    | '/listings/$id'
+    | '/sellers/$id'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -165,6 +189,8 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
+  ListingsIdRoute: typeof ListingsIdRoute
+  SellersIdRoute: typeof SellersIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -203,6 +229,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/sellers/$id': {
+      id: '/sellers/$id'
+      path: '/sellers/$id'
+      fullPath: '/sellers/$id'
+      preLoaderRoute: typeof SellersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listings/$id': {
+      id: '/listings/$id'
+      path: '/listings/$id'
+      fullPath: '/listings/$id'
+      preLoaderRoute: typeof ListingsIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/verify-email': {
       id: '/auth/verify-email'
@@ -273,6 +313,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
+  ListingsIdRoute: ListingsIdRoute,
+  SellersIdRoute: SellersIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
