@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Container,
@@ -13,13 +13,18 @@ import {
   Image,
   SimpleGrid,
   Separator,
+  Dialog,
+  Portal,
+  CloseButton,
+  Input,
 } from "@chakra-ui/react"
-import { useNavigate, useParams, Link } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
+import { useNavigate, useParams, Link, useSearch } from "@tanstack/react-router"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import {
   FiArrowLeft,
   FiTag,
   FiUser,
+  FiStar,
   FiCalendar,
   FiMessageCircle,
   FiHeart,
@@ -28,8 +33,14 @@ import {
   FiAlertCircle,
 } from "react-icons/fi"
 import type { CategoryTree } from "@/client"
+import { ApiError } from "@/client"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { getListingDetails } from "@/features/listings/api/listings.api"
 import { getCategoriesTree } from "@/features/home/api/marketplace.api"
+import { getUserPublicProfile } from "@/features/users/api/users.api"
+import { createOrder } from "@/features/orders/api/orders.api"
+import { createOffer } from "@/features/offers/api/offers.api"
+import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
 import {
   formatCurrencyVnd,
   formatPostedTime,
@@ -53,10 +64,47 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   rejected: { label: "Bị từ chối", color: "red" },
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    const detail = (error.body as { detail?: unknown })?.detail
+    if (typeof detail === "string" && detail.trim()) {
+      return detail
+    }
+    if (Array.isArray(detail) && detail.length > 0) {
+      const firstMessage = (detail[0] as { msg?: unknown })?.msg
+      if (typeof firstMessage === "string" && firstMessage.trim()) {
+        return firstMessage
+      }
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return fallback
+}
+
 export function ListingDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams({ from: "/listings/$id" })
+  const search = useSearch({ from: "/listings/$id" }) as { offerId?: string } | undefined
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [offerPrice, setOfferPrice] = useState("")
+  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false)
+  const [isOfferDetailModalOpen, setIsOfferDetailModalOpen] = useState(false)
+  const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(undefined)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+  const { user, isAuthenticated } = useAuthUser()
+
+  // Auto-open offer detail modal if offerId is in URL search params
+  useEffect(() => {
+    if (search?.offerId) {
+      setSelectedOfferId(search.offerId)
+      setIsOfferDetailModalOpen(true)
+    }
+  }, [search?.offerId])
 
   const listingQuery = useQuery({
     queryKey: ["listing", id],
@@ -64,9 +112,24 @@ export function ListingDetailPage() {
     enabled: !!id,
   })
 
+  const sellerId = listingQuery.data?.seller_id ?? ""
+  const sellerProfileQuery = useQuery({
+    queryKey: ["seller-profile", sellerId],
+    queryFn: () => getUserPublicProfile(sellerId),
+    enabled: !!sellerId,
+  })
+
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
     queryFn: () => getCategoriesTree(),
+  })
+
+  const createOrderMutation = useMutation({
+    mutationFn: createOrder,
+  })
+
+  const createOfferMutation = useMutation({
+    mutationFn: createOffer,
   })
 
   const categoryMap = new Map<string, CategoryTree>()
@@ -138,6 +201,80 @@ export function ListingDetailPage() {
 
   const images = listing.images ?? []
   const currentImage = images[selectedImageIndex]
+  const isOwnListing = user?.id === listing.seller_id
+  const canTransact = listing.status === "active" && !isOwnListing
+
+  const requireAuth = () => {
+    if (isAuthenticated) {
+      return true
+    }
+    navigate({ to: "/auth/login" })
+    return false
+  }
+
+  const handleBuyNow = async () => {
+    setActionError(null)
+    setActionSuccess(null)
+
+    if (!requireAuth()) {
+      return
+    }
+
+    if (!canTransact) {
+      setActionError("Bạn không thể mua sản phẩm này ở thời điểm hiện tại.")
+      return
+    }
+
+    try {
+      const order = await createOrderMutation.mutateAsync({ listing_id: listing.id })
+      setActionSuccess(`Đặt hàng thành công. Mã đơn: ${order.id.slice(0, 8)}...`)
+    } catch (error) {
+      setActionError(
+        getErrorMessage(error, "Không thể tạo đơn hàng. Vui lòng thử lại."),
+      )
+    }
+  }
+
+  const handleOpenOfferDialog = () => {
+    setActionError(null)
+    setActionSuccess(null)
+
+    if (!requireAuth()) {
+      return
+    }
+
+    if (!canTransact) {
+      setActionError("Bạn không thể thương lượng sản phẩm này ở thời điểm hiện tại.")
+      return
+    }
+
+    setOfferPrice(listing.price)
+    setIsOfferDialogOpen(true)
+  }
+
+  const handleSubmitOffer = async () => {
+    setActionError(null)
+    setActionSuccess(null)
+
+    const parsedPrice = Number(offerPrice)
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      setActionError("Giá đề xuất phải là số lớn hơn 0.")
+      return
+    }
+
+    try {
+      await createOfferMutation.mutateAsync({
+        listing_id: listing.id,
+        offer_price: parsedPrice,
+      })
+      setIsOfferDialogOpen(false)
+      setActionSuccess("Đã gửi đề xuất giá cho người bán thành công.")
+    } catch (error) {
+      setActionError(
+        getErrorMessage(error, "Không thể gửi đề xuất giá. Vui lòng thử lại."),
+      )
+    }
+  }
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -313,12 +450,69 @@ export function ListingDetailPage() {
                 {/* Action Buttons */}
                 <Box p={4}>
                   <VStack gap={3}>
+                    {actionSuccess && (
+                      <Box
+                        w="full"
+                        px={3}
+                        py={2}
+                        borderRadius="md"
+                        bg="green.50"
+                        border="1px"
+                        borderColor="green.200"
+                      >
+                        <Text fontSize="sm" color="green.700">
+                          {actionSuccess}
+                        </Text>
+                      </Box>
+                    )}
+                    {actionError && (
+                      <Box
+                        w="full"
+                        px={3}
+                        py={2}
+                        borderRadius="md"
+                        bg="red.50"
+                        border="1px"
+                        borderColor="red.200"
+                      >
+                        <Text fontSize="sm" color="red.700">
+                          {actionError}
+                        </Text>
+                      </Box>
+                    )}
                     <Button
                       w="full"
                       bg="blue.600"
                       color="white"
                       size="lg"
                       _hover={{ bg: "blue.700" }}
+                      borderRadius="lg"
+                      onClick={handleBuyNow}
+                      loading={createOrderMutation.isPending}
+                      disabled={!canTransact}
+                    >
+                      Mua ngay
+                    </Button>
+                    {listing.is_negotiable && (
+                      <Button
+                        w="full"
+                        variant="outline"
+                        colorPalette="orange"
+                        size="lg"
+                        borderRadius="lg"
+                        onClick={handleOpenOfferDialog}
+                        loading={createOfferMutation.isPending}
+                        disabled={!canTransact}
+                      >
+                        Thương lượng
+                      </Button>
+                    )}
+                    <Button
+                      w="full"
+                      variant="subtle"
+                      colorPalette="blue"
+                      size="lg"
+                      _hover={{ bg: "blue.100" }}
                       borderRadius="lg"
                     >
                       <FiMessageCircle style={{ marginRight: "0.5rem" }} />
@@ -378,7 +572,7 @@ export function ListingDetailPage() {
                     borderRadius="lg"
                     p={4}
                     display="flex"
-                    alignItems="center"
+                    alignItems="flex-start"
                     gap={3}
                   >
                     <Box
@@ -389,13 +583,41 @@ export function ListingDetailPage() {
                       display="flex"
                       alignItems="center"
                       justifyContent="center"
+                      overflow="hidden"
+                      flexShrink={0}
                     >
-                      <Box as={FiUser} w={6} h={6} color="blue.500" />
+                      {sellerProfileQuery.data?.avatar_url ? (
+                        <Image
+                          src={sellerProfileQuery.data.avatar_url}
+                          alt={sellerProfileQuery.data.full_name}
+                          w="full"
+                          h="full"
+                          objectFit="cover"
+                        />
+                      ) : (
+                        <Box as={FiUser} w={6} h={6} color="blue.500" />
+                      )}
                     </Box>
                     <Box flex={1}>
-                      <Text fontSize="sm" color="gray.600">
-                        ID: {listing.seller_id.slice(0, 8)}...
+                      <Text fontSize="sm" fontWeight="semibold" color="gray.900" lineClamp={1}>
+                        {sellerProfileQuery.data?.full_name || "Người bán"}
                       </Text>
+                      <HStack gap={3} mt={1} flexWrap="wrap">
+                        <Text fontSize="xs" color="gray.600">
+                          Đã bán: {sellerProfileQuery.data?.completed_orders ?? 0} sản phẩm
+                        </Text>
+                        <HStack gap={1} color="yellow.500">
+                          <Box as={FiStar} w={3.5} h={3.5} />
+                          <Text fontSize="xs" color="gray.600">
+                            {sellerProfileQuery.data ? sellerProfileQuery.data.rating_avg.toFixed(1) : "0.0"} sao
+                          </Text>
+                        </HStack>
+                      </HStack>
+                      {sellerProfileQuery.isLoading && (
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          Đang tải thông tin người bán...
+                        </Text>
+                      )}
                       <Text
                         fontSize="sm"
                         color="blue.600"
@@ -436,6 +658,71 @@ export function ListingDetailPage() {
           )}
         </Box>
       </Container>
+
+      <Dialog.Root
+        open={isOfferDialogOpen}
+        onOpenChange={(e) => setIsOfferDialogOpen(e.open)}
+        placement="center"
+      >
+        <Portal>
+          <Dialog.Backdrop bg="blackAlpha.600" />
+          <Dialog.Positioner>
+            <Dialog.Content maxW="sm" bg="white" borderRadius="lg">
+              <Dialog.Header
+                p={5}
+                borderBottomWidth="1px"
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <Dialog.Title fontSize="lg" fontWeight="semibold">
+                  Gửi đề xuất giá
+                </Dialog.Title>
+                <Dialog.CloseTrigger asChild>
+                  <CloseButton size="sm" />
+                </Dialog.CloseTrigger>
+              </Dialog.Header>
+              <Dialog.Body p={5}>
+                <VStack align="stretch" gap={4}>
+                  <Text fontSize="sm" color="gray.600">
+                    Nhập mức giá bạn muốn đề xuất cho người bán.
+                  </Text>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1000}
+                    value={offerPrice}
+                    onChange={(e) => setOfferPrice(e.target.value)}
+                    placeholder="Nhập giá đề xuất"
+                  />
+                  <HStack justify="flex-end" gap={3}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsOfferDialogOpen(false)}
+                    >
+                      Hủy
+                    </Button>
+                    <Button
+                      colorPalette="orange"
+                      onClick={handleSubmitOffer}
+                      loading={createOfferMutation.isPending}
+                    >
+                      Gửi đề xuất
+                    </Button>
+                  </HStack>
+                </VStack>
+              </Dialog.Body>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+
+      {/* Offer Detail Modal */}
+      <OfferDetailModal
+        isOpen={isOfferDetailModalOpen}
+        onOpenChange={setIsOfferDetailModalOpen}
+        offerId={selectedOfferId}
+      />
     </Box>
   )
 }

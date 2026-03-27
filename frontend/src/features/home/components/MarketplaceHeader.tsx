@@ -1,12 +1,73 @@
 import { FiMenu, FiSearch, FiPackage, FiPlusCircle, FiBell } from "react-icons/fi"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
-import { Box, Flex, IconButton, Button, Input, Text, Link as ChakraLink } from "@chakra-ui/react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  Box,
+  Flex,
+  IconButton,
+  Button,
+  Input,
+  Text,
+  Link as ChakraLink,
+  Menu,
+  Portal,
+  Separator,
+  Spinner,
+} from "@chakra-ui/react"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { UserDropdownMenu } from "./UserDropdownMenu"
 import { AuthButtons } from "./AuthButtons"
 import { logoutUser } from "@/features/auth/api/auth.api"
 import { clearTokens } from "@/features/auth/utils/auth.storage"
+import {
+  getMyNotifications,
+  getUnreadNotificationsCount,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "@/features/notifications/api/notifications.api"
+import type { NotificationRead } from "@/client"
+
+function getDataField(data: NotificationRead["data"], field: string): string | null {
+  if (!data || typeof data !== "object") {
+    return null
+  }
+
+  const value = (data as Record<string, unknown>)[field]
+  return typeof value === "string" && value.trim() ? value : null
+}
+
+function getNotificationDestination(notification: NotificationRead):
+  | { to: "/listings/$id"; params: { id: string }; search?: { offerId?: string } }
+  | { to: "/sellers/$id"; params: { id: string } }
+  | { to: "/my-listings" }
+  | { to: "/profile" }
+  | { to: "/" } {
+  const listingId = getDataField(notification.data, "listing_id")
+  const offerId = getDataField(notification.data, "offer_id")
+  const sellerId = getDataField(notification.data, "seller_id")
+
+  if (listingId) {
+    const destination = { to: "/listings/$id" as const, params: { id: listingId } }
+    if (offerId && notification.type.startsWith("offer_")) {
+      return { ...destination, search: { offerId } }
+    }
+    return destination
+  }
+
+  if (sellerId) {
+    return { to: "/sellers/$id", params: { id: sellerId } }
+  }
+
+  if (notification.type.startsWith("offer_") || notification.type.startsWith("order_")) {
+    return { to: "/my-listings" }
+  }
+
+  if (notification.type.startsWith("review_")) {
+    return { to: "/profile" }
+  }
+
+  return { to: "/" }
+}
 
 type MarketplaceHeaderProps = {
   keyword: string
@@ -19,6 +80,33 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
   const { user, isAuthenticated, isLoading } = useAuthUser()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => getMyNotifications(),
+    enabled: isAuthenticated,
+  })
+  const unreadCountQuery = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => getUnreadNotificationsCount(),
+    enabled: isAuthenticated,
+    refetchInterval: 30_000,
+  })
+
+  const markNotificationMutation = useMutation({
+    mutationFn: markNotificationAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] })
+    },
+  })
+
+  const markAllNotificationsMutation = useMutation({
+    mutationFn: markAllNotificationsAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] })
+    },
+  })
 
   const handleLogout = async () => {
     try {
@@ -29,6 +117,33 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
       clearTokens()
       queryClient.invalidateQueries({ queryKey: ["auth"] })
       navigate({ to: "/" })
+    }
+  }
+
+  const unreadCount = unreadCountQuery.data ?? 0
+
+  const handleNotificationClick = async (notification: NotificationRead) => {
+    if (!notification.is_read && !markNotificationMutation.isPending) {
+      try {
+        await markNotificationMutation.mutateAsync(notification.id)
+      } catch (error) {
+        console.error("Failed to mark notification as read:", error)
+      }
+    }
+
+    const destination = getNotificationDestination(notification)
+    navigate(destination as never)
+  }
+
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0 || markAllNotificationsMutation.isPending) {
+      return
+    }
+
+    try {
+      await markAllNotificationsMutation.mutateAsync()
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error)
     }
   }
 
@@ -138,18 +253,127 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
 
         {/* Desktop Right Icons (hidden on mobile) */}
         <Flex display={{ base: "none", sm: "flex" }} align="center" gap={2}>
-          <IconButton
-            aria-label="Notifications"
-            position="relative"
-            borderRadius="full"
-            p={2.5}
-            color="gray.600"
-            variant="ghost"
-            _hover={{ bg: "gray.100" }}
-          >
-            <FiBell size={20} />
-            <Box position="absolute" right="6px" top="6px" h={2} w={2} borderRadius="full" bg="red.500" />
-          </IconButton>
+          {isAuthenticated ? (
+            <Menu.Root>
+              <Menu.Trigger asChild>
+                <IconButton
+                  aria-label="Notifications"
+                  position="relative"
+                  borderRadius="full"
+                  p={2.5}
+                  color="gray.600"
+                  variant="ghost"
+                  _hover={{ bg: "gray.100" }}
+                >
+                  <FiBell size={20} />
+                  {unreadCount > 0 && (
+                    <Box
+                      position="absolute"
+                      right="6px"
+                      top="6px"
+                      minW={4}
+                      h={4}
+                      px={1}
+                      borderRadius="full"
+                      bg="red.500"
+                      color="white"
+                      fontSize="10px"
+                      fontWeight="bold"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      lineHeight={1}
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Box>
+                  )}
+                </IconButton>
+              </Menu.Trigger>
+              <Portal>
+                <Menu.Positioner>
+                  <Menu.Content
+                    w="96"
+                    bg="white"
+                    boxShadow="xl"
+                    borderRadius="lg"
+                    border="1px"
+                    borderColor="gray.200"
+                    overflow="hidden"
+                  >
+                    <Flex align="center" justify="space-between" px={4} py={3}>
+                      <Text fontWeight="semibold" color="gray.900">
+                        Thông báo
+                      </Text>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorPalette="blue"
+                        onClick={handleMarkAllAsRead}
+                        loading={markAllNotificationsMutation.isPending}
+                        disabled={unreadCount === 0}
+                      >
+                        Đánh dấu tất cả
+                      </Button>
+                    </Flex>
+                    <Separator />
+                    <Box maxH="340px" overflowY="auto">
+                      {notificationsQuery.isLoading ? (
+                        <Flex py={6} justify="center">
+                          <Spinner size="sm" color="blue.500" />
+                        </Flex>
+                      ) : notificationsQuery.data && notificationsQuery.data.length > 0 ? (
+                        notificationsQuery.data.map((notification) => (
+                          <Menu.Item
+                            key={notification.id}
+                            value={`notification-${notification.id}`}
+                            py={0}
+                            px={0}
+                            onClick={() => handleNotificationClick(notification)}
+                          >
+                            <Box
+                              w="full"
+                              px={4}
+                              py={3}
+                              bg={notification.is_read ? "white" : "blue.50"}
+                              borderBottom="1px"
+                              borderColor="gray.100"
+                            >
+                              <Text fontSize="sm" fontWeight="semibold" color="gray.900" lineClamp={1}>
+                                {notification.title}
+                              </Text>
+                              <Text fontSize="xs" color="gray.600" mt={0.5} lineClamp={2}>
+                                {notification.message}
+                              </Text>
+                              <Text fontSize="xs" color="gray.500" mt={1}>
+                                {new Date(notification.created_at).toLocaleString("vi-VN")}
+                              </Text>
+                            </Box>
+                          </Menu.Item>
+                        ))
+                      ) : (
+                        <Box px={4} py={8} textAlign="center">
+                          <Text fontSize="sm" color="gray.500">
+                            Bạn chưa có thông báo nào.
+                          </Text>
+                        </Box>
+                      )}
+                    </Box>
+                  </Menu.Content>
+                </Menu.Positioner>
+              </Portal>
+            </Menu.Root>
+          ) : (
+            <IconButton
+              aria-label="Notifications"
+              borderRadius="full"
+              p={2.5}
+              color="gray.600"
+              variant="ghost"
+              _hover={{ bg: "gray.100" }}
+            >
+              <FiBell size={20} />
+            </IconButton>
+          )}
 
           <ChakraLink asChild>
             <Link to="/">

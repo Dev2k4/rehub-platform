@@ -1,15 +1,18 @@
-import { FiTag } from "react-icons/fi"
+import { FiTag, FiUser } from "react-icons/fi"
 import { Box, SimpleGrid, Heading, Text, Flex, Image } from "@chakra-ui/react"
-import { Link } from "@tanstack/react-router"
-import type { CategoryTree, ListingWithImages } from "@/client"
+import { Link, useNavigate } from "@tanstack/react-router"
+import type { CategoryTree, ListingWithImages, UserPublicProfile } from "@/client"
 import { formatCurrencyVnd, formatPostedTime, getListingImageUrl } from "@/features/home/utils/marketplace.utils"
 
 type ListingGridProps = {
   listings: ListingWithImages[]
   categoryMap: Map<string, CategoryTree>
+  sellerMap: Map<string, UserPublicProfile>
 }
 
-export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
+export function ListingGrid({ listings, categoryMap, sellerMap }: ListingGridProps) {
+  const navigate = useNavigate()
+
   if (listings.length === 0) {
     return (
       <Box
@@ -31,14 +34,21 @@ export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
     <SimpleGrid columns={{ base: 2, sm: 2, lg: 3, xl: 4 }} gap={3}>
       {listings.map((listing) => {
         const category = categoryMap.get(listing.category_id)
+        const seller = sellerMap.get(listing.seller_id)
         const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
 
         return (
-          <Link
+          <Box
             key={listing.id}
-            to="/listings/$id"
-            params={{ id: listing.id }}
-            style={{ textDecoration: "none" }}
+            onClick={() => navigate({ to: "/listings/$id", params: { id: listing.id } })}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                navigate({ to: "/listings/$id", params: { id: listing.id } })
+              }
+            }}
+            role="link"
+            tabIndex={0}
           >
             <Box
               as="article"
@@ -83,6 +93,22 @@ export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
                 {listing.title}
               </Heading>
 
+              <Flex align="center" gap={1} fontSize="xs" color="gray.600">
+                <Box as={FiUser} w="3.5" h="3.5" />
+                <Link
+                  to="/sellers/$id"
+                  params={{ id: listing.seller_id }}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                  }}
+                  style={{ textDecoration: "none" }}
+                >
+                  <Text lineClamp={1} color="blue.600" _hover={{ textDecoration: "underline" }}>
+                    {seller?.full_name || "Người bán"}
+                  </Text>
+                </Link>
+              </Flex>
+
               <Text fontSize="lg" fontWeight="bold" color="blue.600" lineHeight="none">
                 {formatCurrencyVnd(listing.price)}
               </Text>
@@ -98,7 +124,7 @@ export function ListingGrid({ listings, categoryMap }: ListingGridProps) {
               </Flex>
             </Box>
           </Box>
-          </Link>
+          </Box>
         )
       })}
     </SimpleGrid>

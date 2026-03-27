@@ -19,6 +19,7 @@ export function HomeMarketplacePage() {
     categoriesQuery,
     listingsQuery,
     categoryMap,
+    sellerMap,
     flatCategories,
   } = useMarketplaceData();
 
@@ -154,6 +155,7 @@ export function HomeMarketplacePage() {
               <ListingGrid
                 listings={listingsQuery.data?.items ?? []}
                 categoryMap={categoryMap}
+                sellerMap={sellerMap}
               />
             ) : null}
           </Box>
