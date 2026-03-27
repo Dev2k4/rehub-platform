@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError
 from app.db.session import AsyncSessionLocal
 from app.core.security import decode_access_token
+from app.core.config import settings
 from app.crud.crud_user import get_user_by_id
 from app.models.user import User
 from app.models.enums import UserRole
@@ -38,6 +39,11 @@ async def get_current_user(
         raise credentials_exception
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    if settings.REQUIRE_EMAIL_VERIFICATION and not user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify your email before logging in.",
+        )
     return user
 
 
@@ -61,6 +67,8 @@ async def get_current_user_optional(
 
     user = await get_user_by_id(db, user_id=user_id)
     if user is None or not user.is_active:
+        return None
+    if settings.REQUIRE_EMAIL_VERIFICATION and not user.is_email_verified:
         return None
     return user
 

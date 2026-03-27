@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     SMTP_SSL: bool = False
     EMAILS_FROM_EMAIL: str = "daranbull1112@gmail.com"
     EMAILS_FROM_NAME: str = "ReHub Platform"
-    REQUIRE_EMAIL_VERIFICATION: bool = False
+    REQUIRE_EMAIL_VERIFICATION: bool = True
     EMAIL_VERIFICATION_EXPIRE_HOURS: int = 24
     
     model_config = SettingsConfigDict(
