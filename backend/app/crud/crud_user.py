@@ -102,3 +102,22 @@ async def mark_user_email_verified(db: AsyncSession, email: str) -> Optional[Use
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def update_user_password_by_email(db: AsyncSession, email: str, new_password: str) -> Optional[User]:
+    user = await get_user_by_email(db, email)
+    if not user:
+        return None
+
+    await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(
+            password_hash=hash_password(new_password),
+            hashed_refresh_token=None,
+            updated_at=_utc_now_naive(),
+        )
+    )
+    await db.commit()
+    await db.refresh(user)
+    return user
