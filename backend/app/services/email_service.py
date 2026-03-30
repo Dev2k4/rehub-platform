@@ -19,7 +19,7 @@ def _render(template_name: str, context: dict) -> str:
 
 
 async def send_verify_email(to_email: str, full_name: str, verification_token: str) -> bool:
-    verification_url = f"{settings.FRONTEND_HOST}/verify-email?token={verification_token}"
+    verification_url = f"{settings.FRONTEND_HOST}/auth/verify-email?token={verification_token}"
     html = _render(
         "verify_email.html",
         {
@@ -34,6 +34,25 @@ async def send_verify_email(to_email: str, full_name: str, verification_token: s
         subject="Verify your email",
         html_content=html,
         plain_content=f"Hello {full_name}, verify your email: {verification_url}",
+    )
+
+
+async def send_password_reset_email(to_email: str, full_name: str, reset_token: str) -> bool:
+    reset_url = f"{settings.FRONTEND_HOST}/auth/login?reset_token={reset_token}"
+    html = _render(
+        "reset_password.html",
+        {
+            "full_name": full_name,
+            "reset_url": reset_url,
+            "project_name": settings.PROJECT_NAME,
+            "expires_hours": settings.PASSWORD_RESET_EXPIRE_HOURS,
+        },
+    )
+    return await send_email(
+        to_email=to_email,
+        subject="Reset your password",
+        html_content=html,
+        plain_content=f"Hello {full_name}, reset your password: {reset_url}",
     )
 
 
