@@ -7,13 +7,22 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.api.dependencies import get_db, get_current_user
-from app.schemas.auth import RegisterRequest, TokenResponse, RefreshRequest, VerifyEmailRequest
+from app.schemas.auth import (
+    RegisterRequest,
+    TokenResponse,
+    RefreshRequest,
+    VerifyEmailRequest,
+    ResendVerificationRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
 from app.crud.crud_user import (
     get_user_by_email,
     create_user,
     update_refresh_token,
     get_user_by_refresh_token,
     mark_user_email_verified,
+    update_user_password_by_email,
 )
 from app.core.config import settings
 from app.core.security import (
@@ -23,9 +32,11 @@ from app.core.security import (
     hash_token,
     create_email_verification_token,
     decode_email_verification_token,
+    create_password_reset_token,
+    decode_password_reset_token,
 )
 from app.models.user import User
-from app.services.email_service import send_verify_email, send_welcome_email
+from app.services.email_service import send_verify_email, send_welcome_email, send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 limiter = Limiter(key_func=get_remote_address)
@@ -43,6 +54,17 @@ async def register(
     # Check if email exists
     existing_user = await get_user_by_email(db, data.email)
     if existing_user:
+        if not existing_user.is_email_verified:
+            verification_token = create_email_verification_token(existing_user.email)
+            await send_verify_email(
+                to_email=existing_user.email,
+                full_name=existing_user.full_name,
+                verification_token=verification_token,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered but not verified. Verification email was resent.",
+            )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered"
@@ -154,6 +176,57 @@ async def verify_email(data: VerifyEmailRequest, db: AsyncSession = Depends(get_
     await send_welcome_email(to_email=user.email, full_name=user.full_name)
 
     return {"message": "Email verified successfully"}
+
+
+@router.post("/resend-verification", status_code=status.HTTP_200_OK)
+async def resend_verification_email(data: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
+    """Resend verification email for an unverified account."""
+    user = await get_user_by_email(db, data.email)
+    if not user:
+        return {"message": "If this email exists, a verification email has been sent"}
+
+    if user.is_email_verified:
+        return {"message": "Email is already verified"}
+
+    verification_token = create_email_verification_token(user.email)
+    await send_verify_email(
+        to_email=user.email,
+        full_name=user.full_name,
+        verification_token=verification_token,
+    )
+
+    return {"message": "Verification email sent"}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Send password reset email if the account exists."""
+    user = await get_user_by_email(db, data.email)
+    if not user:
+        return {"message": "If this email exists, a password reset email has been sent"}
+
+    reset_token = create_password_reset_token(user.email)
+    await send_password_reset_email(
+        to_email=user.email,
+        full_name=user.full_name,
+        reset_token=reset_token,
+    )
+
+    return {"message": "If this email exists, a password reset email has been sent"}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(data: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Reset password using signed reset token."""
+    email = decode_password_reset_token(data.token)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+
+    user = await update_user_password_by_email(db, email, data.new_password)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return {"message": "Password reset successfully"}
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
