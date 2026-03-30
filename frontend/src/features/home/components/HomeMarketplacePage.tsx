@@ -5,8 +5,12 @@ import { CategorySidebar } from "@/features/home/components/CategorySidebar";
 import { ListingGrid } from "@/features/home/components/ListingGrid";
 import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader";
 import { ListingModal } from "@/features/listings/components/ListingModal";
-import { useCreateListing } from "@/features/listings/hooks/useMyListings";
+import {
+  useCreateListing,
+  useUploadListingImage,
+} from "@/features/listings/hooks/useMyListings";
 import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData";
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
 
 export function HomeMarketplacePage() {
   const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false);
@@ -24,6 +28,7 @@ export function HomeMarketplacePage() {
   } = useMarketplaceData();
 
   const createMutation = useCreateListing();
+  const uploadImageMutation = useUploadListingImage();
 
   const selectedCategoryName = useMemo(() => {
     if (!selectedCategoryId) {
@@ -33,13 +38,18 @@ export function HomeMarketplacePage() {
     return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục";
   }, [selectedCategoryId, categoryMap]);
 
-  const handleCreateListing = async (data: any) => {
-    try {
-      await createMutation.mutateAsync(data);
-      setIsListingModalOpen(false);
-    } catch (error) {
-      console.error("Error creating listing:", error);
+  const handleCreateListing = async ({ data, files }: ListingFormSubmitPayload) => {
+    const created = await createMutation.mutateAsync(data);
+
+    for (const [index, file] of files.entries()) {
+      await uploadImageMutation.mutateAsync({
+        listingId: created.id,
+        file,
+        isPrimary: index === 0,
+      });
     }
+
+    setIsListingModalOpen(false);
   };
 
   return (
@@ -167,7 +177,7 @@ export function HomeMarketplacePage() {
         isOpen={isListingModalOpen}
         onOpenChange={setIsListingModalOpen}
         onSubmit={handleCreateListing}
-        isLoading={createMutation.isPending}
+        isLoading={createMutation.isPending || uploadImageMutation.isPending}
       />
     </Box>
   );

@@ -29,10 +29,15 @@ const listingSchema = z.object({
 
 type ListingFormData = z.infer<typeof listingSchema>;
 
+export interface ListingFormSubmitPayload {
+  data: ListingFormData;
+  files: File[];
+}
+
 interface ListingFormProps {
   initialData?: Partial<ListingFormData>;
   categories?: CategoryTree[];
-  onSubmit: (data: ListingFormData) => void;
+  onSubmit: (payload: ListingFormSubmitPayload) => Promise<void> | void;
   isLoading?: boolean;
   onCancel?: () => void;
 }
@@ -78,8 +83,12 @@ export function ListingForm({
     setPreviewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const onFormSubmit = async (data: ListingFormData) => {
+    await onSubmit({ data, files: selectedFiles });
+  };
+
   return (
-    <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
+    <Box as="form" onSubmit={handleSubmit(onFormSubmit as any)}>
       <Stack gap={6}>
         {/* Title */}
         <Box>

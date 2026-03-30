@@ -22,10 +22,12 @@ import {
   useCreateListing,
   useUpdateListing,
   useDeleteListing,
+  useUploadListingImage,
 } from "@/features/listings/hooks/useMyListings";
 import { ListingModal } from "@/features/listings/components/ListingModal";
 import { ListingsTable } from "@/features/listings/components/ListingsTable";
 import type { ListingRead } from "@/client";
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
 
 export function MyListingsPage() {
   const navigate = useNavigate();
@@ -56,6 +58,7 @@ export function MyListingsPage() {
   const createMutation = useCreateListing();
   const updateMutation = useUpdateListing();
   const deleteMutation = useDeleteListing();
+  const uploadImageMutation = useUploadListingImage();
 
   const handleCreateClick = () => {
     setEditingListing(null);
@@ -75,20 +78,30 @@ export function MyListingsPage() {
     navigate({ to: `/listing/${listing.id}` });
   };
 
-  const handleFormSubmit = async (data: any) => {
-    try {
-      if (editingListing) {
-        await updateMutation.mutateAsync({
-          listingId: editingListing.id,
-          data,
-        });
-      } else {
-        await createMutation.mutateAsync(data);
-      }
-      setIsFormOpen(false);
-    } catch (error) {
-      console.error("Error saving listing:", error);
+  const handleFormSubmit = async ({ data, files }: ListingFormSubmitPayload) => {
+    let targetListingId = editingListing?.id;
+
+    if (editingListing) {
+      await updateMutation.mutateAsync({
+        listingId: editingListing.id,
+        data,
+      });
+    } else {
+      const created = await createMutation.mutateAsync(data);
+      targetListingId = created.id;
     }
+
+    if (targetListingId) {
+      for (const [index, file] of files.entries()) {
+        await uploadImageMutation.mutateAsync({
+          listingId: targetListingId,
+          file,
+          isPrimary: index === 0,
+        });
+      }
+    }
+
+    setIsFormOpen(false);
   };
 
   const handleConfirmDelete = async () => {
@@ -213,7 +226,7 @@ export function MyListingsPage() {
         onOpenChange={setIsFormOpen}
         editingListing={editingListing}
         onSubmit={handleFormSubmit}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        isLoading={createMutation.isPending || updateMutation.isPending || uploadImageMutation.isPending}
       />
 
       {/* Delete Confirmation Dialog */}
