@@ -1,5 +1,6 @@
-import { CategoriesService } from "@/client"
+import { CategoriesService, OpenAPI } from "@/client"
 import type { CategoryRead, CategoryTree } from "@/client"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface CreateCategoryInput {
   name: string
@@ -29,10 +30,25 @@ export async function updateCategory(
   categoryId: string,
   data: UpdateCategoryInput
 ): Promise<CategoryRead> {
-  return CategoriesService.updateCategoryApiV1CategoriesCategoryIdPatch({
-    categoryId,
-    requestBody: data as any,
+  const base = OpenAPI.BASE.replace(/\/+$/, "")
+  const token = getAccessToken()
+
+  const response = await fetch(`${base}/api/v1/categories/${categoryId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(data),
   })
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    const detail = payload?.detail ?? "Không thể cập nhật danh mục"
+    throw new Error(typeof detail === "string" ? detail : "Không thể cập nhật danh mục")
+  }
+
+  return response.json() as Promise<CategoryRead>
 }
 
 export async function deleteCategory(categoryId: string): Promise<void> {

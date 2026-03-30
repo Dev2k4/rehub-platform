@@ -21,6 +21,16 @@ export async function getMyReceivedOffers(params?: {
   return OffersService.getMyReceivedOffersApiV1OffersMeReceivedGet(params)
 }
 
+export async function getOffersForListing(
+  listingId: string,
+  params?: { skip?: number; limit?: number },
+): Promise<OfferRead[]> {
+  return OffersService.getOffersForListingApiV1OffersListingListingIdGet({
+    listingId,
+    ...params,
+  })
+}
+
 export async function getOffer(offerId: string): Promise<OfferRead> {
   return OffersService.getOfferApiV1OffersOfferIdGet({ offerId })
 }
