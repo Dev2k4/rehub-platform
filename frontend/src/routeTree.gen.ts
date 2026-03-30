@@ -9,23 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrdersIndexRouteImport } from './routes/orders.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as SellersIdRouteImport } from './routes/sellers.$id'
+import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
 import { Route as AuthRegisterRouteImport } from './routes/auth.register'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminListingsRouteImport } from './routes/admin.listings'
+import { Route as AdminEscrowsRouteImport } from './routes/admin.escrows'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyListingsRoute = MyListingsRouteImport.update({
@@ -43,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdersIndexRoute = OrdersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrdersRoute,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -52,6 +72,11 @@ const SellersIdRoute = SellersIdRouteImport.update({
   id: '/sellers/$id',
   path: '/sellers/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersIdRoute = OrdersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => OrdersRoute,
 } as any)
 const ListingsIdRoute = ListingsIdRouteImport.update({
   id: '/listings/$id',
@@ -83,6 +108,11 @@ const AdminListingsRoute = AdminListingsRouteImport.update({
   path: '/listings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEscrowsRoute = AdminEscrowsRouteImport.update({
+  id: '/escrows',
+  path: '/escrows',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -93,46 +123,60 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/my-listings': typeof MyListingsRoute
+  '/orders': typeof OrdersRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/wallet': typeof WalletRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/escrows': typeof AdminEscrowsRoute
   '/admin/listings': typeof AdminListingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/listings/$id': typeof ListingsIdRoute
+  '/orders/$id': typeof OrdersIdRoute
   '/sellers/$id': typeof SellersIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/orders/': typeof OrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/my-listings': typeof MyListingsRoute
   '/profile': typeof ProfileRoute
+  '/wallet': typeof WalletRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/escrows': typeof AdminEscrowsRoute
   '/admin/listings': typeof AdminListingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/listings/$id': typeof ListingsIdRoute
+  '/orders/$id': typeof OrdersIdRoute
   '/sellers/$id': typeof SellersIdRoute
   '/admin': typeof AdminIndexRoute
+  '/orders': typeof OrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/my-listings': typeof MyListingsRoute
+  '/orders': typeof OrdersRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/wallet': typeof WalletRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/escrows': typeof AdminEscrowsRoute
   '/admin/listings': typeof AdminListingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/listings/$id': typeof ListingsIdRoute
+  '/orders/$id': typeof OrdersIdRoute
   '/sellers/$id': typeof SellersIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/orders/': typeof OrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,52 +184,68 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/my-listings'
+    | '/orders'
     | '/profile'
+    | '/wallet'
     | '/admin/categories'
+    | '/admin/escrows'
     | '/admin/listings'
     | '/admin/users'
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
     | '/listings/$id'
+    | '/orders/$id'
     | '/sellers/$id'
     | '/admin/'
+    | '/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/my-listings'
     | '/profile'
+    | '/wallet'
     | '/admin/categories'
+    | '/admin/escrows'
     | '/admin/listings'
     | '/admin/users'
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
     | '/listings/$id'
+    | '/orders/$id'
     | '/sellers/$id'
     | '/admin'
+    | '/orders'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/my-listings'
+    | '/orders'
     | '/profile'
+    | '/wallet'
     | '/admin/categories'
+    | '/admin/escrows'
     | '/admin/listings'
     | '/admin/users'
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
     | '/listings/$id'
+    | '/orders/$id'
     | '/sellers/$id'
     | '/admin/'
+    | '/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   MyListingsRoute: typeof MyListingsRoute
+  OrdersRoute: typeof OrdersRouteWithChildren
   ProfileRoute: typeof ProfileRoute
+  WalletRoute: typeof WalletRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
@@ -195,11 +255,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-listings': {
@@ -223,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orders/': {
+      id: '/orders/'
+      path: '/'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof OrdersIndexRouteImport
+      parentRoute: typeof OrdersRoute
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -236,6 +317,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sellers/$id'
       preLoaderRoute: typeof SellersIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/orders/$id': {
+      id: '/orders/$id'
+      path: '/$id'
+      fullPath: '/orders/$id'
+      preLoaderRoute: typeof OrdersIdRouteImport
+      parentRoute: typeof OrdersRoute
     }
     '/listings/$id': {
       id: '/listings/$id'
@@ -279,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminListingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/escrows': {
+      id: '/admin/escrows'
+      path: '/escrows'
+      fullPath: '/admin/escrows'
+      preLoaderRoute: typeof AdminEscrowsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/categories': {
       id: '/admin/categories'
       path: '/categories'
@@ -291,6 +386,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCategoriesRoute: typeof AdminCategoriesRoute
+  AdminEscrowsRoute: typeof AdminEscrowsRoute
   AdminListingsRoute: typeof AdminListingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -298,6 +394,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriesRoute: AdminCategoriesRoute,
+  AdminEscrowsRoute: AdminEscrowsRoute,
   AdminListingsRoute: AdminListingsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -305,11 +402,26 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface OrdersRouteChildren {
+  OrdersIdRoute: typeof OrdersIdRoute
+  OrdersIndexRoute: typeof OrdersIndexRoute
+}
+
+const OrdersRouteChildren: OrdersRouteChildren = {
+  OrdersIdRoute: OrdersIdRoute,
+  OrdersIndexRoute: OrdersIndexRoute,
+}
+
+const OrdersRouteWithChildren =
+  OrdersRoute._addFileChildren(OrdersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   MyListingsRoute: MyListingsRoute,
+  OrdersRoute: OrdersRouteWithChildren,
   ProfileRoute: ProfileRoute,
+  WalletRoute: WalletRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
