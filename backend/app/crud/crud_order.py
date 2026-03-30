@@ -22,6 +22,20 @@ async def get_order_by_id(db: AsyncSession, order_id: uuid.UUID) -> Order | None
 	return result.scalar_one_or_none()
 
 
+async def get_order_by_id_with_lock(db: AsyncSession, order_id: uuid.UUID) -> Order | None:
+	result = await db.execute(
+		select(Order)
+		.where(Order.id == order_id)
+		.with_for_update()
+	)
+	return result.scalar_one_or_none()
+
+
+def set_order_status(order: Order, status: OrderStatus) -> None:
+	order.status = status
+	order.updated_at = _utc_now_naive()
+
+
 async def get_user_orders(db: AsyncSession, user_id: uuid.UUID) -> list[Order]:
 	result = await db.execute(
 		select(Order).where(

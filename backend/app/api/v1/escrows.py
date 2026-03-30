@@ -1,0 +1,178 @@
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.dependencies import get_current_admin, get_current_user, get_db
+from app.crud import crud_escrow, crud_notification, crud_order
+from app.models.enums import NotificationType
+from app.models.user import User
+from app.schemas.escrow import EscrowAdminResolveRequest, EscrowDisputeRequest, EscrowRead
+
+router = APIRouter(prefix="/escrows", tags=["Escrows"])
+
+
+@router.get("/disputed", response_model=list[EscrowRead])
+async def list_disputed_escrows(
+    admin_user: Annotated[User, Depends(get_current_admin)],
+    skip: int = 0,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+):
+    # Touch admin_user to satisfy linters and keep explicit admin guard.
+    _ = admin_user.id
+    return await crud_escrow.list_disputed_escrows(db, skip=skip, limit=limit)
+
+
+@router.get("/{order_id}", response_model=EscrowRead)
+async def get_escrow_by_order(
+    order_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    order = await crud_order.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.buyer_id != current_user.id and order.seller_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    escrow = await crud_escrow.get_escrow_by_order_id(db, order_id)
+    if not escrow:
+        raise HTTPException(status_code=404, detail="Escrow not found")
+    return escrow
+
+
+@router.post("/{order_id}/fund", response_model=EscrowRead)
+async def fund_escrow(
+    order_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    order = await crud_order.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    try:
+        escrow = await crud_escrow.fund_escrow(db, order, current_user.id)
+        await crud_notification.create_notification(
+            db=db,
+            user_id=order.seller_id,
+            type=NotificationType.ESCROW_FUNDED,
+            title="Escrow funded",
+            message="Buyer funded escrow. You can proceed to delivery.",
+            data={"order_id": str(order.id)},
+        )
+        return escrow
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{order_id}/release-request", response_model=EscrowRead)
+async def request_release(
+    order_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    order = await crud_order.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    try:
+        escrow = await crud_escrow.request_release(db, order_id, current_user.id)
+        await crud_notification.create_notification(
+            db=db,
+            user_id=order.buyer_id,
+            type=NotificationType.ESCROW_RELEASE_REQUESTED,
+            title="Delivery marked",
+            message="Seller marked this order as delivered. Please confirm receipt.",
+            data={"order_id": str(order.id)},
+        )
+        return escrow
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{order_id}/confirm-release", response_model=EscrowRead)
+async def confirm_release(
+    order_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    order = await crud_order.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    try:
+        escrow = await crud_escrow.confirm_release(db, order_id, current_user.id)
+        await crud_notification.create_notification(
+            db=db,
+            user_id=order.seller_id,
+            type=NotificationType.ESCROW_RELEASED,
+            title="Escrow released",
+            message="Buyer confirmed delivery. Funds were released to your demo wallet.",
+            data={"order_id": str(order.id)},
+        )
+        return escrow
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{order_id}/open-dispute", response_model=EscrowRead)
+async def open_dispute(
+    order_id: uuid.UUID,
+    payload: EscrowDisputeRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    order = await crud_order.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    try:
+        escrow = await crud_escrow.open_dispute(db, order_id, current_user.id, payload.note)
+        target_user_id = order.seller_id if current_user.id == order.buyer_id else order.buyer_id
+        await crud_notification.create_notification(
+            db=db,
+            user_id=target_user_id,
+            type=NotificationType.ESCROW_DISPUTED,
+            title="Escrow disputed",
+            message="A dispute has been opened for this order.",
+            data={"order_id": str(order.id)},
+        )
+        return escrow
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{order_id}/admin-resolve", response_model=EscrowRead)
+async def admin_resolve_escrow(
+    order_id: uuid.UUID,
+    payload: EscrowAdminResolveRequest,
+    admin_user: Annotated[User, Depends(get_current_admin)],
+    db: AsyncSession = Depends(get_db),
+):
+    order = await crud_order.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    try:
+        if payload.result == "release":
+            escrow = await crud_escrow.admin_resolve_release(db, order_id, admin_user.id, payload.note)
+            target_user_id = order.seller_id
+        else:
+            escrow = await crud_escrow.admin_resolve_refund(db, order_id, admin_user.id, payload.note)
+            target_user_id = order.buyer_id
+
+        await crud_notification.create_notification(
+            db=db,
+            user_id=target_user_id,
+            type=NotificationType.ESCROW_RESOLVED,
+            title="Escrow resolved",
+            message=f"Admin resolved escrow with result: {payload.result}.",
+            data={"order_id": str(order.id), "result": payload.result},
+        )
+        return escrow
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

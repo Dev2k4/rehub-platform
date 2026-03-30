@@ -19,6 +19,7 @@ class OrderCreate(OrderBase):
 
 class OrderDirectCreate(BaseModel):
 	listing_id: uuid.UUID
+	use_escrow: bool = False
 
 
 class OrderRead(OrderBase):
