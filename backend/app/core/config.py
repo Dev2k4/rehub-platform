@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     EMAILS_FROM_NAME: str = "ReHub Platform"
     REQUIRE_EMAIL_VERIFICATION: bool = True
     EMAIL_VERIFICATION_EXPIRE_HOURS: int = 24
+    PASSWORD_RESET_EXPIRE_HOURS: int = 1
     
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
