@@ -1,4 +1,4 @@
-import { AuthService } from "@/client";
+import { AuthService, OpenAPI } from "@/client";
 import type { RegisterInput } from "../utils/auth.schemas";
 import type { AuthResponse, AuthError } from "@/features/auth/types/auth.types";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
@@ -37,26 +37,34 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
 
 export async function verifyEmailToken(token: string): Promise<{ message: string }> {
   try {
-    // The verify-email endpoint isn't in the generated client yet,
-    // so we make a direct fetch call
-    const response = await fetch(`${import.meta.env.VITE_API_URL || "http://10.0.0.47:8000"}/api/v1/auth/verify-email`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token }),
+    return await postAuthJson<{ message: string }>("/api/v1/auth/verify-email", { token });
+  } catch (error) {
+    throw mapAuthError(error);
+  }
+}
+
+export async function resendVerificationEmail(email: string): Promise<{ message: string }> {
+  try {
+    return await postAuthJson<{ message: string }>("/api/v1/auth/resend-verification", { email });
+  } catch (error) {
+    throw mapAuthError(error);
+  }
+}
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  try {
+    return await postAuthJson<{ message: string }>("/api/v1/auth/forgot-password", { email });
+  } catch (error) {
+    throw mapAuthError(error);
+  }
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  try {
+    return await postAuthJson<{ message: string }>("/api/v1/auth/reset-password", {
+      token,
+      new_password: newPassword,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const fakeError = {
-        status: response.status,
-        body: errorData,
-      } as unknown as ApiError;
-      throw fakeError;
-    }
-
-    return await response.json();
   } catch (error) {
     throw mapAuthError(error);
   }
@@ -89,6 +97,14 @@ function mapAuthError(error: unknown): AuthError {
   if (error instanceof ApiError) {
     switch (error.status) {
       case 409:
+        if (((error.body as any)?.detail || "").includes("not verified")) {
+          return {
+            code: AuthErrorCode.EMAIL_NOT_VERIFIED,
+            message:
+              "Email này đã được đăng ký nhưng chưa xác thực. Hệ thống đã gửi lại email xác thực, vui lòng kiểm tra hộp thư.",
+            statusCode: 409,
+          };
+        }
         return {
           code: AuthErrorCode.EMAIL_ALREADY_EXISTS,
           message: "Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.",
@@ -179,4 +195,25 @@ function mapAuthError(error: unknown): AuthError {
     code: AuthErrorCode.UNKNOWN_ERROR,
     message: "Có lỗi không xác định xảy ra. Vui lòng thử lại.",
   };
+}
+
+async function postAuthJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const response = await fetch(`${OpenAPI.BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const fakeError = {
+      status: response.status,
+      body: errorData,
+    } as unknown as ApiError;
+    throw fakeError;
+  }
+
+  return await response.json();
 }
