@@ -390,6 +390,26 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
             </IconButton>
           )}
 
+          {isAuthenticated && (
+            <ChakraLink asChild>
+              <Link to="/offers">
+                <Button
+                  borderRadius="full"
+                  variant="outline"
+                  borderColor="gray.300"
+                  color="gray.700"
+                  px={4}
+                  py={2.5}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  _hover={{ bg: "gray.50" }}
+                >
+                  Offers
+                </Button>
+              </Link>
+            </ChakraLink>
+          )}
+
           <ChakraLink asChild>
             <Link to="/">
               <Button

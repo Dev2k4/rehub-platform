@@ -27,6 +27,9 @@ import {
   useCancelOrder,
 } from "@/features/orders/hooks/useOrders"
 import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
+import { ReviewForm } from "@/features/reviews/components/ReviewForm"
+import { ReviewsList } from "@/features/reviews/components/ReviewsList"
+import { useOrderReviews } from "@/features/reviews/hooks/useReviews"
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
@@ -47,6 +50,7 @@ export function OrderDetailPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
 
   const orderQuery = useOrder(id)
+  const orderReviewsQuery = useOrderReviews(id)
   const completeMutation = useCompleteOrder()
   const cancelMutation = useCancelOrder()
   const escrowQuery = useEscrow(id)
@@ -95,6 +99,10 @@ export function OrderDetailPage() {
   const canRequestRelease = hasEscrow && isSeller && escrow?.status === "held"
   const canConfirmRelease = hasEscrow && isBuyer && escrow?.status === "release_pending"
   const canOpenDispute = hasEscrow && (escrow?.status === "held" || escrow?.status === "release_pending")
+  const alreadyReviewed = (orderReviewsQuery.data ?? []).some(
+    (review) => review.reviewer_id === user.id,
+  )
+  const canReview = order.status === "completed" && (isBuyer || isSeller) && !alreadyReviewed
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -232,6 +240,28 @@ export function OrderDetailPage() {
               </Button>
             )}
           </HStack>
+
+          <Box mt={6}>
+            <Heading size="sm" mb={3}>Đánh giá giao dịch</Heading>
+
+            {canReview ? (
+              <ReviewForm orderId={order.id} />
+            ) : (
+              <Text fontSize="sm" color="gray.600" mb={3}>
+                {order.status !== "completed"
+                  ? "Bạn có thể đánh giá sau khi đơn hàng hoàn thành."
+                  : "Bạn đã gửi đánh giá cho giao dịch này."}
+              </Text>
+            )}
+
+            <Box mt={3}>
+              <ReviewsList
+                reviews={orderReviewsQuery.data ?? []}
+                isLoading={orderReviewsQuery.isLoading}
+                emptyText="Chưa có đánh giá nào cho đơn hàng này."
+              />
+            </Box>
+          </Box>
         </Box>
       </Container>
     </Box>

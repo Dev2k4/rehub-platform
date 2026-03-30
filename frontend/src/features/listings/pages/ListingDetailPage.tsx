@@ -41,6 +41,7 @@ import { getUserPublicProfile } from "@/features/users/api/users.api"
 import { createOrder } from "@/features/orders/api/orders.api"
 import { createOffer } from "@/features/offers/api/offers.api"
 import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
+import { useOffersForListing } from "@/features/offers/hooks/useOffers"
 import {
   formatCurrencyVnd,
   formatPostedTime,
@@ -62,6 +63,14 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   sold: { label: "Đã bán", color: "gray" },
   hidden: { label: "Ẩn", color: "gray" },
   rejected: { label: "Bị từ chối", color: "red" },
+}
+
+const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
+  pending: { label: "Chờ xử lý", color: "yellow" },
+  accepted: { label: "Đã chấp nhận", color: "green" },
+  rejected: { label: "Đã từ chối", color: "red" },
+  countered: { label: "Đã counter", color: "blue" },
+  expired: { label: "Hết hạn", color: "gray" },
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -203,6 +212,9 @@ export function ListingDetailPage() {
   const currentImage = images[selectedImageIndex]
   const isOwnListing = user?.id === listing.seller_id
   const canTransact = listing.status === "active" && !isOwnListing
+  const listingOffersQuery = useOffersForListing(isOwnListing ? listing.id : "", {
+    limit: 20,
+  })
 
   const requireAuth = () => {
     if (isAuthenticated) {
@@ -640,6 +652,76 @@ export function ListingDetailPage() {
         </Flex>
 
         {/* Description Section */}
+        {isOwnListing && (
+          <Box
+            mt={8}
+            bg="white"
+            borderRadius="xl"
+            boxShadow="sm"
+            border="1px"
+            borderColor="gray.200"
+            p={6}
+          >
+            <Heading as="h2" size="md" color="gray.900" mb={4}>
+              Offers cho tin đăng này
+            </Heading>
+
+            {listingOffersQuery.isLoading ? (
+              <Flex py={6} justify="center">
+                <Spinner size="md" color="blue.500" />
+              </Flex>
+            ) : listingOffersQuery.data && listingOffersQuery.data.length > 0 ? (
+              <VStack align="stretch" gap={3}>
+                {listingOffersQuery.data.map((offer) => {
+                  const statusMeta = OFFER_STATUS_META[offer.status] ?? {
+                    label: offer.status,
+                    color: "gray",
+                  }
+
+                  return (
+                    <Box
+                      key={offer.id}
+                      border="1px"
+                      borderColor="gray.200"
+                      borderRadius="lg"
+                      p={4}
+                    >
+                      <Flex justify="space-between" align={{ base: "start", md: "center" }} gap={3}>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.900">
+                            {formatCurrencyVnd(Math.floor(Number(offer.offer_price)))}
+                          </Text>
+                          <Text fontSize="sm" color="gray.500">
+                            Buyer: {offer.buyer_id.slice(0, 8)}... · {new Date(offer.created_at).toLocaleString("vi-VN")}
+                          </Text>
+                        </Box>
+
+                        <HStack>
+                          <Badge colorPalette={statusMeta.color as any}>{statusMeta.label}</Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedOfferId(offer.id)
+                              setIsOfferDetailModalOpen(true)
+                            }}
+                          >
+                            Xem chi tiết
+                          </Button>
+                        </HStack>
+                      </Flex>
+                    </Box>
+                  )
+                })}
+              </VStack>
+            ) : (
+              <Text fontSize="sm" color="gray.500">
+                Chưa có đề xuất giá nào cho tin đăng này.
+              </Text>
+            )}
+          </Box>
+        )}
+
         <Box
           mt={8}
           bg="white"

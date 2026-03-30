@@ -30,6 +30,8 @@ import { getCategoriesTree } from "@/features/home/api/marketplace.api"
 import { ListingCard } from "@/features/users/components/ListingCard"
 import { flattenCategories } from "@/features/home/utils/marketplace.utils"
 import type { CategoryTree } from "@/client"
+import { useUserReviews } from "@/features/reviews/hooks/useReviews"
+import { ReviewsList } from "@/features/reviews/components/ReviewsList"
 
 function StarRating({ score }: { score: number }) {
   const maxStars = 5
@@ -93,6 +95,8 @@ export function SellerProfilePage() {
     queryFn: () => getSellerListings({ sellerId: id, limit: 12 }),
     enabled: !!id,
   })
+
+  const reviewsQuery = useUserReviews(id)
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
@@ -325,6 +329,26 @@ export function SellerProfilePage() {
               ))}
             </SimpleGrid>
           )}
+        </Box>
+
+        <Box mt={8}>
+          <Flex align="center" justify="space-between" mb={4}>
+            <HStack gap={2}>
+              <Box as={FiStar} w={5} h={5} color="gray.600" />
+              <Heading as="h2" size="md" color="gray.900">
+                Đánh giá người bán
+              </Heading>
+            </HStack>
+            <Text fontSize="sm" color="gray.500">
+              {reviewsQuery.data?.length ?? 0} đánh giá
+            </Text>
+          </Flex>
+
+          <ReviewsList
+            reviews={reviewsQuery.data ?? []}
+            isLoading={reviewsQuery.isLoading}
+            emptyText="Người bán chưa có đánh giá nào."
+          />
         </Box>
       </Container>
     </Box>

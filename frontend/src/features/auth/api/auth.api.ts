@@ -81,13 +81,9 @@ export async function logoutUser(): Promise<void> {
 
 export async function refreshAccessToken(refreshToken: string): Promise<AuthResponse> {
   try {
-    const response = await AuthService.refreshAccessTokenApiV1AuthRefreshTokenPost({
-      requestBody: {
-        refresh_token: refreshToken,
-      },
+    return await postAuthJson<AuthResponse>("/api/v1/auth/refresh", {
+      refresh_token: refreshToken,
     });
-
-    return response as AuthResponse;
   } catch (error) {
     throw mapAuthError(error);
   }
