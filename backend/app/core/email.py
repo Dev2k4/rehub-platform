@@ -8,8 +8,19 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _smtp_user() -> str:
+    return (settings.SMTP_USER or "").strip()
+
+
+def _smtp_password() -> str:
+    raw = (settings.SMTP_PASSWORD or "").strip()
+    if "gmail" in (settings.SMTP_HOST or "").lower():
+        return raw.replace(" ", "")
+    return raw
+
+
 def _is_email_enabled() -> bool:
-    return bool(settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD)
+    return bool(settings.SMTP_HOST and _smtp_user() and _smtp_password())
 
 
 def _send_email_sync(to_email: str, subject: str, html_content: str, plain_content: str | None = None) -> bool:
@@ -26,14 +37,14 @@ def _send_email_sync(to_email: str, subject: str, html_content: str, plain_conte
 
     if settings.SMTP_SSL:
         with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.login(_smtp_user(), _smtp_password())
             server.send_message(message)
         return True
 
     with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
         if settings.SMTP_TLS:
             server.starttls()
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.login(_smtp_user(), _smtp_password())
         server.send_message(message)
     return True
 
