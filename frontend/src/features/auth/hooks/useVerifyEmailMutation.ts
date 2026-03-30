@@ -9,9 +9,9 @@ export function useVerifyEmailMutation() {
     mutationFn: (token: string) => verifyEmailToken(token),
     onSuccess: () => {
       // Email verified successfully
-      // Redirect to home after 2 seconds to let user see success message
+      // Redirect to login after 2 seconds to let user see success message
       setTimeout(() => {
-        navigate({ to: "/" });
+        navigate({ to: "/auth/login" });
       }, 2000);
     },
   });

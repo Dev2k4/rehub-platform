@@ -9,6 +9,7 @@ from slowapi.util import get_remote_address
 from app.api.dependencies import get_db, get_current_user
 from app.schemas.auth import (
     RegisterRequest,
+    RegisterResponse,
     TokenResponse,
     RefreshRequest,
     VerifyEmailRequest,
@@ -45,7 +46,7 @@ limiter = Limiter(key_func=get_remote_address)
 def _role_claim(role: object) -> str:
     return role.value if hasattr(role, "value") else str(role)
 
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=TokenResponse)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=RegisterResponse)
 async def register(
     data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
@@ -73,13 +74,6 @@ async def register(
     # Create user
     user = await create_user(db, data)
 
-    # Generate tokens
-    access_token = create_access_token(subject=str(user.id), role=_role_claim(user.role))
-    refresh_token = create_refresh_token()
-
-    # Save hashed refresh token
-    await update_refresh_token(db, user.id, hash_token(refresh_token))
-
     verification_token = create_email_verification_token(user.email)
     await send_verify_email(
         to_email=user.email,
@@ -87,10 +81,8 @@ async def register(
         verification_token=verification_token,
     )
 
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user=user
+    return RegisterResponse(
+        message="Register successful. Please verify your email before logging in.",
     )
 
 

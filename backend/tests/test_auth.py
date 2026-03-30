@@ -17,9 +17,7 @@ async def test_register_user_success(client: AsyncClient, db: AsyncSession):
     )
     assert response.status_code == 201
     data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["user"]["email"] == "test@example.com"
+    assert "message" in data
     
     # Check db
     user = await get_user_by_email(db, "test@example.com")

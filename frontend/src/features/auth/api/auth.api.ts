@@ -4,7 +4,7 @@ import type { AuthResponse, AuthError } from "@/features/auth/types/auth.types";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
 import { ApiError } from "@/client";
 
-export async function registerUser(data: RegisterInput): Promise<AuthResponse> {
+export async function registerUser(data: RegisterInput): Promise<{ message: string }> {
   try {
     const response = await AuthService.registerApiV1AuthRegisterPost({
       requestBody: {
@@ -14,7 +14,7 @@ export async function registerUser(data: RegisterInput): Promise<AuthResponse> {
       },
     });
 
-    return response as AuthResponse;
+    return response as unknown as { message: string };
   } catch (error) {
     throw mapAuthError(error);
   }

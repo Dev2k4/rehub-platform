@@ -75,3 +75,7 @@ class ResetPasswordRequest(BaseModel):
         if not re.search(r'[0-9]', v):
             raise ValueError('Password must contain at least one digit')
         return v
+
+
+class RegisterResponse(BaseModel):
+    message: str
