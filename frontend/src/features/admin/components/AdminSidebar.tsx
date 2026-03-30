@@ -1,12 +1,13 @@
 import { Link, useLocation } from "@tanstack/react-router"
 import { Box, Heading, VStack, Flex, Text } from "@chakra-ui/react"
-import { FiHome, FiUsers, FiCheckCircle, FiGrid } from "react-icons/fi"
+import { FiHome, FiUsers, FiCheckCircle, FiGrid, FiShield } from "react-icons/fi"
 
 const menuItems = [
   { id: "dashboard", label: "Tổng quan", path: "/admin", icon: FiHome },
   { id: "users", label: "Quản lý người dùng", path: "/admin/users", icon: FiUsers },
   { id: "listings", label: "Phê duyệt tin đăng", path: "/admin/listings", icon: FiCheckCircle },
   { id: "categories", label: "Quản lý danh mục", path: "/admin/categories", icon: FiGrid },
+  { id: "escrows", label: "Xử lý Escrow", path: "/admin/escrows", icon: FiShield },
 ]
 
 export function AdminSidebar() {

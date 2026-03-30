@@ -8,7 +8,7 @@ import {
   Flex,
   Separator,
 } from "@chakra-ui/react"
-import { FiList, FiUser, FiLogOut, FiShield } from "react-icons/fi"
+import { FiCreditCard, FiList, FiUser, FiLogOut, FiShield, FiShoppingBag } from "react-icons/fi"
 import type { UserMe } from "@/client"
 
 interface UserDropdownMenuProps {
@@ -97,6 +97,44 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                   >
                     <FiList />
                     <span>Tin đăng của tôi</span>
+                  </Flex>
+                </Link>
+              </Menu.Item>
+
+              <Menu.Item value="orders" asChild>
+                <Link to="/orders">
+                  <Flex
+                    align="center"
+                    gap={3}
+                    px={4}
+                    py={2}
+                    fontSize="sm"
+                    color="gray.700"
+                    _hover={{ bg: "gray.50" }}
+                    transition="all 0.2s"
+                    cursor="pointer"
+                  >
+                    <FiShoppingBag />
+                    <span>Đơn hàng của tôi</span>
+                  </Flex>
+                </Link>
+              </Menu.Item>
+
+              <Menu.Item value="wallet" asChild>
+                <Link to="/wallet">
+                  <Flex
+                    align="center"
+                    gap={3}
+                    px={4}
+                    py={2}
+                    fontSize="sm"
+                    color="gray.700"
+                    _hover={{ bg: "gray.50" }}
+                    transition="all 0.2s"
+                    cursor="pointer"
+                  >
+                    <FiCreditCard />
+                    <span>Ví demo</span>
                   </Flex>
                 </Link>
               </Menu.Item>

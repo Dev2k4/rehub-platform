@@ -226,8 +226,13 @@ export function ListingDetailPage() {
     }
 
     try {
-      const order = await createOrderMutation.mutateAsync({ listing_id: listing.id })
-      setActionSuccess(`Đặt hàng thành công. Mã đơn: ${order.id.slice(0, 8)}...`)
+      const order = await createOrderMutation.mutateAsync({
+        listing_id: listing.id,
+        use_escrow: true,
+      })
+      setActionSuccess(
+        `Đặt hàng escrow thành công. Mã đơn: ${order.id.slice(0, 8)}... Vào trang đơn hàng để fund ví demo.`,
+      )
     } catch (error) {
       setActionError(
         getErrorMessage(error, "Không thể tạo đơn hàng. Vui lòng thử lại."),
