@@ -29,6 +29,13 @@ class Settings(BaseSettings):
 
     # Uploads
     UPLOAD_DIR: str = "uploads"
+    STORAGE_BACKEND: str = "local"
+    MINIO_ENDPOINT: str = "http://localhost:9000"
+    MINIO_PUBLIC_BASE_URL: str = ""
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
+    MINIO_BUCKET_NAME: str = "rehub-listings"
+    MINIO_SECURE: bool = False
 
     # Offers
     OFFER_EXPIRE_HOURS: int = 48

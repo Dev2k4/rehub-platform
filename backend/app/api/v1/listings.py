@@ -1,11 +1,9 @@
 import uuid
-import os
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_user, get_current_user_optional
-from app.core.config import settings
 from app.models.user import User
 from app.models.enums import ListingStatus, UserRole
 from app.schemas.listing import (
@@ -17,12 +15,10 @@ from app.schemas.listing import (
     ListingImageRead
 )
 from app.crud import crud_listing
+from app.services.storage_service import upload_listing_image as upload_to_object_storage, delete_listing_image as delete_from_object_storage
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
-UPLOAD_DIR = os.path.join(settings.UPLOAD_DIR, "listings")
-ABS_UPLOAD_DIR = os.path.abspath(UPLOAD_DIR)
-os.makedirs(ABS_UPLOAD_DIR, exist_ok=True)
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -115,6 +111,8 @@ async def delete_listing_image_route(
     listing = await crud_listing.get_listing(db, str(image.listing_id))
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to delete this image")
+
+    delete_from_object_storage(image.image_url)
         
     await crud_listing.delete_listing_image(db, str(image_id))
     return None
@@ -220,7 +218,7 @@ async def upload_listing_image(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upload an image to the local filesystem and map it to a listing target."""
+    """Upload an image to object storage and map it to a listing target."""
     listing = await crud_listing.get_listing(db, str(listing_id))
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
@@ -241,16 +239,12 @@ async def upload_listing_image(
     file_bytes = await file.read()
     if len(file_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=400, detail="File too large")
-        
-    unique_filename = f"{uuid.uuid4().hex}.{ext}"
-    file_path = os.path.abspath(os.path.join(ABS_UPLOAD_DIR, unique_filename))
-    if not file_path.startswith(f"{ABS_UPLOAD_DIR}{os.sep}"):
-        raise HTTPException(status_code=400, detail="Invalid upload path")
-    
-    with open(file_path, "wb") as buffer:
-        buffer.write(file_bytes)
-        
-    image_url = f"/{settings.UPLOAD_DIR}/listings/{unique_filename}"
+
+    try:
+        image_url = upload_to_object_storage(file_bytes, ext, file.content_type)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
     new_image = await crud_listing.add_listing_image(db, str(listing_id), image_url, is_primary)
     return new_image
 
