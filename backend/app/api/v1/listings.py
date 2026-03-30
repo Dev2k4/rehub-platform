@@ -241,7 +241,13 @@ async def upload_listing_image(
         raise HTTPException(status_code=400, detail="File too large")
 
     try:
-        image_url = upload_to_object_storage(file_bytes, ext, file.content_type)
+        image_url = upload_to_object_storage(
+            file_bytes=file_bytes,
+            ext=ext,
+            content_type=file.content_type,
+            user_id=str(listing.seller_id),
+            listing_id=str(listing.id),
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

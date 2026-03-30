@@ -47,8 +47,8 @@ def _minio_client() -> Minio:
     )
 
 
-def _listing_object_name(ext: str) -> str:
-    return f"listings/{uuid.uuid4().hex}.{ext}"
+def _listing_object_name(user_id: str, listing_id: str, ext: str) -> str:
+    return f"{user_id}/{listing_id}/{uuid.uuid4().hex}.{ext}"
 
 
 def _object_name_from_image_url(image_url: str) -> str | None:
@@ -65,13 +65,19 @@ def _object_name_from_image_url(image_url: str) -> str | None:
     return object_name
 
 
-def upload_listing_image(file_bytes: bytes, ext: str, content_type: str) -> str:
+def upload_listing_image(
+    file_bytes: bytes,
+    ext: str,
+    content_type: str,
+    user_id: str,
+    listing_id: str,
+) -> str:
     if settings.STORAGE_BACKEND.lower() != "minio":
         raise RuntimeError("Storage backend is not set to minio")
 
     client = _minio_client()
     bucket = settings.MINIO_BUCKET_NAME
-    object_name = _listing_object_name(ext)
+    object_name = _listing_object_name(user_id, listing_id, ext)
 
     try:
         if not client.bucket_exists(bucket):

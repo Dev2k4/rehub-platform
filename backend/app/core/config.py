@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     MINIO_PUBLIC_BASE_URL: str = ""
     MINIO_ACCESS_KEY: str = ""
     MINIO_SECRET_KEY: str = ""
-    MINIO_BUCKET_NAME: str = "rehub-listings"
+    MINIO_BUCKET_NAME: str = "rehub-listing"
     MINIO_SECURE: bool = False
 
     # Offers
