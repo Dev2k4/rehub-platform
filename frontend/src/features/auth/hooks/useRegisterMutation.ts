@@ -9,10 +9,10 @@ export function useRegisterMutation() {
   return useMutation({
     mutationFn: async (data: RegisterInput) => {
       await registerUser(data);
-      return null;
+      return data.email;
     },
-    onSuccess: () => {
-      navigate({ to: "/auth/verify-email" });
+    onSuccess: (email) => {
+      navigate({ to: "/auth/verify-email", search: { email } as any });
     },
   });
 }

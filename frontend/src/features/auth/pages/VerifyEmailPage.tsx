@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useNavigate, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   Box,
   Container,
@@ -10,19 +9,9 @@ import {
   Flex,
 } from "@chakra-ui/react";
 import { FiPackage } from "react-icons/fi";
-import { getAccessToken } from "@/features/auth/utils/auth.storage";
 import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm";
 
 export function VerifyEmailPage() {
-  const navigate = useNavigate();
-
-  // Redirect if not logged in (no access token)
-  useEffect(() => {
-    if (!getAccessToken()) {
-      navigate({ to: "/auth/login" });
-    }
-  }, [navigate]);
-
   return (
     <Box
       minH="100vh"

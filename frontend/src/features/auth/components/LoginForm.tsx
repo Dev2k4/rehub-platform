@@ -14,6 +14,10 @@ import {
 } from "@/features/auth/utils/auth.schemas";
 import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
+import { useForgotPasswordMutation } from "@/features/auth/hooks/useForgotPasswordMutation";
+import { useState } from "react";
+import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation";
+import { useSearch } from "@tanstack/react-router";
 
 interface LoginFormProps {
   onError?: (error: string) => void;
@@ -21,6 +25,12 @@ interface LoginFormProps {
 
 export function LoginForm({ onError }: LoginFormProps) {
   const loginMutation = useLoginMutation();
+  const forgotPasswordMutation = useForgotPasswordMutation();
+  const resetPasswordMutation = useResetPasswordMutation();
+  const search = useSearch({ from: "/auth/login" });
+  const resetToken = (search as any)?.reset_token as string | undefined;
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const {
     register,
     handleSubmit,
@@ -164,6 +174,55 @@ export function LoginForm({ onError }: LoginFormProps) {
             : "Đăng nhập"}
         </Button>
 
+        {resetToken && (
+          <Box
+            bg="blue.50"
+            border="1px"
+            borderColor="blue.200"
+            borderRadius="md"
+            p={4}
+          >
+            <Text fontSize="sm" color="blue.800" mb={3}>
+              Bạn đang đặt lại mật khẩu từ email. Nhập mật khẩu mới và bấm cập nhật.
+            </Text>
+            <ChakraInput
+              type="password"
+              placeholder="Mật khẩu mới"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <Button
+              mt={3}
+              width="full"
+              bg="blue.700"
+              color="white"
+              _hover={{ bg: "blue.800" }}
+              onClick={() => {
+                if (!newPassword.trim()) {
+                  if (onError) {
+                    onError("Vui lòng nhập mật khẩu mới");
+                  }
+                  return;
+                }
+                resetPasswordMutation.mutate({ token: resetToken, newPassword: newPassword.trim() });
+              }}
+              disabled={resetPasswordMutation.isPending}
+            >
+              {resetPasswordMutation.isPending ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
+            </Button>
+            {resetPasswordMutation.isSuccess && (
+              <Text mt={2} fontSize="sm" color="green.700">
+                Đặt lại mật khẩu thành công. Đang chuyển về màn hình đăng nhập.
+              </Text>
+            )}
+            {resetPasswordMutation.isError && (
+              <Text mt={2} fontSize="sm" color="red.700">
+                {(resetPasswordMutation.error as any)?.message || "Không thể đặt lại mật khẩu."}
+              </Text>
+            )}
+          </Box>
+        )}
+
         {/* Forgot Password Link */}
         <Box textAlign="center">
           <ChakraLink
@@ -172,12 +231,34 @@ export function LoginForm({ onError }: LoginFormProps) {
             _hover={{ color: "blue.700" }}
             onClick={(e: any) => {
               e.preventDefault();
-              // TODO: Implement forgot password
-              alert("Tính năng quên mật khẩu sẽ được thêm sau");
+              if (!forgotEmail.trim()) {
+                if (onError) {
+                  onError("Vui lòng nhập email vào ô bên dưới để đặt lại mật khẩu");
+                }
+                return;
+              }
+              forgotPasswordMutation.mutate(forgotEmail.trim());
             }}
           >
             Quên mật khẩu?
           </ChakraLink>
+          <ChakraInput
+            mt={3}
+            type="email"
+            placeholder="Nhập email để nhận link đặt lại mật khẩu"
+            value={forgotEmail}
+            onChange={(e) => setForgotEmail(e.target.value)}
+          />
+          {forgotPasswordMutation.isSuccess && (
+            <Text mt={2} fontSize="sm" color="green.700">
+              Nếu email tồn tại, hệ thống đã gửi link đặt lại mật khẩu.
+            </Text>
+          )}
+          {forgotPasswordMutation.isError && (
+            <Text mt={2} fontSize="sm" color="red.700">
+              {(forgotPasswordMutation.error as any)?.message || "Không thể gửi yêu cầu đặt lại mật khẩu."}
+            </Text>
+          )}
         </Box>
       </Stack>
     </Box>

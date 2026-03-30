@@ -14,6 +14,7 @@ import {
 } from "@/features/auth/utils/auth.schemas";
 import { useRegisterMutation } from "@/features/auth/hooks/useRegisterMutation";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
+import { useNavigate } from "@tanstack/react-router";
 
 interface RegisterFormProps {
   onError?: (error: string) => void;
@@ -21,6 +22,7 @@ interface RegisterFormProps {
 
 export function RegisterForm({ onError }: RegisterFormProps) {
   const registerMutation = useRegisterMutation();
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -44,6 +46,10 @@ export function RegisterForm({ onError }: RegisterFormProps) {
   function onSubmit(data: RegisterInput) {
     registerMutation.mutate(data, {
       onError: (error: any) => {
+        if (error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
+          navigate({ to: "/auth/verify-email", search: { email: data.email } as any });
+          return;
+        }
         if (error?.code === AuthErrorCode.EMAIL_ALREADY_EXISTS && onError) {
           onError(error.message);
         }

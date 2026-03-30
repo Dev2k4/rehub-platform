@@ -14,7 +14,8 @@ import {
 } from "@/features/auth/utils/auth.schemas";
 import { useVerifyEmailMutation } from "@/features/auth/hooks/useVerifyEmailMutation";
 import { useSearch } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useResendVerificationMutation } from "@/features/auth/hooks/useResendVerificationMutation";
 
 interface VerifyEmailFormProps {
   onError?: (error: string) => void;
@@ -22,8 +23,11 @@ interface VerifyEmailFormProps {
 
 export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
   const verifyMutation = useVerifyEmailMutation();
+  const resendMutation = useResendVerificationMutation();
   const search = useSearch({ from: "/auth/verify-email" });
   const tokenFromUrl = (search as any)?.token as string | undefined;
+  const emailFromUrl = (search as any)?.email as string | undefined;
+  const [resendEmail, setResendEmail] = useState(emailFromUrl || "");
 
   const {
     register,
@@ -42,6 +46,12 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
       verifyMutation.mutate(tokenFromUrl);
     }
   }, [tokenFromUrl, setValue]);
+
+  useEffect(() => {
+    if (emailFromUrl) {
+      setResendEmail(emailFromUrl);
+    }
+  }, [emailFromUrl]);
 
   function onSubmit(data: VerifyEmailInput) {
     verifyMutation.mutate(data.token, {
@@ -161,13 +171,35 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
               _hover={{ color: "blue.700" }}
               onClick={(e: any) => {
                 e.preventDefault();
-                // TODO: Implement resend email
-                alert("Tính năng gửi lại email sẽ được thêm sau");
+                if (!resendEmail.trim()) {
+                  if (onError) {
+                    onError("Vui lòng nhập email để gửi lại mã xác thực");
+                  }
+                  return;
+                }
+                resendMutation.mutate(resendEmail.trim());
               }}
             >
               Gửi lại
             </ChakraLink>
           </Text>
+          <ChakraInput
+            mt={3}
+            type="email"
+            placeholder="Nhập email để gửi lại"
+            value={resendEmail}
+            onChange={(e) => setResendEmail(e.target.value)}
+          />
+          {resendMutation.isSuccess && (
+            <Text mt={2} fontSize="sm" color="green.700">
+              Email xác thực đã được gửi lại.
+            </Text>
+          )}
+          {resendMutation.isError && (
+            <Text mt={2} fontSize="sm" color="red.700">
+              {(resendMutation.error as any)?.message || "Không thể gửi lại email xác thực."}
+            </Text>
+          )}
         </Box>
       </Stack>
     </Box>

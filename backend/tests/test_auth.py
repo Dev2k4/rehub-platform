@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.crud_user import get_user_by_email
+from app.core.security import create_password_reset_token, verify_password
 
 @pytest.mark.asyncio
 async def test_register_user_success(client: AsyncClient, db: AsyncSession):
@@ -47,6 +48,30 @@ async def test_register_duplicate_email(client: AsyncClient, db: AsyncSession):
     )
     assert response.status_code == 409
 
+
+@pytest.mark.asyncio
+async def test_register_duplicate_unverified_resends_verification(client: AsyncClient):
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "dup-unverified@example.com",
+            "password": "Password123!",
+            "full_name": "Test User",
+        }
+    )
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "dup-unverified@example.com",
+            "password": "Password123!",
+            "full_name": "Another User",
+        }
+    )
+
+    assert response.status_code == 409
+    assert "not verified" in response.json().get("detail", "")
+
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient):
     await client.post(
@@ -88,3 +113,60 @@ async def test_login_wrong_password(client: AsyncClient):
         }
     )
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_resend_verification_success(client: AsyncClient):
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "resend@example.com",
+            "password": "Password123!",
+            "full_name": "Resend User",
+        },
+    )
+
+    response = await client.post(
+        "/api/v1/auth/resend-verification",
+        json={"email": "resend@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert "message" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_returns_generic_message(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": "not-found@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert "message" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_reset_password_updates_hash(client: AsyncClient, db: AsyncSession):
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "reset@example.com",
+            "password": "Password123!",
+            "full_name": "Reset User",
+        },
+    )
+
+    token = create_password_reset_token("reset@example.com")
+    response = await client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "token": token,
+            "new_password": "NewPassword123!",
+        },
+    )
+
+    assert response.status_code == 200
+    user = await get_user_by_email(db, "reset@example.com")
+    assert user is not None
+    assert verify_password("NewPassword123!", user.password_hash)

@@ -30,3 +30,27 @@ export const verifyEmailSchema = z.object({
 });
 
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+
+export const resendVerificationSchema = z.object({
+  email: z.string().email("Email không hợp lệ"),
+});
+
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Email không hợp lệ"),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Thiếu token khôi phục mật khẩu"),
+  newPassword: z
+    .string()
+    .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+    .regex(/[A-Z]/, "Mật khẩu phải chứa ít nhất một chữ hoa")
+    .regex(/[a-z]/, "Mật khẩu phải chứa ít nhất một chữ thường")
+    .regex(/[0-9]/, "Mật khẩu phải chứa ít nhất một chữ số"),
+});
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
