@@ -1,8 +1,9 @@
-import { UsersService } from "@/client"
-import type { UserPublicProfile, ListingPaginated } from "@/client"
-import { ListingsService } from "@/client"
+import type { ListingPaginated, UserPublicProfile } from "@/client"
+import { ListingsService, UsersService } from "@/client"
 
-export async function getUserPublicProfile(userId: string): Promise<UserPublicProfile> {
+export async function getUserPublicProfile(
+  userId: string,
+): Promise<UserPublicProfile> {
   return UsersService.getUserPublicProfileApiV1UsersUserIdProfileGet({
     userId,
   })

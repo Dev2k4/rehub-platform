@@ -1,17 +1,20 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Box,
-  Button,
-  Stack,
-  Text,
   Input as ChakraInput,
-  Textarea,
   Flex,
   Separator,
-} from "@chakra-ui/react";
-import type { UserMe } from "@/client";
+  Stack,
+  Text,
+  Textarea,
+} from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi"
+import { z } from "zod"
+import type { UserMe } from "@/client"
+import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Tên ít nhất 2 ký tự").max(255),
@@ -22,31 +25,15 @@ const profileSchema = z.object({
   district: z.string().max(100).optional().or(z.literal("")),
   ward: z.string().max(100).optional().or(z.literal("")),
   address_detail: z.string().max(255).optional().or(z.literal("")),
-});
+})
 
-type ProfileFormData = z.infer<typeof profileSchema>;
+type ProfileFormData = z.infer<typeof profileSchema>
 
 interface ProfileFormProps {
-  user: UserMe;
-  onSubmit: (data: ProfileFormData) => void;
-  isLoading?: boolean;
-  onCancel?: () => void;
-}
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label
-      style={{
-        display: "block",
-        fontSize: "0.875rem",
-        fontWeight: "500",
-        color: "#374151",
-        marginBottom: "0.375rem",
-      }}
-    >
-      {children}
-    </label>
-  );
+  user: UserMe
+  onSubmit: (data: ProfileFormData) => void
+  isLoading?: boolean
+  onCancel?: () => void
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -61,7 +48,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     >
       {children}
     </Text>
-  );
+  )
 }
 
 export function ProfileForm({
@@ -86,7 +73,7 @@ export function ProfileForm({
       ward: (user as any).ward || "",
       address_detail: (user as any).address_detail || "",
     },
-  });
+  })
 
   return (
     <Box as="form" onSubmit={handleSubmit(onSubmit)}>
@@ -95,118 +82,115 @@ export function ProfileForm({
         <SectionTitle>Thông tin cơ bản</SectionTitle>
 
         {/* Full Name */}
-        <Box>
-          <FieldLabel>Họ và tên</FieldLabel>
-          <ChakraInput
-            {...register("full_name")}
-            type="text"
-            placeholder="Nhập tên của bạn"
-            borderColor={errors.full_name ? "red.500" : "gray.300"}
-          />
-          {errors.full_name && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.full_name.message}
-            </Text>
-          )}
-        </Box>
+        <Field
+          label="Họ và tên"
+          invalid={!!errors.full_name}
+          errorText={errors.full_name?.message}
+        >
+          <InputGroup width="full" startElement={<FiUser color="#9CA3AF" />}>
+            <ChakraInput
+              {...register("full_name")}
+              type="text"
+              placeholder="Nhập tên của bạn"
+              ps="10"
+            />
+          </InputGroup>
+        </Field>
 
         {/* Email (Read-only) */}
-        <Box>
-          <FieldLabel>Email</FieldLabel>
-          <ChakraInput
-            {...register("email")}
-            type="email"
-            placeholder="email@example.com"
-            disabled
-            borderColor="gray.300"
-            backgroundColor="gray.50"
-            cursor="not-allowed"
-          />
-          <Text fontSize="xs" color="gray.500" mt={1}>
-            Email không thể thay đổi. Liên hệ hỗ trợ nếu cần.
-          </Text>
-        </Box>
+        <Field
+          label="Email"
+          helperText="Email không thể thay đổi. Liên hệ hỗ trợ nếu cần."
+        >
+          <InputGroup width="full" startElement={<FiMail color="#9CA3AF" />}>
+            <ChakraInput
+              {...register("email")}
+              type="email"
+              placeholder="email@example.com"
+              disabled
+              bg="gray.50"
+              cursor="not-allowed"
+              ps="10"
+            />
+          </InputGroup>
+        </Field>
 
         {/* Phone */}
-        <Box>
-          <FieldLabel>Số điện thoại</FieldLabel>
-          <ChakraInput
-            {...register("phone")}
-            type="tel"
-            placeholder="Nhập số điện thoại"
-            borderColor={errors.phone ? "red.500" : "gray.300"}
-          />
-          {errors.phone && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.phone.message}
-            </Text>
-          )}
-        </Box>
+        <Field
+          label="Số điện thoại"
+          invalid={!!errors.phone}
+          errorText={errors.phone?.message}
+        >
+          <InputGroup width="full" startElement={<FiPhone color="#9CA3AF" />}>
+            <ChakraInput
+              {...register("phone")}
+              type="tel"
+              placeholder="Nhập số điện thoại"
+              ps="10"
+            />
+          </InputGroup>
+        </Field>
 
         {/* Bio */}
-        <Box>
-          <FieldLabel>Giới thiệu bản thân</FieldLabel>
+        <Field
+          label="Giới thiệu bản thân"
+          invalid={!!errors.bio}
+          errorText={errors.bio?.message}
+          helperText="Tối đa 500 ký tự"
+        >
           <Textarea
             {...register("bio")}
             placeholder="Viết vài dòng giới thiệu về bản thân..."
             rows={3}
-            borderColor={errors.bio ? "red.500" : "gray.300"}
             resize="vertical"
           />
-          {errors.bio && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.bio.message}
-            </Text>
-          )}
-          <Text fontSize="xs" color="gray.400" mt={1}>
-            Tối đa 500 ký tự
-          </Text>
-        </Box>
+        </Field>
 
         <Separator />
 
         {/* Address */}
         <SectionTitle>Địa chỉ</SectionTitle>
 
-        <Box>
-          <FieldLabel>Tỉnh / Thành phố</FieldLabel>
-          <ChakraInput
-            {...register("province")}
-            type="text"
-            placeholder="VD: Hà Nội"
-            borderColor="gray.300"
-          />
-        </Box>
+        <Field label="Tỉnh / Thành phố">
+          <InputGroup width="full" startElement={<FiMapPin color="#9CA3AF" />}>
+            <ChakraInput
+              {...register("province")}
+              type="text"
+              placeholder="VD: Hà Nội"
+              ps="10"
+            />
+          </InputGroup>
+        </Field>
 
-        <Box>
-          <FieldLabel>Quận / Huyện</FieldLabel>
-          <ChakraInput
-            {...register("district")}
-            type="text"
-            placeholder="VD: Cầu Giấy"
-            borderColor="gray.300"
-          />
-        </Box>
+        <Field label="Quận / Huyện">
+          <InputGroup width="full" startElement={<FiMapPin color="#9CA3AF" />}>
+            <ChakraInput
+              {...register("district")}
+              type="text"
+              placeholder="VD: Cầu Giấy"
+              ps="10"
+            />
+          </InputGroup>
+        </Field>
 
-        <Box>
-          <FieldLabel>Phường / Xã</FieldLabel>
-          <ChakraInput
-            {...register("ward")}
-            type="text"
-            placeholder="VD: Dịch Vọng Hậu"
-            borderColor="gray.300"
-          />
-        </Box>
+        <Field label="Phường / Xã">
+          <InputGroup width="full" startElement={<FiMapPin color="#9CA3AF" />}>
+            <ChakraInput
+              {...register("ward")}
+              type="text"
+              placeholder="VD: Dịch Vọng Hậu"
+              ps="10"
+            />
+          </InputGroup>
+        </Field>
 
-        <Box>
-          <FieldLabel>Địa chỉ chi tiết</FieldLabel>
+        <Field label="Địa chỉ chi tiết">
           <ChakraInput
             {...register("address_detail")}
             type="text"
             placeholder="Số nhà, tên đường..."
-            borderColor="gray.300"
           />
-        </Box>
+        </Field>
 
         {/* Actions */}
         <Box pt={2}>
@@ -228,9 +212,11 @@ export function ProfileForm({
               bg="blue.600"
               color="white"
               _hover={{ bg: "blue.700" }}
-              _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
               px={6}
               loading={isLoading}
+              loadingText="Đang lưu..."
+              borderRadius="xl"
+              boxShadow="0 4px 12px rgba(66,153,225,0.3)"
             >
               Lưu thay đổi
             </Button>
@@ -238,5 +224,5 @@ export function ProfileForm({
         </Box>
       </Stack>
     </Box>
-  );
+  )
 }

@@ -1,34 +1,47 @@
-import { FiTag } from "react-icons/fi"
-import { Box, Heading, Text, Flex, Image } from "@chakra-ui/react"
-import { Link } from "@tanstack/react-router"
-import type { CategoryTree, ListingWithImages } from "@/client"
+import { Box, Flex, Heading, Image, Text } from "@chakra-ui/react";
+import { Link } from "@tanstack/react-router";
+import { FiStar, FiTag } from "react-icons/fi";
+import type { CategoryTree, ListingWithImages } from "@/client";
 import {
   formatCurrencyVnd,
   formatPostedTime,
   getListingImageUrl,
-} from "@/features/home/utils/marketplace.utils"
+} from "@/features/home/utils/marketplace.utils";
 
 type ListingCardProps = {
-  listing: ListingWithImages
-  categoryMap: Map<string, CategoryTree>
-}
+  listing: ListingWithImages;
+  categoryMap: Map<string, CategoryTree>;
+};
 
-export function ListingCard({ listing, categoryMap }: ListingCardProps) {
-  const category = categoryMap.get(listing.category_id)
-  const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
+export function ListingCard({
+  listing,
+  categoryMap,
+  seller,
+}: ListingCardProps & { seller?: import("@/client").UserPublicProfile }) {
+  const category = categoryMap.get(listing.category_id);
+  const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url);
 
   return (
-    <Link to="/listings/$id" params={{ id: listing.id }} style={{ textDecoration: "none" }}>
+    <Link
+      to="/listings/$id"
+      params={{ id: listing.id }}
+      style={{ textDecoration: "none" }}
+    >
       <Box
         as="article"
         overflow="hidden"
         borderRadius="2xl"
         border="1px"
-        borderColor="gray.200"
-        bg="white"
-        boxShadow="sm"
-        transition="all 0.2s"
-        _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
+        borderColor="whiteAlpha.600"
+        bg="whiteAlpha.800"
+        backdropFilter="blur(8px)"
+        boxShadow="0 4px 20px rgba(0,0,0,0.05)"
+        transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
+        _hover={{
+          transform: "translateY(-4px)",
+          boxShadow: "0 12px 30px rgba(0,0,0,0.1)",
+          borderColor: "blue.200",
+        }}
         role="group"
         cursor="pointer"
       >
@@ -44,7 +57,13 @@ export function ListingCard({ listing, categoryMap }: ListingCardProps) {
               _groupHover={{ transform: "scale(1.05)" }}
             />
           ) : (
-            <Flex h="full" align="center" justify="center" fontSize="xs" color="gray.400">
+            <Flex
+              h="full"
+              align="center"
+              justify="center"
+              fontSize="xs"
+              color="gray.400"
+            >
               Chưa có ảnh
             </Flex>
           )}
@@ -62,21 +81,50 @@ export function ListingCard({ listing, categoryMap }: ListingCardProps) {
             {listing.title}
           </Heading>
 
-          <Text fontSize="lg" fontWeight="bold" color="blue.600" lineHeight="none">
+          <Text
+            fontSize="lg"
+            fontWeight="bold"
+            bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
+            color="transparent"
+            bgClip="text"
+            display="inline-block"
+            lineHeight="none"
+          >
             {formatCurrencyVnd(listing.price)}
           </Text>
 
           <Flex align="center" gap={1} fontSize="xs" color="gray.500">
             <Box as={FiTag} w="3.5" h="3.5" />
-            <Text lineClamp={1}>{category?.name ?? "Danh mục chưa xác định"}</Text>
+            <Text lineClamp={1} flex={1}>
+              {category?.name ?? "Danh mục chưa xác định"}
+            </Text>
+
+            {seller && seller.rating_count > 0 && (
+              <Flex
+                align="center"
+                gap={0.5}
+                color="orange.500"
+                fontSize="xs"
+                fontWeight="medium"
+                title={`${seller.rating_count} đánh giá`}
+              >
+                <Box as={FiStar} w="3" h="3" fill="currentColor" />
+                <Text>{seller.rating_avg.toFixed(1)}</Text>
+              </Flex>
+            )}
           </Flex>
 
-          <Flex align="center" justify="space-between" fontSize="xs" color="gray.500">
+          <Flex
+            align="center"
+            justify="space-between"
+            fontSize="xs"
+            color="gray.500"
+          >
             <Text>{listing.condition_grade.replace(/_/g, " ")}</Text>
             <Text>{formatPostedTime(listing.created_at)}</Text>
           </Flex>
         </Box>
       </Box>
     </Link>
-  )
+  );
 }

@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createReview, getOrderReviews, getUserReviews } from "@/features/reviews/api/reviews.api"
 import type { ReviewCreate } from "@/client"
+import {
+  createReview,
+  getOrderReviews,
+  getUserReviews,
+} from "@/features/reviews/api/reviews.api"
 
 export function useOrderReviews(orderId: string) {
   return useQuery({
@@ -32,7 +36,9 @@ export function useCreateReview() {
       queryClient.invalidateQueries({
         queryKey: ["reviews", "user", createdReview.reviewee_id],
       })
-      queryClient.invalidateQueries({ queryKey: ["orders", createdReview.order_id] })
+      queryClient.invalidateQueries({
+        queryKey: ["orders", createdReview.order_id],
+      })
     },
   })
 }
