@@ -1,37 +1,40 @@
 import {
+  Badge,
   Box,
+  Button,
   Container,
   Flex,
   Heading,
-  Text,
-  Button,
-  Badge,
   HStack,
-  Spinner,
-  SimpleGrid,
-  Separator,
   Image,
+  Separator,
+  SimpleGrid,
+  Spinner,
+  Text,
 } from "@chakra-ui/react"
-import { useNavigate, useParams } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
+import { useNavigate, useParams } from "@tanstack/react-router"
 import {
-  FiArrowLeft,
-  FiUser,
-  FiCalendar,
-  FiMapPin,
-  FiStar,
-  FiCheckCircle,
   FiAlertCircle,
-  FiShoppingBag,
+  FiArrowLeft,
+  FiCalendar,
+  FiCheckCircle,
   FiFileText,
+  FiMapPin,
+  FiShoppingBag,
+  FiStar,
+  FiUser,
 } from "react-icons/fi"
-import { getUserPublicProfile, getSellerListings } from "@/features/users/api/users.api"
-import { getCategoriesTree } from "@/features/home/api/marketplace.api"
-import { ListingCard } from "@/features/users/components/ListingCard"
-import { flattenCategories } from "@/features/home/utils/marketplace.utils"
 import type { CategoryTree } from "@/client"
-import { useUserReviews } from "@/features/reviews/hooks/useReviews"
+import { getCategoriesTree } from "@/features/home/api/marketplace.api"
+import { flattenCategories } from "@/features/home/utils/marketplace.utils"
 import { ReviewsList } from "@/features/reviews/components/ReviewsList"
+import { useUserReviews } from "@/features/reviews/hooks/useReviews"
+import {
+  getSellerListings,
+  getUserPublicProfile,
+} from "@/features/users/api/users.api"
+import { ListingCard } from "@/features/users/components/ListingCard"
 
 function StarRating({ score }: { score: number }) {
   const maxStars = 5
@@ -74,7 +77,13 @@ function TrustScoreBadge({ score }: { score: number }) {
   }
 
   return (
-    <Badge colorPalette={color as any} variant="subtle" px={2} py={0.5} borderRadius="full">
+    <Badge
+      colorPalette={color as any}
+      variant="subtle"
+      px={2}
+      py={0.5}
+      borderRadius="full"
+    >
       {label} ({score}%)
     </Badge>
   )
@@ -132,12 +141,27 @@ export function SellerProfilePage() {
             <FiArrowLeft style={{ marginRight: "0.5rem" }} />
             Quay lại
           </Button>
-          <Box bg="white" borderRadius="xl" p={8} textAlign="center" boxShadow="sm">
-            <Box as={FiAlertCircle} w={12} h={12} color="red.400" mx="auto" mb={4} />
+          <Box
+            bg="white"
+            borderRadius="xl"
+            p={8}
+            textAlign="center"
+            boxShadow="sm"
+          >
+            <Box
+              as={FiAlertCircle}
+              w={12}
+              h={12}
+              color="red.400"
+              mx="auto"
+              mb={4}
+            />
             <Heading as="h2" size="lg" color="gray.900" mb={2}>
               Không tìm thấy người bán
             </Heading>
-            <Text color="gray.500">Người bán này không tồn tại hoặc đã bị vô hiệu hóa.</Text>
+            <Text color="gray.500">
+              Người bán này không tồn tại hoặc đã bị vô hiệu hóa.
+            </Text>
           </Box>
         </Container>
       </Box>
@@ -166,7 +190,13 @@ export function SellerProfilePage() {
         </Button>
 
         {/* Profile Card */}
-        <Box bg="white" borderRadius="xl" boxShadow="sm" overflow="hidden" mb={8}>
+        <Box
+          bg="white"
+          borderRadius="xl"
+          boxShadow="sm"
+          overflow="hidden"
+          mb={8}
+        >
           {/* Cover */}
           <Box bg="blue.600" h={24} />
 
@@ -319,13 +349,26 @@ export function SellerProfilePage() {
               border="1px"
               borderColor="gray.200"
             >
-              <Box as={FiShoppingBag} w={10} h={10} color="gray.300" mx="auto" mb={3} />
-              <Text color="gray.500">Người bán chưa có sản phẩm nào đang bán.</Text>
+              <Box
+                as={FiShoppingBag}
+                w={10}
+                h={10}
+                color="gray.300"
+                mx="auto"
+                mb={3}
+              />
+              <Text color="gray.500">
+                Người bán chưa có sản phẩm nào đang bán.
+              </Text>
             </Box>
           ) : (
             <SimpleGrid columns={{ base: 2, sm: 2, lg: 3, xl: 4 }} gap={3}>
               {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} categoryMap={categoryMap} />
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  categoryMap={categoryMap}
+                />
               ))}
             </SimpleGrid>
           )}

@@ -1,42 +1,42 @@
-import { useState } from "react";
 import {
+  Badge,
   Box,
   Button,
   Container,
   Flex,
   Heading,
-  Text,
-  Badge,
-  VStack,
   HStack,
-  Spinner,
   Separator,
-} from "@chakra-ui/react";
-import { useNavigate } from "@tanstack/react-router";
+  Spinner,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import {
-  FiEdit2,
-  FiMail,
-  FiPhone,
-  FiUser,
-  FiCalendar,
-  FiMapPin,
-  FiStar,
-  FiFileText,
   FiArrowLeft,
-} from "react-icons/fi";
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
-import { useUpdateProfile } from "@/features/users/hooks/useUpdateProfile";
-import { ProfileForm } from "@/features/users/components/ProfileForm";
+  FiCalendar,
+  FiEdit2,
+  FiFileText,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiStar,
+  FiUser,
+} from "react-icons/fi"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { ProfileForm } from "@/features/users/components/ProfileForm"
+import { useUpdateProfile } from "@/features/users/hooks/useUpdateProfile"
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   admin: { label: "Quản trị viên", color: "red" },
   user: { label: "Thành viên", color: "blue" },
   moderator: { label: "Kiểm duyệt", color: "purple" },
-};
+}
 
 function StarRating({ score }: { score: number }) {
-  const maxStars = 5;
-  const filledStars = Math.round((score / 100) * maxStars);
+  const maxStars = 5
+  const filledStars = Math.round((score / 100) * maxStars)
   return (
     <HStack gap={1}>
       {Array.from({ length: maxStars }).map((_, i) => (
@@ -53,7 +53,7 @@ function StarRating({ score }: { score: number }) {
         {(((score || 0) / 100) * 5).toFixed(1)} / 5
       </Text>
     </HStack>
-  );
+  )
 }
 
 function VerificationBadge({ verified }: { verified: boolean }) {
@@ -69,20 +69,20 @@ function VerificationBadge({ verified }: { verified: boolean }) {
     >
       {verified ? "Đã xác thực" : "Chưa xác thực"}
     </Badge>
-  );
+  )
 }
 
 export function ProfilePage() {
-  const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser();
-  const updateMutation = useUpdateProfile();
+  const navigate = useNavigate()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
+  const updateMutation = useUpdateProfile()
 
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false)
 
   // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
-    navigate({ to: "/auth/login" });
-    return null;
+    navigate({ to: "/auth/login" })
+    return null
   }
 
   if (authLoading || !user) {
@@ -90,26 +90,26 @@ export function ProfilePage() {
       <Flex minH="100vh" align="center" justify="center">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    );
+    )
   }
 
   const handleFormSubmit = async (data: any) => {
     try {
-      await updateMutation.mutateAsync(data);
-      setIsEditMode(false);
+      await updateMutation.mutateAsync(data)
+      setIsEditMode(false)
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error("Error updating profile:", error)
     }
-  };
+  }
 
-  const roleInfo = ROLE_LABELS[user.role || "user"] ?? ROLE_LABELS["user"];
+  const roleInfo = ROLE_LABELS[user.role || "user"] ?? ROLE_LABELS.user
   const addressParts = [
     (user as any).address_detail,
     (user as any).ward,
     (user as any).district,
     (user as any).province,
-  ].filter(Boolean);
-  const fullAddress = addressParts.join(", ");
+  ].filter(Boolean)
+  const fullAddress = addressParts.join(", ")
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -380,5 +380,5 @@ export function ProfilePage() {
         )}
       </Container>
     </Box>
-  );
+  )
 }
