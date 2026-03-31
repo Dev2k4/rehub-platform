@@ -12,9 +12,18 @@ export function useMySentOffers(params?: { skip?: number; limit?: number }) {
   })
 }
 
-export function useMyReceivedOffers(params?: { skip?: number; limit?: number }) {
+export function useMyReceivedOffers(params?: {
+  skip?: number
+  limit?: number
+}) {
   return useQuery({
-    queryKey: ["offers", "me", "received", params?.skip ?? 0, params?.limit ?? 20],
+    queryKey: [
+      "offers",
+      "me",
+      "received",
+      params?.skip ?? 0,
+      params?.limit ?? 20,
+    ],
     queryFn: () => getMyReceivedOffers(params),
   })
 }
@@ -24,7 +33,13 @@ export function useOffersForListing(
   params?: { skip?: number; limit?: number },
 ) {
   return useQuery({
-    queryKey: ["offers", "listing", listingId, params?.skip ?? 0, params?.limit ?? 20],
+    queryKey: [
+      "offers",
+      "listing",
+      listingId,
+      params?.skip ?? 0,
+      params?.limit ?? 20,
+    ],
     queryFn: () => getOffersForListing(listingId, params),
     enabled: !!listingId,
   })

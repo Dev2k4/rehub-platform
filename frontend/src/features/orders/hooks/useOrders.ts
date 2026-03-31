@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { OrderRead } from "@/client"
 import {
+  cancelOrder,
+  completeOrder,
   getMyOrders,
   getOrder,
-  completeOrder,
-  cancelOrder,
 } from "@/features/orders/api/orders.api"
-import type { OrderRead } from "@/client"
 
 export function useMyOrders() {
   return useQuery<OrderRead[]>({
