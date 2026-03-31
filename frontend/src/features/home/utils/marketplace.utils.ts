@@ -1,4 +1,4 @@
-import { OpenAPI, type CategoryTree } from "@/client"
+import { type CategoryTree, OpenAPI } from "@/client"
 
 const ABSOLUTE_URL_REGEX = /^https?:\/\//i
 

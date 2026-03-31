@@ -1,5 +1,5 @@
-import { ListingsService, ListingStatus } from "@/client"
-import type { ListingRead, ListingWithImages, ListingPaginated } from "@/client"
+import type { ListingPaginated, ListingRead, ListingWithImages } from "@/client"
+import { type ListingStatus, ListingsService } from "@/client"
 
 export interface CreateListingInput {
   title: string
@@ -31,7 +31,9 @@ export async function getMyListings(params?: {
   })
 }
 
-export async function createListing(data: CreateListingInput): Promise<ListingRead> {
+export async function createListing(
+  data: CreateListingInput,
+): Promise<ListingRead> {
   return ListingsService.createListingApiV1ListingsPost({
     requestBody: data as any,
   })
@@ -39,7 +41,7 @@ export async function createListing(data: CreateListingInput): Promise<ListingRe
 
 export async function updateListing(
   listingId: string,
-  data: UpdateListingInput
+  data: UpdateListingInput,
 ): Promise<ListingRead> {
   return ListingsService.updateListingApiV1ListingsListingIdPatch({
     listingId,
@@ -53,7 +55,9 @@ export async function deleteListing(listingId: string): Promise<void> {
   })
 }
 
-export async function getListingDetails(listingId: string): Promise<ListingWithImages> {
+export async function getListingDetails(
+  listingId: string,
+): Promise<ListingWithImages> {
   return ListingsService.getListingApiV1ListingsListingIdGet({
     listingId,
   })
@@ -62,7 +66,7 @@ export async function getListingDetails(listingId: string): Promise<ListingWithI
 export async function uploadListingImage(
   listingId: string,
   file: File,
-  isPrimary: boolean = false
+  isPrimary: boolean = false,
 ): Promise<any> {
   return ListingsService.uploadListingImageApiV1ListingsListingIdImagesPost({
     listingId,
@@ -72,7 +76,9 @@ export async function uploadListingImage(
 }
 
 export async function deleteListingImage(imageId: string): Promise<void> {
-  return ListingsService.deleteListingImageRouteApiV1ListingsImagesImageIdDelete({
-    imageId,
-  })
+  return ListingsService.deleteListingImageRouteApiV1ListingsImagesImageIdDelete(
+    {
+      imageId,
+    },
+  )
 }

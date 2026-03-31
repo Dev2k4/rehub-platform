@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { useMemo, useState } from "react"
 import type { CategoryTree, UserPublicProfile } from "@/client"
-import { getCategoriesTree, getListings } from "@/features/home/api/marketplace.api"
+import {
+  getCategoriesTree,
+  getListings,
+} from "@/features/home/api/marketplace.api"
 import { flattenCategories } from "@/features/home/utils/marketplace.utils"
 import { getUserPublicProfile } from "@/features/users/api/users.api"
 
