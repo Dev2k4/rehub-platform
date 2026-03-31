@@ -1,5 +1,5 @@
-import { AdminService } from "@/client"
 import type { UserMe } from "@/client"
+import { AdminService } from "@/client"
 
 export async function getUsers(params?: {
   skip?: number
@@ -10,7 +10,7 @@ export async function getUsers(params?: {
 
 export async function updateUserStatus(
   userId: string,
-  isActive: boolean
+  isActive: boolean,
 ): Promise<UserMe> {
   return AdminService.updateUserAccountStatusApiV1AdminUsersUserIdStatusPatch({
     userId,

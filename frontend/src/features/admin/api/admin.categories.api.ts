@@ -1,5 +1,5 @@
-import { CategoriesService, OpenAPI } from "@/client"
 import type { CategoryRead, CategoryTree } from "@/client"
+import { CategoriesService, OpenAPI } from "@/client"
 import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface CreateCategoryInput {
@@ -16,11 +16,15 @@ export interface UpdateCategoryInput {
   icon_url?: string | null
 }
 
-export async function getCategories(asTree: boolean = false): Promise<CategoryTree[] | CategoryRead[]> {
+export async function getCategories(
+  asTree: boolean = false,
+): Promise<CategoryTree[] | CategoryRead[]> {
   return CategoriesService.getCategoriesApiV1CategoriesGet({ asTree })
 }
 
-export async function createCategory(data: CreateCategoryInput): Promise<CategoryRead> {
+export async function createCategory(
+  data: CreateCategoryInput,
+): Promise<CategoryRead> {
   return CategoriesService.createCategoryApiV1CategoriesPost({
     requestBody: data as any,
   })
@@ -28,7 +32,7 @@ export async function createCategory(data: CreateCategoryInput): Promise<Categor
 
 export async function updateCategory(
   categoryId: string,
-  data: UpdateCategoryInput
+  data: UpdateCategoryInput,
 ): Promise<CategoryRead> {
   const base = OpenAPI.BASE.replace(/\/+$/, "")
   const token = getAccessToken()
@@ -45,12 +49,16 @@ export async function updateCategory(
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
     const detail = payload?.detail ?? "Không thể cập nhật danh mục"
-    throw new Error(typeof detail === "string" ? detail : "Không thể cập nhật danh mục")
+    throw new Error(
+      typeof detail === "string" ? detail : "Không thể cập nhật danh mục",
+    )
   }
 
   return response.json() as Promise<CategoryRead>
 }
 
 export async function deleteCategory(categoryId: string): Promise<void> {
-  return CategoriesService.deleteCategoryApiV1CategoriesCategoryIdDelete({ categoryId })
+  return CategoriesService.deleteCategoryApiV1CategoriesCategoryIdDelete({
+    categoryId,
+  })
 }

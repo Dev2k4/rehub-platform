@@ -1,5 +1,5 @@
+import type { OrderDirectCreate, OrderRead } from "@/client"
 import { OrdersService } from "@/client"
-import type { OrderRead, OrderDirectCreate } from "@/client"
 
 export type CreateOrderInput = OrderDirectCreate & {
   use_escrow?: boolean

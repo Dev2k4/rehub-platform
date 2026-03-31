@@ -1,5 +1,5 @@
-import { ReviewsService } from "@/client"
 import type { ReviewCreate, ReviewRead } from "@/client"
+import { ReviewsService } from "@/client"
 
 export async function createReview(data: ReviewCreate): Promise<ReviewRead> {
   return ReviewsService.createReviewApiV1ReviewsPost({
@@ -12,7 +12,9 @@ export async function getUserReviews(userId: string): Promise<ReviewRead[]> {
 }
 
 export async function getOrderReviews(orderId: string): Promise<ReviewRead[]> {
-  const response = await ReviewsService.getReviewApiV1ReviewsOrderIdGet({ orderId })
+  const response = await ReviewsService.getReviewApiV1ReviewsOrderIdGet({
+    orderId,
+  })
 
   // Some generated clients typed this endpoint as a single ReviewRead while backend returns a list.
   if (Array.isArray(response)) {
