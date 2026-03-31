@@ -1,25 +1,25 @@
-import { FiBell, FiUser, FiChevronRight, FiList } from "react-icons/fi";
 import {
-  Drawer,
-  Portal,
   Box,
   Button,
   CloseButton,
-  VStack,
+  Drawer,
   Flex,
+  Portal,
   Text,
-} from "@chakra-ui/react";
-import { useNavigate } from "@tanstack/react-router";
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
-import type { CategoryTree } from "@/client";
+  VStack,
+} from "@chakra-ui/react"
+import { useNavigate } from "@tanstack/react-router"
+import { FiBell, FiChevronRight, FiList, FiUser } from "react-icons/fi"
+import type { CategoryTree } from "@/client"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 
 type CategoryOverlayProps = {
-  open: boolean;
-  categories: CategoryTree[];
-  selectedCategoryId: string;
-  onClose: () => void;
-  onSelectCategory: (id: string) => void;
-};
+  open: boolean
+  categories: CategoryTree[]
+  selectedCategoryId: string
+  onClose: () => void
+  onSelectCategory: (id: string) => void
+}
 
 export function CategoryOverlay({
   open,
@@ -28,8 +28,8 @@ export function CategoryOverlay({
   onClose,
   onSelectCategory,
 }: CategoryOverlayProps) {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuthUser();
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuthUser()
   return (
     <Drawer.Root
       open={open}
@@ -81,8 +81,8 @@ export function CategoryOverlay({
               <VStack gap={1} align="stretch">
                 <Button
                   onClick={() => {
-                    onSelectCategory("");
-                    onClose();
+                    onSelectCategory("")
+                    onClose()
                   }}
                   variant="ghost"
                   w="full"
@@ -110,13 +110,13 @@ export function CategoryOverlay({
                 </Button>
 
                 {categories.map((category) => {
-                  const active = selectedCategoryId === category.id;
+                  const active = selectedCategoryId === category.id
                   return (
                     <Button
                       key={category.id}
                       onClick={() => {
-                        onSelectCategory(category.id);
-                        onClose();
+                        onSelectCategory(category.id)
+                        onClose()
                       }}
                       variant="ghost"
                       w="full"
@@ -140,7 +140,7 @@ export function CategoryOverlay({
                         color={active ? "blue.500" : "gray.400"}
                       />
                     </Button>
-                  );
+                  )
                 })}
               </VStack>
             </Drawer.Body>
@@ -197,8 +197,8 @@ export function CategoryOverlay({
                       _hover={{ bg: "gray.50" }}
                       transition="all 0.2s"
                       onClick={() => {
-                        navigate({ to: "/profile" });
-                        onClose();
+                        navigate({ to: "/profile" })
+                        onClose()
                       }}
                     >
                       <Flex align="center" gap={3} w="full">
@@ -223,8 +223,8 @@ export function CategoryOverlay({
                       _hover={{ bg: "gray.50" }}
                       transition="all 0.2s"
                       onClick={() => {
-                        navigate({ to: "/my-listings" });
-                        onClose();
+                        navigate({ to: "/my-listings" })
+                        onClose()
                       }}
                     >
                       <Flex align="center" gap={3} w="full">
@@ -250,8 +250,8 @@ export function CategoryOverlay({
                     _hover={{ bg: "gray.50" }}
                     transition="all 0.2s"
                     onClick={() => {
-                      navigate({ to: "/auth/login" });
-                      onClose();
+                      navigate({ to: "/auth/login" })
+                      onClose()
                     }}
                   >
                     <Flex align="center" gap={3} w="full">
@@ -268,5 +268,5 @@ export function CategoryOverlay({
         </Drawer.Positioner>
       </Portal>
     </Drawer.Root>
-  );
+  )
 }

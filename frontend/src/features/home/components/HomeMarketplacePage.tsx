@@ -1,16 +1,17 @@
+import { Box, Container, Flex, Heading, Text } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
-import { Box, Container, Heading, Text, Flex } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { CategoryOverlay } from "@/features/home/components/CategoryOverlay";
 import { CategorySidebar } from "@/features/home/components/CategorySidebar";
 import { ListingGrid } from "@/features/home/components/ListingGrid";
 import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader";
+import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData";
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
 import { ListingModal } from "@/features/listings/components/ListingModal";
 import {
   useCreateListing,
   useUploadListingImage,
 } from "@/features/listings/hooks/useMyListings";
-import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData";
-import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
 
 export function HomeMarketplacePage() {
   const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false);
@@ -38,18 +39,32 @@ export function HomeMarketplacePage() {
     return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục";
   }, [selectedCategoryId, categoryMap]);
 
-  const handleCreateListing = async ({ data, files }: ListingFormSubmitPayload) => {
-    const created = await createMutation.mutateAsync(data);
+  const handleCreateListing = async ({
+    data,
+    files,
+  }: ListingFormSubmitPayload) => {
+    try {
+      const created = await createMutation.mutateAsync(data);
 
-    for (const [index, file] of files.entries()) {
-      await uploadImageMutation.mutateAsync({
-        listingId: created.id,
-        file,
-        isPrimary: index === 0,
+      for (const [index, file] of files.entries()) {
+        await uploadImageMutation.mutateAsync({
+          listingId: created.id,
+          file,
+          isPrimary: index === 0,
+        });
+      }
+
+      setIsListingModalOpen(false);
+      toaster.create({
+        title: "Đăng tin thành công! Sản phẩm đang chờ duyệt.",
+        type: "success",
+      });
+    } catch (error: any) {
+      toaster.create({
+        title: error?.message || "Không thể đăng tin. Vui lòng thử lại sau.",
+        type: "error",
       });
     }
-
-    setIsListingModalOpen(false);
   };
 
   return (
@@ -76,18 +91,20 @@ export function HomeMarketplacePage() {
         <Box
           mb={6}
           borderRadius="2xl"
-          bg="blue.600"
           p={8}
           color="white"
-          boxShadow="lg"
+          boxShadow="0 10px 30px rgba(2,69,122,0.3)"
           position="relative"
           overflow="hidden"
+          style={{
+            background: "linear-gradient(135deg, #02457A 0%, #018ABE 100%)",
+          }}
         >
           <Text
             fontSize="xs"
             textTransform="uppercase"
             letterSpacing="wider"
-            color="blue.100"
+            color="whiteAlpha.800"
             fontWeight="medium"
           >
             Marketplace
@@ -97,6 +114,7 @@ export function HomeMarketplacePage() {
             mt={1}
             fontSize={{ base: "2xl", md: "3xl" }}
             fontWeight="bold"
+            color="white"
           >
             Khám phá sản phẩm
           </Heading>

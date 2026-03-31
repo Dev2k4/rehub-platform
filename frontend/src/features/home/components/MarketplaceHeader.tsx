@@ -1,166 +1,198 @@
-import { FiMenu, FiSearch, FiPackage, FiPlusCircle, FiBell } from "react-icons/fi"
-import { Link, useNavigate } from "@tanstack/react-router"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Box,
+  Button,
+  Link as ChakraLink,
   Flex,
   IconButton,
-  Button,
   Input,
-  Text,
-  Link as ChakraLink,
   Menu,
   Portal,
   Separator,
   Spinner,
-} from "@chakra-ui/react"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { UserDropdownMenu } from "./UserDropdownMenu"
-import { AuthButtons } from "./AuthButtons"
-import { logoutUser } from "@/features/auth/api/auth.api"
-import { clearTokens } from "@/features/auth/utils/auth.storage"
+  Text,
+} from "@chakra-ui/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  FiBell,
+  FiMenu,
+  FiPackage,
+  FiPlusCircle,
+  FiSearch,
+} from "react-icons/fi";
+import type { NotificationRead } from "@/client";
+import { InputGroup } from "@/components/ui/input-group";
+import { toaster } from "@/components/ui/toaster";
+import { logoutUser } from "@/features/auth/api/auth.api";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
+import { clearTokens } from "@/features/auth/utils/auth.storage";
 import {
   getMyNotifications,
   getUnreadNotificationsCount,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-} from "@/features/notifications/api/notifications.api"
-import type { NotificationRead } from "@/client"
+} from "@/features/notifications/api/notifications.api";
+import { AuthButtons } from "./AuthButtons";
+import { UserDropdownMenu } from "./UserDropdownMenu";
 
-function getDataField(data: NotificationRead["data"], field: string): string | null {
+function getDataField(
+  data: NotificationRead["data"],
+  field: string,
+): string | null {
   if (!data || typeof data !== "object") {
-    return null
+    return null;
   }
 
-  const value = (data as Record<string, unknown>)[field]
-  return typeof value === "string" && value.trim() ? value : null
+  const value = (data as Record<string, unknown>)[field];
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 function getNotificationDestination(notification: NotificationRead):
-  | { to: "/listings/$id"; params: { id: string }; search?: { offerId?: string } }
+  | {
+      to: "/listings/$id";
+      params: { id: string };
+      search?: { offerId?: string };
+    }
   | { to: "/orders/$id"; params: { id: string } }
   | { to: "/sellers/$id"; params: { id: string } }
   | { to: "/my-listings" }
   | { to: "/orders" }
   | { to: "/profile" }
   | { to: "/" } {
-  const orderId = getDataField(notification.data, "order_id")
-  const listingId = getDataField(notification.data, "listing_id")
-  const offerId = getDataField(notification.data, "offer_id")
-  const sellerId = getDataField(notification.data, "seller_id")
+  const orderId = getDataField(notification.data, "order_id");
+  const listingId = getDataField(notification.data, "listing_id");
+  const offerId = getDataField(notification.data, "offer_id");
+  const sellerId = getDataField(notification.data, "seller_id");
 
-  if (orderId && (notification.type.startsWith("order_") || notification.type.startsWith("escrow_"))) {
-    return { to: "/orders/$id", params: { id: orderId } }
+  if (
+    orderId &&
+    (notification.type.startsWith("order_") ||
+      notification.type.startsWith("escrow_"))
+  ) {
+    return { to: "/orders/$id", params: { id: orderId } };
   }
 
   if (listingId) {
-    const destination = { to: "/listings/$id" as const, params: { id: listingId } }
+    const destination = {
+      to: "/listings/$id" as const,
+      params: { id: listingId },
+    };
     if (offerId && notification.type.startsWith("offer_")) {
-      return { ...destination, search: { offerId } }
+      return { ...destination, search: { offerId } };
     }
-    return destination
+    return destination;
   }
 
   if (sellerId) {
-    return { to: "/sellers/$id", params: { id: sellerId } }
+    return { to: "/sellers/$id", params: { id: sellerId } };
   }
 
   if (notification.type.startsWith("offer_")) {
-    return { to: "/my-listings" }
+    return { to: "/my-listings" };
   }
 
   if (notification.type.startsWith("order_")) {
-    return { to: "/orders" }
+    return { to: "/orders" };
   }
 
   if (notification.type.startsWith("escrow_")) {
-    return { to: "/orders" }
+    return { to: "/orders" };
   }
 
   if (notification.type.startsWith("review_")) {
-    return { to: "/profile" }
+    return { to: "/profile" };
   }
 
-  return { to: "/" }
+  return { to: "/" };
 }
 
 type MarketplaceHeaderProps = {
-  keyword: string
-  onKeywordChange: (value: string) => void
-  onOpenCategoryMenu: () => void
-  onOpenListingModal?: () => void
-}
+  keyword: string;
+  onKeywordChange: (value: string) => void;
+  onOpenCategoryMenu: () => void;
+  onOpenListingModal?: () => void;
+};
 
-export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu, onOpenListingModal }: MarketplaceHeaderProps) {
-  const { user, isAuthenticated, isLoading } = useAuthUser()
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
+export function MarketplaceHeader({
+  keyword,
+  onKeywordChange,
+  onOpenCategoryMenu,
+  onOpenListingModal,
+}: MarketplaceHeaderProps) {
+  const { user, isAuthenticated, isLoading } = useAuthUser();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const notificationsQuery = useQuery({
     queryKey: ["notifications"],
     queryFn: () => getMyNotifications(),
     enabled: isAuthenticated,
-  })
+  });
   const unreadCountQuery = useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: () => getUnreadNotificationsCount(),
     enabled: isAuthenticated,
     refetchInterval: 30_000,
-  })
+  });
 
   const markNotificationMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "unread-count"],
+      });
     },
-  })
+  });
 
   const markAllNotificationsMutation = useMutation({
     mutationFn: markAllNotificationsAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "unread-count"],
+      });
     },
-  })
+  });
 
   const handleLogout = async () => {
     try {
-      await logoutUser()
+      await logoutUser();
     } catch (error) {
-      console.error("Logout error:", error)
+      console.error("Logout error:", error);
     } finally {
-      clearTokens()
-      queryClient.invalidateQueries({ queryKey: ["auth"] })
-      navigate({ to: "/" })
+      clearTokens();
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      toaster.create({ title: "Đã đăng xuất thành công", type: "info" });
+      navigate({ to: "/" });
     }
-  }
+  };
 
-  const unreadCount = unreadCountQuery.data ?? 0
+  const unreadCount = unreadCountQuery.data ?? 0;
 
   const handleNotificationClick = async (notification: NotificationRead) => {
     if (!notification.is_read && !markNotificationMutation.isPending) {
       try {
-        await markNotificationMutation.mutateAsync(notification.id)
+        await markNotificationMutation.mutateAsync(notification.id);
       } catch (error) {
-        console.error("Failed to mark notification as read:", error)
+        console.error("Failed to mark notification as read:", error);
       }
     }
 
-    const destination = getNotificationDestination(notification)
-    navigate(destination as never)
-  }
+    const destination = getNotificationDestination(notification);
+    navigate(destination as never);
+  };
 
   const handleMarkAllAsRead = async () => {
     if (unreadCount === 0 || markAllNotificationsMutation.isPending) {
-      return
+      return;
     }
 
     try {
-      await markAllNotificationsMutation.mutateAsync()
+      await markAllNotificationsMutation.mutateAsync();
     } catch (error) {
-      console.error("Failed to mark all notifications as read:", error)
+      console.error("Failed to mark all notifications as read:", error);
     }
-  }
+  };
 
   return (
     <Box
@@ -169,12 +201,12 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
       top={0}
       zIndex={50}
       borderBottom="1px"
-      borderColor="gray.200"
-      bg="whiteAlpha.800"
-      backdropFilter="blur(12px)"
+      borderColor="whiteAlpha.300"
+      bg="whiteAlpha.700"
+      backdropFilter="blur(20px)"
       px={{ base: 4, md: 6 }}
       py={{ base: 3, md: 4 }}
-      boxShadow="sm"
+      boxShadow="0 4px 30px rgba(0,0,0,0.06)"
     >
       <Flex
         mx="auto"
@@ -185,7 +217,11 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
         justify={{ sm: "space-between" }}
       >
         {/* Top Header Mobile / Full Header Left Desktop */}
-        <Flex align="center" justify="space-between" w={{ base: "full", sm: "auto" }}>
+        <Flex
+          align="center"
+          justify="space-between"
+          w={{ base: "full", sm: "auto" }}
+        >
           <Flex align="center" gap={{ base: 3, md: 4 }}>
             <IconButton
               display={{ base: "inline-flex", lg: "none" }}
@@ -211,7 +247,7 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
                     alignItems="center"
                     justifyContent="center"
                     borderRadius="xl"
-                    bgGradient="linear(to-br, blue.600, purple.600)"
+                    bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
                   >
                     <Box as={FiPackage} w={6} h={6} color="white" />
                   </Box>
@@ -242,28 +278,41 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
 
         {/* Search Input */}
         <Box flex={1} w="full" maxW="2xl">
-          <Box position="relative">
-            <Box position="absolute" left={4} top="50%" transform="translateY(-50%)" zIndex={1}>
-              <FiSearch size={20} color="gray" />
-            </Box>
+          <InputGroup
+            width="full"
+            startElement={
+              <Box color="gray.400" display="flex" alignItems="center" ps={4}>
+                <FiSearch size={18} />
+              </Box>
+            }
+          >
             <Input
               value={keyword}
               onChange={(event) => onKeywordChange(event.target.value)}
               placeholder="Tìm kiếm sản phẩm, danh mục, hoặc người bán..."
               w="full"
               borderRadius="full"
-              border="none"
-              bg="gray.100"
+              border="1px solid"
+              borderColor="whiteAlpha.400"
+              bg="whiteAlpha.600"
+              backdropFilter="blur(8px)"
               py={3}
-              pl={12}
+              ps="10"
               pr={4}
               fontSize="sm"
               color="gray.900"
-              transition="all 0.2s"
+              transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
               _placeholder={{ color: "gray.500" }}
-              _focus={{ bg: "white", ring: "2", ringColor: "blue.500", ringOffset: "2", ringOffsetColor: "transparent" }}
+              _focus={{
+                bg: "white",
+                ring: "2",
+                ringColor: "blue.500",
+                ringOffset: "2",
+                ringOffsetColor: "transparent",
+                borderColor: "blue.200",
+              }}
             />
-          </Box>
+          </InputGroup>
         </Box>
 
         {/* Desktop Right Icons (hidden on mobile) */}
@@ -336,14 +385,17 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
                         <Flex py={6} justify="center">
                           <Spinner size="sm" color="blue.500" />
                         </Flex>
-                      ) : notificationsQuery.data && notificationsQuery.data.length > 0 ? (
+                      ) : notificationsQuery.data &&
+                        notificationsQuery.data.length > 0 ? (
                         notificationsQuery.data.map((notification) => (
                           <Menu.Item
                             key={notification.id}
                             value={`notification-${notification.id}`}
                             py={0}
                             px={0}
-                            onClick={() => handleNotificationClick(notification)}
+                            onClick={() =>
+                              handleNotificationClick(notification)
+                            }
                           >
                             <Box
                               w="full"
@@ -353,14 +405,26 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
                               borderBottom="1px"
                               borderColor="gray.100"
                             >
-                              <Text fontSize="sm" fontWeight="semibold" color="gray.900" lineClamp={1}>
+                              <Text
+                                fontSize="sm"
+                                fontWeight="semibold"
+                                color="gray.900"
+                                lineClamp={1}
+                              >
                                 {notification.title}
                               </Text>
-                              <Text fontSize="xs" color="gray.600" mt={0.5} lineClamp={2}>
+                              <Text
+                                fontSize="xs"
+                                color="gray.600"
+                                mt={0.5}
+                                lineClamp={2}
+                              >
                                 {notification.message}
                               </Text>
                               <Text fontSize="xs" color="gray.500" mt={1}>
-                                {new Date(notification.created_at).toLocaleString("vi-VN")}
+                                {new Date(
+                                  notification.created_at,
+                                ).toLocaleString("vi-VN")}
                               </Text>
                             </Box>
                           </Menu.Item>
@@ -396,13 +460,20 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
                 <Button
                   borderRadius="full"
                   variant="outline"
-                  borderColor="gray.300"
+                  bg="whiteAlpha.600"
+                  backdropFilter="blur(8px)"
+                  borderColor="whiteAlpha.400"
                   color="gray.700"
                   px={4}
                   py={2.5}
                   fontSize="sm"
                   fontWeight="medium"
-                  _hover={{ bg: "gray.50" }}
+                  transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
+                  _hover={{
+                    bg: "whiteAlpha.800",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                    transform: "translateY(-1px)",
+                  }}
                 >
                   Offers
                 </Button>
@@ -414,17 +485,23 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
             <Link to="/">
               <Button
                 onClick={(e) => {
-                  e.preventDefault()
-                  onOpenListingModal?.()
+                  e.preventDefault();
+                  onOpenListingModal?.();
                 }}
                 borderRadius="full"
-                bg="blue.600"
+                bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
                 color="white"
                 px={4}
                 py={2.5}
                 fontSize="sm"
                 fontWeight="medium"
-                _hover={{ bg: "blue.700" }}
+                transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
+                boxShadow="0 4px 15px rgba(2,69,122,0.3)"
+                _hover={{
+                  bg: "linear-gradient(135deg, #013A67 0%, #017AAA 100%)",
+                  transform: "translateY(-1px)",
+                  boxShadow: "0 6px 20px rgba(2,69,122,0.4)",
+                }}
               >
                 <Flex align="center" gap={2}>
                   <FiPlusCircle size={16} />
@@ -436,7 +513,13 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
 
           {/* Auth Section: Login buttons OR User menu */}
           {isLoading ? (
-            <Box w={10} h={10} bg="gray.200" borderRadius="full" animation="pulse 2s infinite" />
+            <Box
+              w={10}
+              h={10}
+              bg="gray.200"
+              borderRadius="full"
+              animation="pulse 2s infinite"
+            />
           ) : isAuthenticated && user ? (
             <UserDropdownMenu user={user} onLogout={handleLogout} />
           ) : (
@@ -445,5 +528,5 @@ export function MarketplaceHeader({ keyword, onKeywordChange, onOpenCategoryMenu
         </Flex>
       </Flex>
     </Box>
-  )
+  );
 }

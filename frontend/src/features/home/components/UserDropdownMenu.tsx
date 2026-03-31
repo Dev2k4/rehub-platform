@@ -1,19 +1,26 @@
-import { Link } from "@tanstack/react-router"
 import {
   Box,
   Button,
+  Flex,
   Menu,
   Portal,
-  Text,
-  Flex,
   Separator,
-} from "@chakra-ui/react"
-import { FiCreditCard, FiList, FiUser, FiLogOut, FiShield, FiShoppingBag } from "react-icons/fi"
-import type { UserMe } from "@/client"
+  Text,
+} from "@chakra-ui/react";
+import { Link } from "@tanstack/react-router";
+import {
+  FiCreditCard,
+  FiList,
+  FiLogOut,
+  FiShield,
+  FiShoppingBag,
+  FiUser,
+} from "react-icons/fi";
+import type { UserMe } from "@/client";
 
 interface UserDropdownMenuProps {
-  user: UserMe
-  onLogout: () => void
+  user: UserMe;
+  onLogout: () => void;
 }
 
 export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
@@ -24,13 +31,17 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
           w={10}
           h={10}
           borderRadius="full"
-          bgGradient="linear(to-br, blue.400, blue.600)"
-          _hover={{ bgGradient: "linear(to-br, blue.500, blue.700)", boxShadow: "md" }}
+          bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
+          _hover={{
+            bg: "linear-gradient(135deg, #013A67 0%, #017AAA 100%)",
+            boxShadow: "0 4px 15px rgba(2,69,122,0.4)",
+          }}
           color="white"
           fontWeight="bold"
           p={0}
           minW={0}
           title={user.full_name}
+          transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
         >
           {user.full_name.charAt(0).toUpperCase()}
         </Button>
@@ -39,15 +50,16 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
         <Menu.Positioner>
           <Menu.Content
             w="56"
-            bg="white"
-            boxShadow="xl"
-            borderRadius="lg"
+            bg="whiteAlpha.900"
+            backdropFilter="blur(16px)"
+            boxShadow="0 10px 40px rgba(0,0,0,0.08)"
+            borderRadius="xl"
             border="1px"
-            borderColor="gray.200"
+            borderColor="whiteAlpha.400"
             zIndex={50}
           >
             {/* User Info Section */}
-            <Box px={4} py={3} borderBottom="1px" borderColor="gray.200">
+            <Box px={4} py={3} borderBottom="1px" borderColor="whiteAlpha.400">
               <Text fontWeight="semibold" color="gray.900" fontSize="sm">
                 {user.full_name}
               </Text>
@@ -69,7 +81,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                         py={2}
                         fontSize="sm"
                         color="gray.700"
-                        _hover={{ bg: "gray.50" }}
+                        _hover={{ bg: "blue.50", color: "blue.700" }}
                         transition="all 0.2s"
                         cursor="pointer"
                       >
@@ -78,7 +90,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                       </Flex>
                     </Link>
                   </Menu.Item>
-                  <Separator my={2} />
+                  <Separator my={2} borderColor="whiteAlpha.400" />
                 </>
               )}
 
@@ -91,7 +103,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                     py={2}
                     fontSize="sm"
                     color="gray.700"
-                    _hover={{ bg: "gray.50" }}
+                    _hover={{ bg: "blue.50", color: "blue.700" }}
                     transition="all 0.2s"
                     cursor="pointer"
                   >
@@ -110,7 +122,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                     py={2}
                     fontSize="sm"
                     color="gray.700"
-                    _hover={{ bg: "gray.50" }}
+                    _hover={{ bg: "blue.50", color: "blue.700" }}
                     transition="all 0.2s"
                     cursor="pointer"
                   >
@@ -129,7 +141,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                     py={2}
                     fontSize="sm"
                     color="gray.700"
-                    _hover={{ bg: "gray.50" }}
+                    _hover={{ bg: "blue.50", color: "blue.700" }}
                     transition="all 0.2s"
                     cursor="pointer"
                   >
@@ -148,7 +160,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                     py={2}
                     fontSize="sm"
                     color="gray.700"
-                    _hover={{ bg: "gray.50" }}
+                    _hover={{ bg: "blue.50", color: "blue.700" }}
                     transition="all 0.2s"
                     cursor="pointer"
                   >
@@ -158,7 +170,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                 </Link>
               </Menu.Item>
 
-              <Separator my={2} />
+              <Separator my={2} borderColor="whiteAlpha.400" />
 
               <Menu.Item value="logout" onClick={onLogout}>
                 <Flex
@@ -168,7 +180,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                   py={2}
                   fontSize="sm"
                   color="red.600"
-                  _hover={{ bg: "red.50" }}
+                  _hover={{ bg: "red.50", color: "red.700" }}
                   transition="all 0.2s"
                   cursor="pointer"
                   w="full"
@@ -182,5 +194,5 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
         </Menu.Positioner>
       </Portal>
     </Menu.Root>
-  )
+  );
 }
