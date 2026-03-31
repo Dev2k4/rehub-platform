@@ -1,21 +1,22 @@
-import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { resetPassword } from "@/features/auth/api/auth.api";
+import { useMutation } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
+import { resetPassword } from "@/features/auth/api/auth.api"
 
 interface ResetPasswordInput {
-  token: string;
-  newPassword: string;
+  token: string
+  newPassword: string
 }
 
 export function useResetPasswordMutation() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return useMutation({
-    mutationFn: (data: ResetPasswordInput) => resetPassword(data.token, data.newPassword),
+    mutationFn: (data: ResetPasswordInput) =>
+      resetPassword(data.token, data.newPassword),
     onSuccess: () => {
       setTimeout(() => {
-        navigate({ to: "/auth/login" });
-      }, 1500);
+        navigate({ to: "/auth/login" })
+      }, 1500)
     },
-  });
+  })
 }

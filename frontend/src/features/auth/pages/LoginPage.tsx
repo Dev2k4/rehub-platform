@@ -1,22 +1,37 @@
-import { useEffect } from "react";
-import { useNavigate, Link } from "@tanstack/react-router";
 import {
   Box,
-  Container,
-  Heading,
-  Text,
-  Link as ChakraLink,
-  VStack,
   Flex,
+  Heading,
+  Link as ChakraLink,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
-import { FiPackage } from "react-icons/fi";
-import { getAccessToken } from "@/features/auth/utils/auth.storage";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import {
+  FiArrowRight,
+  FiRefreshCw,
+  FiShield,
+  FiShoppingBag,
+  FiStar,
+  FiTrendingUp,
+  FiUsers,
+} from "react-icons/fi";
 import { LoginForm } from "@/features/auth/components/LoginForm";
+import { getAccessToken } from "@/features/auth/utils/auth.storage";
+
+const FEATURES = [
+  { icon: FiShoppingBag, label: "Mua bán dễ dàng" },
+  { icon: FiShield, label: "Thanh toán an toàn" },
+  { icon: FiStar, label: "Đánh giá uy tín" },
+  { icon: FiTrendingUp, label: "Thương lượng linh hoạt" },
+  { icon: FiUsers, label: "Cộng đồng lớn mạnh" },
+  { icon: FiRefreshCw, label: "Tái sử dụng bền vững" },
+];
 
 export function LoginPage() {
   const navigate = useNavigate();
 
-  // Redirect if already logged in
   useEffect(() => {
     if (getAccessToken()) {
       navigate({ to: "/" });
@@ -24,67 +39,210 @@ export function LoginPage() {
   }, [navigate]);
 
   return (
-    <Box
-      minH="100vh"
-      bg="gray.50"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      py={12}
-      px={4}
-    >
-      <Container maxW="md" w="full">
-        {/* Header */}
-        <VStack gap={2} textAlign="center" mb={8}>
-          <Flex
-            h={14}
-            w={14}
+    <Flex minH="100vh">
+      {/* LEFT PANEL – Branded gradient */}
+      <Box
+        display={{ base: "none", lg: "flex" }}
+        flex="1"
+        flexDirection="column"
+        justifyContent="space-between"
+        p={12}
+        position="relative"
+        overflow="hidden"
+        bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
+      >
+        {/* Decorative blobs */}
+        <Box
+          position="absolute"
+          top="-80px"
+          left="-80px"
+          w="320px"
+          h="320px"
+          borderRadius="full"
+          bg="whiteAlpha.100"
+          filter="blur(60px)"
+        />
+        <Box
+          position="absolute"
+          bottom="-100px"
+          right="-60px"
+          w="400px"
+          h="400px"
+          borderRadius="full"
+          bg="whiteAlpha.100"
+          filter="blur(80px)"
+        />
+        {/* Floating feature badges */}
+        {FEATURES.map((f, i) => {
+          const positions = [
+            { top: "12%", left: "6%" },
+            { top: "8%", right: "10%" },
+            { top: "42%", left: "3%" },
+            { top: "62%", right: "8%" },
+            { bottom: "20%", left: "8%" },
+            { bottom: "12%", right: "6%" },
+          ];
+          return (
+            <Box
+              key={f.label}
+              position="absolute"
+              style={positions[i]}
+              bg="whiteAlpha.200"
+              backdropFilter="blur(12px)"
+              border="1px solid"
+              borderColor="whiteAlpha.300"
+              borderRadius="2xl"
+              px={4}
+              py={3}
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <Box as={f.icon} color="white" boxSize={4} />
+              <Text fontSize="xs" color="white" fontWeight="semibold">
+                {f.label}
+              </Text>
+            </Box>
+          );
+        })}
+
+        {/* Center branding */}
+        <Flex
+          flex={1}
+          direction="column"
+          align="center"
+          justify="center"
+          zIndex={1}
+          position="relative"
+        >
+          <Box
+            w={20}
+            h={20}
+            borderRadius="2xl"
+            bg="whiteAlpha.200"
+            backdropFilter="blur(20px)"
+            border="1px solid"
+            borderColor="whiteAlpha.400"
+            display="flex"
             alignItems="center"
             justifyContent="center"
-            borderRadius="xl"
-            bgGradient="linear(to-br, blue.600, purple.600)"
-            mb={2}
+            mb={6}
+            boxShadow="0 20px 60px rgba(0,0,0,0.15)"
           >
-            <Box as={FiPackage} w={7} h={7} color="white" />
-          </Flex>
-          <Heading as="h1" size="xl" color="gray.900" fontWeight="bold">
+            <Box as={FiRefreshCw} boxSize={9} color="white" />
+          </Box>
+          <Heading
+            fontSize="4xl"
+            fontWeight="extrabold"
+            color="white"
+            letterSpacing="tight"
+            mb={3}
+          >
             ReHub
           </Heading>
-          <Heading
-            as="h2"
-            size="md"
-            color="gray.700"
+          <Text
+            fontSize="sm"
+            color="whiteAlpha.800"
+            letterSpacing="widest"
+            textTransform="uppercase"
             fontWeight="semibold"
-            mt={4}
           >
-            Đăng nhập
-          </Heading>
-          <Text fontSize="sm" color="gray.500" mt={1}>
-            Hoặc{" "}
+            Nền tảng mua bán đồ cũ uy tín
+          </Text>
+        </Flex>
+
+        {/* Bottom note */}
+        <Text
+          fontSize="xs"
+          color="whiteAlpha.600"
+          textAlign="center"
+          zIndex={1}
+          position="relative"
+        >
+          © 2025 ReHub Platform · All rights reserved
+        </Text>
+      </Box>
+
+      {/* RIGHT PANEL – Form */}
+      <Flex
+        flex={{ base: 1, lg: "0 0 540px" }}
+        maxW={{ base: "full", lg: "540px" }}
+        direction="column"
+        justify="center"
+        align="center"
+        bg="#F0F4F8"
+        px={{ base: 4, md: 8 }}
+        py={12}
+        position="relative"
+      >
+        <Box
+          w="full"
+          maxW="420px"
+          bg="white"
+          p={{ base: 8, md: 10 }}
+          borderRadius="2xl"
+          boxShadow="0 10px 40px -10px rgba(0,0,0,0.1)"
+          border="1px solid"
+          borderColor="gray.100"
+        >
+          {/* Logo mark – mobile only */}
+          <Box
+            display={{ base: "flex", lg: "none" }}
+            w={12}
+            h={12}
+            borderRadius="xl"
+            bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
+            alignItems="center"
+            justifyContent="center"
+            mb={6}
+            mx="auto"
+          >
+            <Box as={FiRefreshCw} boxSize={6} color="white" />
+          </Box>
+
+          <VStack align="flex-start" gap={1} mb={10}>
+            <Heading fontSize="2xl" fontWeight="bold" color="gray.900">
+              Đăng nhập
+            </Heading>
+            <Text fontSize="sm" color="gray.500">
+              Chào mừng bạn trở lại với{" "}
+              <Text as="span" color="blue.600" fontWeight="semibold">
+                ReHub
+              </Text>
+            </Text>
+          </VStack>
+
+          <LoginForm />
+
+          <Text fontSize="sm" color="gray.500" textAlign="center" mt={8}>
+            Chưa có tài khoản?{" "}
             <ChakraLink
               asChild
               color="blue.600"
-              fontWeight="medium"
+              fontWeight="semibold"
               _hover={{ color: "blue.700" }}
             >
-              <Link to="/auth/register">tạo tài khoản mới</Link>
+              <Link to="/auth/register">
+                Đăng ký tại đây <Box as={FiArrowRight} display="inline" />
+              </Link>
             </ChakraLink>
           </Text>
-        </VStack>
-
-        {/* Form */}
-        <Box bg="white" py={8} px={6} boxShadow="md" borderRadius="xl">
-          <LoginForm />
         </Box>
 
-        {/* Footer */}
-        <Text textAlign="center" fontSize="xs" color="gray.500" mt={8}>
-          Nếu bạn gặp sự cố với việc đăng nhập,{" "}
-          <ChakraLink href="#" color="blue.600" _hover={{ color: "blue.700" }}>
+        <Text
+          position="absolute"
+          bottom={6}
+          fontSize="xs"
+          color="gray.400"
+          textAlign="center"
+          px={6}
+        >
+          Nếu bạn gặp sự cố,{" "}
+          <ChakraLink href="#" color="blue.500" _hover={{ color: "blue.600" }}>
             liên hệ hỗ trợ
           </ChakraLink>
         </Text>
-      </Container>
-    </Box>
+      </Flex>
+    </Flex>
   );
 }

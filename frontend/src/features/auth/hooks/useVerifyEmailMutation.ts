@@ -1,9 +1,9 @@
-import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { verifyEmailToken } from "@/features/auth/api/auth.api";
+import { useMutation } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
+import { verifyEmailToken } from "@/features/auth/api/auth.api"
 
 export function useVerifyEmailMutation() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return useMutation({
     mutationFn: (token: string) => verifyEmailToken(token),
@@ -11,8 +11,8 @@ export function useVerifyEmailMutation() {
       // Email verified successfully
       // Redirect to login after 2 seconds to let user see success message
       setTimeout(() => {
-        navigate({ to: "/auth/login" });
-      }, 2000);
+        navigate({ to: "/auth/login" })
+      }, 2000)
     },
-  });
+  })
 }

@@ -1,20 +1,26 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Box,
-  Button,
+  Input as ChakraInput,
   Stack,
   Text,
   VStack,
-  Input as ChakraInput,
 } from "@chakra-ui/react";
-import {
-  registerSchema,
-  type RegisterInput,
-} from "@/features/auth/utils/auth.schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field } from "@/components/ui/field";
+import { InputGroup } from "@/components/ui/input-group";
+import { toaster } from "@/components/ui/toaster";
 import { useRegisterMutation } from "@/features/auth/hooks/useRegisterMutation";
 import { AuthErrorCode } from "@/features/auth/types/auth.types";
-import { useNavigate } from "@tanstack/react-router";
+import {
+  type RegisterInput,
+  registerSchema,
+} from "@/features/auth/utils/auth.schemas";
 
 interface RegisterFormProps {
   onError?: (error: string) => void;
@@ -23,15 +29,15 @@ interface RegisterFormProps {
 export function RegisterForm({ onError }: RegisterFormProps) {
   const registerMutation = useRegisterMutation();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     watch,
-    // @ts-ignore - Zod + React Hook Form type mismatch with default values
   } = useForm<RegisterInput>({
-    // @ts-ignore
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(registerSchema) as any,
     mode: "onBlur",
     defaultValues: {
       email: "",
@@ -45,9 +51,17 @@ export function RegisterForm({ onError }: RegisterFormProps) {
 
   function onSubmit(data: RegisterInput) {
     registerMutation.mutate(data, {
+      onSuccess: () => {
+        toaster.create({ title: "Đăng ký thành công!", type: "success" });
+      },
       onError: (error: any) => {
+        const errorMsg = error?.message || "Đã xảy ra lỗi. Vui lòng thử lại.";
+        toaster.create({ title: errorMsg, type: "error" });
         if (error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
-          navigate({ to: "/auth/verify-email", search: { email: data.email } as any });
+          navigate({
+            to: "/auth/verify-email",
+            search: { email: data.email } as any,
+          });
           return;
         }
         if (error?.code === AuthErrorCode.EMAIL_ALREADY_EXISTS && onError) {
@@ -59,147 +73,147 @@ export function RegisterForm({ onError }: RegisterFormProps) {
 
   return (
     <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
-      <Stack gap={4}>
+      <Stack gap={5}>
         {/* Email */}
-        <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+        <Field
+          label="Email"
+          invalid={!!errors.email}
+          errorText={errors.email?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiMail color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
           >
-            Email
-          </label>
-          <ChakraInput
-            {...register("email")}
-            type="email"
-            placeholder="example@email.com"
-            borderColor={errors.email ? "red.500" : "gray.300"}
-          />
-          {errors.email && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.email.message}
-            </Text>
-          )}
-        </Box>
+            <ChakraInput
+              {...register("email")}
+              type="email"
+              placeholder="example@email.com"
+              ps="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+        </Field>
 
         {/* Full Name */}
-        <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+        <Field
+          label="Họ và tên"
+          invalid={!!errors.fullName}
+          errorText={errors.fullName?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiUser color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
           >
-            Họ và tên
-          </label>
-          <ChakraInput
-            {...register("fullName")}
-            type="text"
-            placeholder="Nguyễn Văn A"
-            borderColor={errors.fullName ? "red.500" : "gray.300"}
-          />
-          {errors.fullName && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.fullName.message}
-            </Text>
-          )}
-        </Box>
+            <ChakraInput
+              {...register("fullName")}
+              type="text"
+              placeholder="Nguyễn Văn A"
+              ps="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+        </Field>
 
         {/* Password */}
-        <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+        <Field
+          label="Mật khẩu"
+          invalid={!!errors.password}
+          errorText={errors.password?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiLock color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
+            endElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  color: "#9CA3AF",
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "4px",
+                  marginRight: "8px",
+                }}
+              >
+                {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            }
           >
-            Mật khẩu
-          </label>
-          <ChakraInput
-            {...register("password")}
-            type="password"
-            placeholder="••••••••"
-            borderColor={errors.password ? "red.500" : "gray.300"}
-          />
-          {errors.password && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.password.message}
-            </Text>
-          )}
-
-          {/* Password requirements */}
+            <ChakraInput
+              {...register("password")}
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              ps="12"
+              pe="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+          {/* Password strength indicators */}
           {password && (
-            <VStack align="start" gap={1} mt={2} fontSize="sm">
-              <Text color={password.length >= 8 ? "green.600" : "gray.500"}>
-                ✓ Ít nhất 8 ký tự
+            <VStack align="start" gap={1} mt={2} fontSize="xs">
+              <Text color={password.length >= 8 ? "green.600" : "gray.400"}>
+                {password.length >= 8 ? "✓" : "○"} Ít nhất 8 ký tự
               </Text>
-              <Text color={/[A-Z]/.test(password) ? "green.600" : "gray.500"}>
-                ✓ Chứa chữ hoa
+              <Text color={/[A-Z]/.test(password) ? "green.600" : "gray.400"}>
+                {/[A-Z]/.test(password) ? "✓" : "○"} Chứa chữ hoa
               </Text>
-              <Text color={/[a-z]/.test(password) ? "green.600" : "gray.500"}>
-                ✓ Chứa chữ thường
+              <Text color={/[a-z]/.test(password) ? "green.600" : "gray.400"}>
+                {/[a-z]/.test(password) ? "✓" : "○"} Chứa chữ thường
               </Text>
-              <Text color={/[0-9]/.test(password) ? "green.600" : "gray.500"}>
-                ✓ Chứa chữ số
+              <Text color={/[0-9]/.test(password) ? "green.600" : "gray.400"}>
+                {/[0-9]/.test(password) ? "✓" : "○"} Chứa chữ số
               </Text>
             </VStack>
           )}
-        </Box>
+        </Field>
 
         {/* Remember Me */}
-        <Box>
-          <input
-            {...register("rememberMe")}
-            type="checkbox"
-            id="rememberMe"
-            style={{ marginRight: "0.5rem" }}
-          />
-          <label
-            htmlFor="rememberMe"
-            style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}
-          >
-            Giữ tôi đăng nhập
-          </label>
-        </Box>
-
-        {/* Error Message */}
-        {registerMutation.isError && (
-          <Box
-            bg="red.50"
-            border="1px"
-            borderColor="red.200"
-            borderRadius="md"
-            p={4}
-          >
-            <Text fontSize="sm" color="red.800">
-              {(registerMutation.error as any)?.message ||
-                "Đã xảy ra lỗi. Vui lòng thử lại."}
-            </Text>
-          </Box>
-        )}
+        <Controller
+          control={control}
+          name="rememberMe"
+          render={({ field }) => (
+            <Checkbox
+              checked={field.value}
+              onCheckedChange={(e) => field.onChange(!!e.checked)}
+              id="rememberMeReg"
+            >
+              <Text fontSize="sm" color="gray.600">
+                Ghi nhớ đăng nhập
+              </Text>
+            </Checkbox>
+          )}
+        />
 
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isSubmitting || registerMutation.isPending}
+          loading={isSubmitting || registerMutation.isPending}
+          loadingText="Đang xử lý..."
           bg="blue.600"
           color="white"
           _hover={{ bg: "blue.700" }}
-          _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
           width="full"
-          borderRadius="md"
-          fontWeight="medium"
+          borderRadius="xl"
+          fontWeight="semibold"
+          size="lg"
+          boxShadow="0 4px 15px rgba(66,153,225,0.35)"
         >
-          {isSubmitting || registerMutation.isPending
-            ? "Đang xử lý..."
-            : "Đăng ký"}
+          Đăng ký
         </Button>
       </Stack>
     </Box>

@@ -1,33 +1,30 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Box, Input as ChakraInput, Stack, Text } from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useSearch } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import { FiKey, FiMail } from "react-icons/fi"
+import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
+import { useResendVerificationMutation } from "@/features/auth/hooks/useResendVerificationMutation"
+import { useVerifyEmailMutation } from "@/features/auth/hooks/useVerifyEmailMutation"
 import {
-  Box,
-  Button,
-  Stack,
-  Text,
-  Link as ChakraLink,
-  Input as ChakraInput,
-} from "@chakra-ui/react";
-import {
-  verifyEmailSchema,
   type VerifyEmailInput,
-} from "@/features/auth/utils/auth.schemas";
-import { useVerifyEmailMutation } from "@/features/auth/hooks/useVerifyEmailMutation";
-import { useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { useResendVerificationMutation } from "@/features/auth/hooks/useResendVerificationMutation";
+  verifyEmailSchema,
+} from "@/features/auth/utils/auth.schemas"
 
 interface VerifyEmailFormProps {
-  onError?: (error: string) => void;
+  onError?: (error: string) => void
 }
 
 export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
-  const verifyMutation = useVerifyEmailMutation();
-  const resendMutation = useResendVerificationMutation();
-  const search = useSearch({ from: "/auth/verify-email" });
-  const tokenFromUrl = (search as any)?.token as string | undefined;
-  const emailFromUrl = (search as any)?.email as string | undefined;
-  const [resendEmail, setResendEmail] = useState(emailFromUrl || "");
+  const verifyMutation = useVerifyEmailMutation()
+  const resendMutation = useResendVerificationMutation()
+  const search = useSearch({ from: "/auth/verify-email" })
+  const tokenFromUrl = (search as any)?.token as string | undefined
+  const emailFromUrl = (search as any)?.email as string | undefined
+  const [resendEmail, setResendEmail] = useState(emailFromUrl || "")
 
   const {
     register,
@@ -37,30 +34,30 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
   } = useForm<VerifyEmailInput>({
     resolver: zodResolver(verifyEmailSchema),
     mode: "onBlur",
-  });
+  })
 
   // Auto-verify if token in URL
   useEffect(() => {
     if (tokenFromUrl) {
-      setValue("token", tokenFromUrl);
-      verifyMutation.mutate(tokenFromUrl);
+      setValue("token", tokenFromUrl)
+      verifyMutation.mutate(tokenFromUrl)
     }
-  }, [tokenFromUrl, setValue]);
+  }, [tokenFromUrl, setValue, verifyMutation.mutate])
 
   useEffect(() => {
     if (emailFromUrl) {
-      setResendEmail(emailFromUrl);
+      setResendEmail(emailFromUrl)
     }
-  }, [emailFromUrl]);
+  }, [emailFromUrl])
 
   function onSubmit(data: VerifyEmailInput) {
     verifyMutation.mutate(data.token, {
       onError: (error: any) => {
         if (onError) {
-          onError(error?.message || "Xác thực email thất bại");
+          onError(error?.message || "Xác thực email thất bại")
         }
       },
-    });
+    })
   }
 
   if (verifyMutation.isSuccess) {
@@ -70,7 +67,7 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
           bg="green.50"
           border="1px"
           borderColor="green.200"
-          borderRadius="md"
+          borderRadius="xl"
           p={6}
         >
           <Text fontWeight="medium" color="green.800">
@@ -81,46 +78,37 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
           </Text>
         </Box>
       </Stack>
-    );
+    )
   }
 
   return (
     <Box as="form" onSubmit={handleSubmit(onSubmit)}>
-      <Stack gap={4}>
+      <Stack gap={5}>
         {/* Token Input */}
-        <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
-          >
-            Mã xác thực từ email
-          </label>
-          <ChakraInput
-            {...register("token")}
-            type="text"
-            placeholder="Dán mã xác thực từ email của bạn"
-            fontFamily="mono"
-            textAlign="center"
-            letterSpacing="0.1em"
-            borderColor={errors.token ? "red.500" : "gray.300"}
-          />
-          {errors.token && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.token.message}
-            </Text>
-          )}
-        </Box>
+        <Field
+          label="Mã xác thực từ email"
+          invalid={!!errors.token}
+          errorText={errors.token?.message}
+        >
+          <InputGroup width="full" startElement={<FiKey color="#9CA3AF" />}>
+            <ChakraInput
+              {...register("token")}
+              type="text"
+              placeholder="Dán mã xác thực từ email của bạn"
+              fontFamily="mono"
+              textAlign="center"
+              letterSpacing="0.1em"
+              ps="10"
+            />
+          </InputGroup>
+        </Field>
 
         {/* Instructions */}
         <Box
           bg="blue.50"
           border="1px"
           borderColor="blue.200"
-          borderRadius="md"
+          borderRadius="xl"
           p={4}
         >
           <Text fontSize="sm" color="blue.800">
@@ -135,7 +123,7 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
             bg="red.50"
             border="1px"
             borderColor="red.200"
-            borderRadius="md"
+            borderRadius="xl"
             p={4}
           >
             <Text fontSize="sm" color="red.800">
@@ -148,48 +136,56 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isSubmitting || verifyMutation.isPending}
+          loading={isSubmitting || verifyMutation.isPending}
+          loadingText="Đang xác thực..."
           bg="blue.600"
           color="white"
           _hover={{ bg: "blue.700" }}
-          _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
           width="full"
-          borderRadius="md"
-          fontWeight="medium"
+          borderRadius="xl"
+          fontWeight="semibold"
+          size="lg"
+          boxShadow="0 4px 15px rgba(66,153,225,0.35)"
         >
-          {isSubmitting || verifyMutation.isPending
-            ? "Đang xác thực..."
-            : "Xác thực Email"}
+          Xác thực Email
         </Button>
 
-        {/* Resend Email Link */}
+        {/* Resend Email */}
         <Box textAlign="center">
           <Text fontSize="sm" color="gray.600">
             Không nhận được email?{" "}
-            <ChakraLink
+            <Box
+              as="span"
               color="blue.600"
-              _hover={{ color: "blue.700" }}
-              onClick={(e: any) => {
-                e.preventDefault();
+              fontWeight="medium"
+              cursor="pointer"
+              _hover={{ color: "blue.700", textDecoration: "underline" }}
+              onClick={() => {
                 if (!resendEmail.trim()) {
                   if (onError) {
-                    onError("Vui lòng nhập email để gửi lại mã xác thực");
+                    onError("Vui lòng nhập email để gửi lại mã xác thực")
                   }
-                  return;
+                  return
                 }
-                resendMutation.mutate(resendEmail.trim());
+                resendMutation.mutate(resendEmail.trim())
               }}
             >
               Gửi lại
-            </ChakraLink>
+            </Box>
           </Text>
-          <ChakraInput
+          <InputGroup
+            width="full"
+            startElement={<FiMail color="#9CA3AF" />}
             mt={3}
-            type="email"
-            placeholder="Nhập email để gửi lại"
-            value={resendEmail}
-            onChange={(e) => setResendEmail(e.target.value)}
-          />
+          >
+            <ChakraInput
+              type="email"
+              placeholder="Nhập email để gửi lại"
+              value={resendEmail}
+              onChange={(e) => setResendEmail(e.target.value)}
+              ps="10"
+            />
+          </InputGroup>
           {resendMutation.isSuccess && (
             <Text mt={2} fontSize="sm" color="green.700">
               Email xác thực đã được gửi lại.
@@ -197,11 +193,12 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
           )}
           {resendMutation.isError && (
             <Text mt={2} fontSize="sm" color="red.700">
-              {(resendMutation.error as any)?.message || "Không thể gửi lại email xác thực."}
+              {(resendMutation.error as any)?.message ||
+                "Không thể gửi lại email xác thực."}
             </Text>
           )}
         </Box>
       </Stack>
     </Box>
-  );
+  )
 }

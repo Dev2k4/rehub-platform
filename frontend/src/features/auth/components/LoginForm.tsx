@@ -1,23 +1,28 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Box,
-  Button,
+  Input as ChakraInput,
+  Link as ChakraLink,
   Stack,
   Text,
-  Link as ChakraLink,
-  Input as ChakraInput,
 } from "@chakra-ui/react";
-import {
-  loginSchema,
-  type LoginInput,
-} from "@/features/auth/utils/auth.schemas";
-import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation";
-import { AuthErrorCode } from "@/features/auth/types/auth.types";
-import { useForgotPasswordMutation } from "@/features/auth/hooks/useForgotPasswordMutation";
-import { useState } from "react";
-import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useSearch } from "@tanstack/react-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field } from "@/components/ui/field";
+import { InputGroup } from "@/components/ui/input-group";
+import { toaster } from "@/components/ui/toaster";
+import { useForgotPasswordMutation } from "@/features/auth/hooks/useForgotPasswordMutation";
+import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation";
+import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation";
+import { AuthErrorCode } from "@/features/auth/types/auth.types";
+import {
+  type LoginInput,
+  loginSchema,
+} from "@/features/auth/utils/auth.schemas";
 
 interface LoginFormProps {
   onError?: (error: string) => void;
@@ -31,14 +36,14 @@ export function LoginForm({ onError }: LoginFormProps) {
   const resetToken = (search as any)?.reset_token as string | undefined;
   const [forgotEmail, setForgotEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
-    // @ts-ignore - Zod + React Hook Form type mismatch with default values
   } = useForm<LoginInput>({
-    // @ts-ignore
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(loginSchema) as any,
     mode: "onBlur",
     defaultValues: {
       email: "",
@@ -49,7 +54,11 @@ export function LoginForm({ onError }: LoginFormProps) {
 
   function onSubmit(data: LoginInput) {
     loginMutation.mutate(data, {
+      onSuccess: () => {
+        toaster.create({ title: "Đăng nhập thành công!", type: "success" });
+      },
       onError: (error: any) => {
+        toaster.create({ title: getErrorMessage(error), type: "error" });
         if (
           error?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED ||
           error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED
@@ -62,8 +71,7 @@ export function LoginForm({ onError }: LoginFormProps) {
     });
   }
 
-  const getErrorMessage = () => {
-    const error = loginMutation.error as any;
+  const getErrorMessage = (error?: any) => {
     if (error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
       return "Email của bạn chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản.";
     }
@@ -75,103 +83,106 @@ export function LoginForm({ onError }: LoginFormProps) {
 
   return (
     <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
-      <Stack gap={4}>
+      <Stack gap={5}>
         {/* Email */}
-        <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+        <Field
+          label="Email"
+          invalid={!!errors.email}
+          errorText={errors.email?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiMail color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
           >
-            Email
-          </label>
-          <ChakraInput
-            {...register("email")}
-            type="email"
-            placeholder="example@email.com"
-            borderColor={errors.email ? "red.500" : "gray.300"}
-          />
-          {errors.email && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.email.message}
-            </Text>
-          )}
-        </Box>
+            <ChakraInput
+              {...register("email")}
+              type="email"
+              placeholder="example@email.com"
+              ps="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+        </Field>
 
         {/* Password */}
-        <Box>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.875rem",
-              fontWeight: "500",
-              marginBottom: "0.5rem",
-            }}
+        <Field
+          label="Mật khẩu"
+          invalid={!!errors.password}
+          errorText={errors.password?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiLock color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
+            endElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  color: "#9CA3AF",
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "4px",
+                  marginRight: "8px",
+                }}
+              >
+                {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            }
           >
-            Mật khẩu
-          </label>
-          <ChakraInput
-            {...register("password")}
-            type="password"
-            placeholder="••••••••"
-            borderColor={errors.password ? "red.500" : "gray.300"}
-          />
-          {errors.password && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.password.message}
-            </Text>
-          )}
-        </Box>
+            <ChakraInput
+              {...register("password")}
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              ps="12"
+              pe="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+        </Field>
 
         {/* Remember Me */}
-        <Box>
-          <input
-            {...register("rememberMe")}
-            type="checkbox"
-            id="rememberMe"
-            style={{ marginRight: "0.5rem" }}
-          />
-          <label
-            htmlFor="rememberMe"
-            style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}
-          >
-            Giữ tôi đăng nhập
-          </label>
-        </Box>
-
-        {/* Error Message */}
-        {loginMutation.isError && (
-          <Box
-            bg="red.50"
-            border="1px"
-            borderColor="red.200"
-            borderRadius="md"
-            p={4}
-          >
-            <Text fontSize="sm" color="red.800">
-              {getErrorMessage()}
-            </Text>
-          </Box>
-        )}
+        <Controller
+          control={control}
+          name="rememberMe"
+          render={({ field }) => (
+            <Checkbox
+              checked={field.value}
+              onCheckedChange={(e) => field.onChange(!!e.checked)}
+              id="rememberMe"
+            >
+              <Text fontSize="sm" color="gray.600">
+                Ghi nhớ đăng nhập
+              </Text>
+            </Checkbox>
+          )}
+        />
 
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isSubmitting || loginMutation.isPending}
+          loading={isSubmitting || loginMutation.isPending}
+          loadingText="Đang xử lý..."
           bg="blue.600"
           color="white"
           _hover={{ bg: "blue.700" }}
-          _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
           width="full"
-          borderRadius="md"
-          fontWeight="medium"
+          borderRadius="xl"
+          fontWeight="semibold"
+          size="lg"
+          boxShadow="0 4px 15px rgba(66,153,225,0.35)"
         >
-          {isSubmitting || loginMutation.isPending
-            ? "Đang xử lý..."
-            : "Đăng nhập"}
+          Đăng nhập
         </Button>
 
         {resetToken && (
@@ -179,17 +190,20 @@ export function LoginForm({ onError }: LoginFormProps) {
             bg="blue.50"
             border="1px"
             borderColor="blue.200"
-            borderRadius="md"
-            p={4}
+            borderRadius="xl"
+            p={5}
           >
             <Text fontSize="sm" color="blue.800" mb={3}>
-              Bạn đang đặt lại mật khẩu từ email. Nhập mật khẩu mới và bấm cập nhật.
+              Bạn đang đặt lại mật khẩu từ email. Nhập mật khẩu mới và bấm cập
+              nhật.
             </Text>
             <ChakraInput
               type="password"
               placeholder="Mật khẩu mới"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              bg="white"
+              borderColor="blue.300"
             />
             <Button
               mt={3}
@@ -197,6 +211,9 @@ export function LoginForm({ onError }: LoginFormProps) {
               bg="blue.700"
               color="white"
               _hover={{ bg: "blue.800" }}
+              borderRadius="xl"
+              loading={resetPasswordMutation.isPending}
+              loadingText="Đang cập nhật..."
               onClick={() => {
                 if (!newPassword.trim()) {
                   if (onError) {
@@ -204,22 +221,28 @@ export function LoginForm({ onError }: LoginFormProps) {
                   }
                   return;
                 }
-                resetPasswordMutation.mutate({ token: resetToken, newPassword: newPassword.trim() });
+                resetPasswordMutation.mutate(
+                  { token: resetToken, newPassword: newPassword.trim() },
+                  {
+                    onSuccess: () => {
+                      toaster.create({
+                        title: "Đặt lại mật khẩu thành công!",
+                        type: "success",
+                      });
+                      setNewPassword("");
+                    },
+                    onError: (err: any) => {
+                      toaster.create({
+                        title: err?.message || "Không thể đặt lại mật khẩu.",
+                        type: "error",
+                      });
+                    },
+                  },
+                );
               }}
-              disabled={resetPasswordMutation.isPending}
             >
-              {resetPasswordMutation.isPending ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
+              Cập nhật mật khẩu
             </Button>
-            {resetPasswordMutation.isSuccess && (
-              <Text mt={2} fontSize="sm" color="green.700">
-                Đặt lại mật khẩu thành công. Đang chuyển về màn hình đăng nhập.
-              </Text>
-            )}
-            {resetPasswordMutation.isError && (
-              <Text mt={2} fontSize="sm" color="red.700">
-                {(resetPasswordMutation.error as any)?.message || "Không thể đặt lại mật khẩu."}
-              </Text>
-            )}
           </Box>
         )}
 
@@ -233,11 +256,27 @@ export function LoginForm({ onError }: LoginFormProps) {
               e.preventDefault();
               if (!forgotEmail.trim()) {
                 if (onError) {
-                  onError("Vui lòng nhập email vào ô bên dưới để đặt lại mật khẩu");
+                  onError(
+                    "Vui lòng nhập email vào ô bên dưới để đặt lại mật khẩu",
+                  );
                 }
                 return;
               }
-              forgotPasswordMutation.mutate(forgotEmail.trim());
+              forgotPasswordMutation.mutate(forgotEmail.trim(), {
+                onSuccess: () => {
+                  toaster.create({
+                    title: "Đã gửi link đặt lại mật khẩu vào email.",
+                    type: "success",
+                  });
+                },
+                onError: (err: any) => {
+                  toaster.create({
+                    title:
+                      err?.message || "Không thể gửi yêu cầu đặt lại mật khẩu.",
+                    type: "error",
+                  });
+                },
+              });
             }}
           >
             Quên mật khẩu?
@@ -248,17 +287,11 @@ export function LoginForm({ onError }: LoginFormProps) {
             placeholder="Nhập email để nhận link đặt lại mật khẩu"
             value={forgotEmail}
             onChange={(e) => setForgotEmail(e.target.value)}
+            bg="gray.50"
+            borderColor="gray.200"
+            _hover={{ borderColor: "blue.400" }}
+            _focus={{ borderColor: "blue.500", bg: "white" }}
           />
-          {forgotPasswordMutation.isSuccess && (
-            <Text mt={2} fontSize="sm" color="green.700">
-              Nếu email tồn tại, hệ thống đã gửi link đặt lại mật khẩu.
-            </Text>
-          )}
-          {forgotPasswordMutation.isError && (
-            <Text mt={2} fontSize="sm" color="red.700">
-              {(forgotPasswordMutation.error as any)?.message || "Không thể gửi yêu cầu đặt lại mật khẩu."}
-            </Text>
-          )}
         </Box>
       </Stack>
     </Box>

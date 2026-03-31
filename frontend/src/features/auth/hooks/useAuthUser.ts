@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
-import { isAuthenticated } from "@/features/auth/utils/auth.storage"
 import { getMyProfile } from "@/features/auth/api/auth.profile"
+import { isAuthenticated } from "@/features/auth/utils/auth.storage"
 
 export function useAuthUser() {
   const userQuery = useQuery({

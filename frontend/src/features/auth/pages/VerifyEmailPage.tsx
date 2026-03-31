@@ -1,13 +1,13 @@
-import { Link } from "@tanstack/react-router";
 import {
   Box,
+  Link as ChakraLink,
   Container,
+  Flex,
   Heading,
   Text,
-  Link as ChakraLink,
   VStack,
-  Flex,
 } from "@chakra-ui/react";
+import { Link } from "@tanstack/react-router";
 import { FiPackage } from "react-icons/fi";
 import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm";
 
@@ -31,7 +31,7 @@ export function VerifyEmailPage() {
             alignItems="center"
             justifyContent="center"
             borderRadius="xl"
-            bgGradient="linear(to-br, blue.600, purple.600)"
+            bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
             mb={2}
           >
             <Box as={FiPackage} w={7} h={7} color="white" />
