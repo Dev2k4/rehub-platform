@@ -10,7 +10,7 @@ export type Body_login_api_v1_auth_login_post = {
 };
 
 export type Body_upload_listing_image_api_v1_listings__listing_id__images_post = {
-    file: (Blob | File);
+    file: string;
 };
 
 export type CategoryCreate = {
@@ -55,6 +55,44 @@ export const ConditionGrade = {
     FAIR: 'fair',
     POOR: 'poor'
 } as const;
+
+export type EscrowAdminResolveRequest = {
+    result: string;
+    note?: (string | null);
+};
+
+export type EscrowDisputeRequest = {
+    note?: (string | null);
+};
+
+export type EscrowRead = {
+    id: string;
+    order_id: string;
+    buyer_id: string;
+    seller_id: string;
+    amount: string;
+    status: EscrowStatus;
+    funded_at: (string | null);
+    released_at: (string | null);
+    refunded_at: (string | null);
+    created_at: string;
+    updated_at: string;
+};
+
+export type EscrowStatus = 'awaiting_funding' | 'held' | 'release_pending' | 'released' | 'refunded' | 'disputed';
+
+export const EscrowStatus = {
+    AWAITING_FUNDING: 'awaiting_funding',
+    HELD: 'held',
+    RELEASE_PENDING: 'release_pending',
+    RELEASED: 'released',
+    REFUNDED: 'refunded',
+    DISPUTED: 'disputed'
+} as const;
+
+export type ForgotPasswordRequest = {
+    email: string;
+};
 
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
@@ -134,7 +172,7 @@ export type ListingWithImages = {
 
 export type NotificationRead = {
     user_id: string;
-    type: string;
+    type: NotificationType;
     title: string;
     message: string;
     data?: ({
@@ -144,6 +182,27 @@ export type NotificationRead = {
     is_read: boolean;
     created_at: string;
 };
+
+export type NotificationType = 'offer_received' | 'offer_accepted' | 'offer_rejected' | 'offer_countered' | 'offer_expired' | 'order_created' | 'order_completed' | 'order_cancelled' | 'escrow_funded' | 'escrow_release_requested' | 'escrow_released' | 'escrow_disputed' | 'escrow_resolved' | 'listing_approved' | 'listing_rejected' | 'review_received';
+
+export const NotificationType = {
+    OFFER_RECEIVED: 'offer_received',
+    OFFER_ACCEPTED: 'offer_accepted',
+    OFFER_REJECTED: 'offer_rejected',
+    OFFER_COUNTERED: 'offer_countered',
+    OFFER_EXPIRED: 'offer_expired',
+    ORDER_CREATED: 'order_created',
+    ORDER_COMPLETED: 'order_completed',
+    ORDER_CANCELLED: 'order_cancelled',
+    ESCROW_FUNDED: 'escrow_funded',
+    ESCROW_RELEASE_REQUESTED: 'escrow_release_requested',
+    ESCROW_RELEASED: 'escrow_released',
+    ESCROW_DISPUTED: 'escrow_disputed',
+    ESCROW_RESOLVED: 'escrow_resolved',
+    LISTING_APPROVED: 'listing_approved',
+    LISTING_REJECTED: 'listing_rejected',
+    REVIEW_RECEIVED: 'review_received'
+} as const;
 
 export type OfferCreate = {
     /**
@@ -189,6 +248,7 @@ export type OfferStatusUpdate = {
 
 export type OrderDirectCreate = {
     listing_id: string;
+    use_escrow?: boolean;
 };
 
 export type OrderRead = {
@@ -202,12 +262,13 @@ export type OrderRead = {
     updated_at: string;
 };
 
-export type OrderStatus = 'pending' | 'completed' | 'cancelled';
+export type OrderStatus = 'pending' | 'completed' | 'cancelled' | 'disputed';
 
 export const OrderStatus = {
     PENDING: 'pending',
     COMPLETED: 'completed',
-    CANCELLED: 'cancelled'
+    CANCELLED: 'cancelled',
+    DISPUTED: 'disputed'
 } as const;
 
 export type RefreshRequest = {
@@ -219,6 +280,19 @@ export type RegisterRequest = {
     password: string;
     full_name: string;
     phone?: (string | null);
+};
+
+export type RegisterResponse = {
+    message: string;
+};
+
+export type ResendVerificationRequest = {
+    email: string;
+};
+
+export type ResetPasswordRequest = {
+    token: string;
+    new_password: string;
 };
 
 export type ReviewCreate = {
@@ -328,6 +402,54 @@ export type ValidationError = {
     };
 };
 
+export type VerifyEmailRequest = {
+    token: string;
+};
+
+export type WalletAccountRead = {
+    id: string;
+    user_id: string;
+    available_balance: string;
+    locked_balance: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type WalletDemoTopupRequest = {
+    amount: (number | string);
+};
+
+export type WalletTransactionDirection = 'credit' | 'debit';
+
+export const WalletTransactionDirection = {
+    CREDIT: 'credit',
+    DEBIT: 'debit'
+} as const;
+
+export type WalletTransactionRead = {
+    id: string;
+    user_id: string;
+    order_id: (string | null);
+    type: WalletTransactionType;
+    direction: WalletTransactionDirection;
+    amount: string;
+    balance_after: string;
+    metadata: {
+        [key: string]: unknown;
+    };
+    created_at: string;
+};
+
+export type WalletTransactionType = 'topup_demo' | 'hold' | 'release' | 'refund' | 'adjustment';
+
+export const WalletTransactionType = {
+    TOPUP_DEMO: 'topup_demo',
+    HOLD: 'hold',
+    RELEASE: 'release',
+    REFUND: 'refund',
+    ADJUSTMENT: 'adjustment'
+} as const;
+
 export type ListUsersApiV1AdminUsersGetData = {
     limit?: number;
     skip?: number;
@@ -349,6 +471,13 @@ export type GetPendingListingsRouteApiV1AdminListingsPendingGetData = {
 
 export type GetPendingListingsRouteApiV1AdminListingsPendingGetResponse = (Array<ListingRead>);
 
+export type ListOrdersForAdminApiV1AdminOrdersGetData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ListOrdersForAdminApiV1AdminOrdersGetResponse = (Array<OrderRead>);
+
 export type ApproveListingApiV1AdminListingsListingIdApprovePostData = {
     listingId: string;
 };
@@ -361,11 +490,30 @@ export type RejectListingRouteApiV1AdminListingsListingIdRejectPostData = {
 
 export type RejectListingRouteApiV1AdminListingsListingIdRejectPostResponse = (ListingRead);
 
+export type AdminCreateCategoryApiV1AdminCategoriesPostData = {
+    requestBody: CategoryCreate;
+};
+
+export type AdminCreateCategoryApiV1AdminCategoriesPostResponse = (CategoryRead);
+
+export type AdminUpdateCategoryApiV1AdminCategoriesCategoryIdPutData = {
+    categoryId: string;
+    requestBody: CategoryUpdate;
+};
+
+export type AdminUpdateCategoryApiV1AdminCategoriesCategoryIdPutResponse = (CategoryRead);
+
+export type AdminDeleteCategoryApiV1AdminCategoriesCategoryIdDeleteData = {
+    categoryId: string;
+};
+
+export type AdminDeleteCategoryApiV1AdminCategoriesCategoryIdDeleteResponse = (void);
+
 export type RegisterApiV1AuthRegisterPostData = {
     requestBody: RegisterRequest;
 };
 
-export type RegisterApiV1AuthRegisterPostResponse = (TokenResponse);
+export type RegisterApiV1AuthRegisterPostResponse = (RegisterResponse);
 
 export type LoginApiV1AuthLoginPostData = {
     formData: Body_login_api_v1_auth_login_post;
@@ -373,11 +521,35 @@ export type LoginApiV1AuthLoginPostData = {
 
 export type LoginApiV1AuthLoginPostResponse = (TokenResponse);
 
-export type RefreshAccessTokenApiV1AuthRefreshTokenPostData = {
+export type RefreshAccessTokenApiV1AuthRefreshPostData = {
     requestBody: RefreshRequest;
 };
 
-export type RefreshAccessTokenApiV1AuthRefreshTokenPostResponse = (TokenResponse);
+export type RefreshAccessTokenApiV1AuthRefreshPostResponse = (TokenResponse);
+
+export type VerifyEmailApiV1AuthVerifyEmailPostData = {
+    requestBody: VerifyEmailRequest;
+};
+
+export type VerifyEmailApiV1AuthVerifyEmailPostResponse = (unknown);
+
+export type ResendVerificationEmailApiV1AuthResendVerificationPostData = {
+    requestBody: ResendVerificationRequest;
+};
+
+export type ResendVerificationEmailApiV1AuthResendVerificationPostResponse = (unknown);
+
+export type ForgotPasswordApiV1AuthForgotPasswordPostData = {
+    requestBody: ForgotPasswordRequest;
+};
+
+export type ForgotPasswordApiV1AuthForgotPasswordPostResponse = (unknown);
+
+export type ResetPasswordApiV1AuthResetPasswordPostData = {
+    requestBody: ResetPasswordRequest;
+};
+
+export type ResetPasswordApiV1AuthResetPasswordPostResponse = (unknown);
 
 export type LogoutApiV1AuthLogoutPostResponse = (void);
 
@@ -402,12 +574,12 @@ export type GetCategoryApiV1CategoriesCategoryIdGetData = {
 
 export type GetCategoryApiV1CategoriesCategoryIdGetResponse = (CategoryRead);
 
-export type UpdateCategoryApiV1CategoriesCategoryIdPatchData = {
+export type UpdateCategoryApiV1CategoriesCategoryIdPutData = {
     categoryId: string;
     requestBody: CategoryUpdate;
 };
 
-export type UpdateCategoryApiV1CategoriesCategoryIdPatchResponse = (CategoryRead);
+export type UpdateCategoryApiV1CategoriesCategoryIdPutResponse = (CategoryRead);
 
 export type DeleteCategoryApiV1CategoriesCategoryIdDeleteData = {
     categoryId: string;
@@ -416,6 +588,51 @@ export type DeleteCategoryApiV1CategoriesCategoryIdDeleteData = {
 export type DeleteCategoryApiV1CategoriesCategoryIdDeleteResponse = (void);
 
 export type RootGetResponse = (unknown);
+
+export type ListDisputedEscrowsApiV1EscrowsDisputedGetData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ListDisputedEscrowsApiV1EscrowsDisputedGetResponse = (Array<EscrowRead>);
+
+export type GetEscrowByOrderApiV1EscrowsOrderIdGetData = {
+    orderId: string;
+};
+
+export type GetEscrowByOrderApiV1EscrowsOrderIdGetResponse = (EscrowRead);
+
+export type FundEscrowApiV1EscrowsOrderIdFundPostData = {
+    orderId: string;
+};
+
+export type FundEscrowApiV1EscrowsOrderIdFundPostResponse = (EscrowRead);
+
+export type RequestReleaseApiV1EscrowsOrderIdReleaseRequestPostData = {
+    orderId: string;
+};
+
+export type RequestReleaseApiV1EscrowsOrderIdReleaseRequestPostResponse = (EscrowRead);
+
+export type ConfirmReleaseApiV1EscrowsOrderIdConfirmReleasePostData = {
+    orderId: string;
+};
+
+export type ConfirmReleaseApiV1EscrowsOrderIdConfirmReleasePostResponse = (EscrowRead);
+
+export type OpenDisputeApiV1EscrowsOrderIdOpenDisputePostData = {
+    orderId: string;
+    requestBody: EscrowDisputeRequest;
+};
+
+export type OpenDisputeApiV1EscrowsOrderIdOpenDisputePostResponse = (EscrowRead);
+
+export type AdminResolveEscrowApiV1EscrowsOrderIdAdminResolvePostData = {
+    orderId: string;
+    requestBody: EscrowAdminResolveRequest;
+};
+
+export type AdminResolveEscrowApiV1EscrowsOrderIdAdminResolvePostResponse = (EscrowRead);
 
 export type ListListingsApiV1ListingsGetData = {
     categoryId?: (string | null);
@@ -530,6 +747,8 @@ export type GetOfferApiV1OffersOfferIdGetData = {
 
 export type GetOfferApiV1OffersOfferIdGetResponse = (OfferRead);
 
+export type GetMyOrdersApiV1OrdersGetResponse = (Array<OrderRead>);
+
 export type CreateDirectOrderApiV1OrdersPostData = {
     requestBody: OrderDirectCreate;
 };
@@ -568,11 +787,11 @@ export type GetUserReviewsApiV1ReviewsUserUserIdGetData = {
 
 export type GetUserReviewsApiV1ReviewsUserUserIdGetResponse = (Array<ReviewRead>);
 
-export type GetReviewApiV1ReviewsOrderIdGetData = {
+export type GetReviewsForOrderApiV1ReviewsOrderIdGetData = {
     orderId: string;
 };
 
-export type GetReviewApiV1ReviewsOrderIdGetResponse = (ReviewRead);
+export type GetReviewsForOrderApiV1ReviewsOrderIdGetResponse = (Array<ReviewRead>);
 
 export type GetMyProfileApiV1UsersMeGetResponse = (UserMe);
 
@@ -589,3 +808,13 @@ export type GetUserPublicProfileApiV1UsersUserIdProfileGetData = {
 export type GetUserPublicProfileApiV1UsersUserIdProfileGetResponse = (UserPublicProfile);
 
 export type HealthCheckApiV1UtilsHealthCheckGetResponse = (unknown);
+
+export type GetMyWalletApiV1WalletMeGetResponse = (WalletAccountRead);
+
+export type TopupDemoWalletApiV1WalletDemoTopupPostData = {
+    requestBody: WalletDemoTopupRequest;
+};
+
+export type TopupDemoWalletApiV1WalletDemoTopupPostResponse = (WalletAccountRead);
+
+export type GetMyWalletTransactionsApiV1WalletTransactionsGetResponse = (Array<WalletTransactionRead>);

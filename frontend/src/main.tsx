@@ -28,9 +28,7 @@ OpenAPI.TOKEN = async () => {
 // Listen for auth token changes
 window.addEventListener("auth:token-changed", (event: Event) => {
   const customEvent = event as CustomEvent<{ token: string | null }>;
-  if (customEvent.detail.token) {
-    OpenAPI.TOKEN = async () => customEvent.detail.token || "";
-  }
+  OpenAPI.TOKEN = async () => customEvent.detail.token || "";
 });
 
 const handleApiError = (error: Error) => {

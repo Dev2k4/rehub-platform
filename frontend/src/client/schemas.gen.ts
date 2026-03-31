@@ -61,7 +61,7 @@ export const Body_upload_listing_image_api_v1_listings__listing_id__images_postS
     properties: {
         file: {
             type: 'string',
-            format: 'binary',
+            contentMediaType: 'application/octet-stream',
             title: 'File'
         }
     },
@@ -300,6 +300,151 @@ export const ConditionGradeSchema = {
     type: 'string',
     enum: ['brand_new', 'like_new', 'good', 'fair', 'poor'],
     title: 'ConditionGrade'
+} as const;
+
+export const EscrowAdminResolveRequestSchema = {
+    properties: {
+        result: {
+            type: 'string',
+            pattern: '^(release|refund)$',
+            title: 'Result'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: ['result'],
+    title: 'EscrowAdminResolveRequest'
+} as const;
+
+export const EscrowDisputeRequestSchema = {
+    properties: {
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    title: 'EscrowDisputeRequest'
+} as const;
+
+export const EscrowReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        order_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Order Id'
+        },
+        buyer_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Buyer Id'
+        },
+        seller_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Seller Id'
+        },
+        amount: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Amount'
+        },
+        status: {
+            '$ref': '#/components/schemas/EscrowStatus'
+        },
+        funded_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Funded At'
+        },
+        released_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Released At'
+        },
+        refunded_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Refunded At'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'order_id', 'buyer_id', 'seller_id', 'amount', 'status', 'funded_at', 'released_at', 'refunded_at', 'created_at', 'updated_at'],
+    title: 'EscrowRead'
+} as const;
+
+export const EscrowStatusSchema = {
+    type: 'string',
+    enum: ['awaiting_funding', 'held', 'release_pending', 'released', 'refunded', 'disputed'],
+    title: 'EscrowStatus'
+} as const;
+
+export const ForgotPasswordRequestSchema = {
+    properties: {
+        email: {
+            type: 'string',
+            format: 'email',
+            title: 'Email'
+        }
+    },
+    type: 'object',
+    required: ['email'],
+    title: 'ForgotPasswordRequest'
 } as const;
 
 export const HTTPValidationErrorSchema = {
@@ -662,9 +807,7 @@ export const NotificationReadSchema = {
             title: 'User Id'
         },
         type: {
-            type: 'string',
-            maxLength: 50,
-            title: 'Type'
+            '$ref': '#/components/schemas/NotificationType'
         },
         title: {
             type: 'string',
@@ -705,6 +848,12 @@ export const NotificationReadSchema = {
     type: 'object',
     required: ['user_id', 'type', 'title', 'message', 'id', 'is_read', 'created_at'],
     title: 'NotificationRead'
+} as const;
+
+export const NotificationTypeSchema = {
+    type: 'string',
+    enum: ['offer_received', 'offer_accepted', 'offer_rejected', 'offer_countered', 'offer_expired', 'order_created', 'order_completed', 'order_cancelled', 'escrow_funded', 'escrow_release_requested', 'escrow_released', 'escrow_disputed', 'escrow_resolved', 'listing_approved', 'listing_rejected', 'review_received'],
+    title: 'NotificationType'
 } as const;
 
 export const OfferCreateSchema = {
@@ -817,6 +966,11 @@ export const OrderDirectCreateSchema = {
             type: 'string',
             format: 'uuid',
             title: 'Listing Id'
+        },
+        use_escrow: {
+            type: 'boolean',
+            title: 'Use Escrow',
+            default: false
         }
     },
     type: 'object',
@@ -872,7 +1026,7 @@ export const OrderReadSchema = {
 
 export const OrderStatusSchema = {
     type: 'string',
-    enum: ['pending', 'completed', 'cancelled'],
+    enum: ['pending', 'completed', 'cancelled', 'disputed'],
     title: 'OrderStatus'
 } as const;
 
@@ -921,6 +1075,48 @@ export const RegisterRequestSchema = {
     type: 'object',
     required: ['email', 'password', 'full_name'],
     title: 'RegisterRequest'
+} as const;
+
+export const RegisterResponseSchema = {
+    properties: {
+        message: {
+            type: 'string',
+            title: 'Message'
+        }
+    },
+    type: 'object',
+    required: ['message'],
+    title: 'RegisterResponse'
+} as const;
+
+export const ResendVerificationRequestSchema = {
+    properties: {
+        email: {
+            type: 'string',
+            format: 'email',
+            title: 'Email'
+        }
+    },
+    type: 'object',
+    required: ['email'],
+    title: 'ResendVerificationRequest'
+} as const;
+
+export const ResetPasswordRequestSchema = {
+    properties: {
+        token: {
+            type: 'string',
+            title: 'Token'
+        },
+        new_password: {
+            type: 'string',
+            minLength: 8,
+            title: 'New Password'
+        }
+    },
+    type: 'object',
+    required: ['token', 'new_password'],
+    title: 'ResetPasswordRequest'
 } as const;
 
 export const ReviewCreateSchema = {
@@ -1467,4 +1663,143 @@ export const ValidationErrorSchema = {
     type: 'object',
     required: ['loc', 'msg', 'type'],
     title: 'ValidationError'
+} as const;
+
+export const VerifyEmailRequestSchema = {
+    properties: {
+        token: {
+            type: 'string',
+            title: 'Token'
+        }
+    },
+    type: 'object',
+    required: ['token'],
+    title: 'VerifyEmailRequest'
+} as const;
+
+export const WalletAccountReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        user_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'User Id'
+        },
+        available_balance: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Available Balance'
+        },
+        locked_balance: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Locked Balance'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'user_id', 'available_balance', 'locked_balance', 'created_at', 'updated_at'],
+    title: 'WalletAccountRead'
+} as const;
+
+export const WalletDemoTopupRequestSchema = {
+    properties: {
+        amount: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$'
+                }
+            ],
+            title: 'Amount'
+        }
+    },
+    type: 'object',
+    required: ['amount'],
+    title: 'WalletDemoTopupRequest'
+} as const;
+
+export const WalletTransactionDirectionSchema = {
+    type: 'string',
+    enum: ['credit', 'debit'],
+    title: 'WalletTransactionDirection'
+} as const;
+
+export const WalletTransactionReadSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        user_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'User Id'
+        },
+        order_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Order Id'
+        },
+        type: {
+            '$ref': '#/components/schemas/WalletTransactionType'
+        },
+        direction: {
+            '$ref': '#/components/schemas/WalletTransactionDirection'
+        },
+        amount: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Amount'
+        },
+        balance_after: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Balance After'
+        },
+        metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'user_id', 'order_id', 'type', 'direction', 'amount', 'balance_after', 'metadata', 'created_at'],
+    title: 'WalletTransactionRead'
+} as const;
+
+export const WalletTransactionTypeSchema = {
+    type: 'string',
+    enum: ['topup_demo', 'hold', 'release', 'refund', 'adjustment'],
+    title: 'WalletTransactionType'
 } as const;

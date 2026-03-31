@@ -1,5 +1,6 @@
 import type { CategoryRead, CategoryTree } from "@/client"
 import { CategoriesService, OpenAPI } from "@/client"
+import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
 import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface CreateCategoryInput {
@@ -22,6 +23,12 @@ export async function getCategories(
   return CategoriesService.getCategoriesApiV1CategoriesGet({ asTree })
 }
 
+export async function getCategoryById(categoryId: string): Promise<CategoryRead> {
+  return CategoriesService.getCategoryApiV1CategoriesCategoryIdGet({
+    categoryId,
+  })
+}
+
 export async function createCategory(
   data: CreateCategoryInput,
 ): Promise<CategoryRead> {
@@ -35,16 +42,30 @@ export async function updateCategory(
   data: UpdateCategoryInput,
 ): Promise<CategoryRead> {
   const base = OpenAPI.BASE.replace(/\/+$/, "")
-  const token = getAccessToken()
-
-  const response = await fetch(`${base}/api/v1/categories/${categoryId}`, {
-    method: "PUT",
-    headers: {
+  const buildHeaders = (tokenOverride?: string | null) => {
+    const token = tokenOverride ?? getAccessToken()
+    return {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    }
+  }
+
+  let response = await fetch(`${base}/api/v1/categories/${categoryId}`, {
+    method: "PUT",
+    headers: buildHeaders(),
     body: JSON.stringify(data),
   })
+
+  if (response.status === 401) {
+    const refreshedToken = await refreshAccessTokenIfPossible()
+    if (refreshedToken) {
+      response = await fetch(`${base}/api/v1/categories/${categoryId}`, {
+        method: "PUT",
+        headers: buildHeaders(refreshedToken),
+        body: JSON.stringify(data),
+      })
+    }
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null)

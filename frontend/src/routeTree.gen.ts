@@ -24,10 +24,13 @@ import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
 import { Route as AuthRegisterRouteImport } from './routes/auth.register'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminListingsRouteImport } from './routes/admin.listings'
 import { Route as AdminEscrowsRouteImport } from './routes/admin.escrows'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AuthResetPasswordTokenRouteImport } from './routes/auth.reset-password.$token'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -104,9 +107,19 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminListingsRoute = AdminListingsRouteImport.update({
@@ -124,6 +137,11 @@ const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AdminRoute,
 } as any)
+const AuthResetPasswordTokenRoute = AuthResetPasswordTokenRouteImport.update({
+  id: '/auth/reset-password/$token',
+  path: '/auth/reset-password/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -136,7 +154,9 @@ export interface FileRoutesByFullPath {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/escrows': typeof AdminEscrowsRoute
   '/admin/listings': typeof AdminListingsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
@@ -145,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/sellers/$id': typeof SellersIdRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/auth/reset-password/$token': typeof AuthResetPasswordTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -155,7 +176,9 @@ export interface FileRoutesByTo {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/escrows': typeof AdminEscrowsRoute
   '/admin/listings': typeof AdminListingsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
@@ -164,6 +187,7 @@ export interface FileRoutesByTo {
   '/sellers/$id': typeof SellersIdRoute
   '/admin': typeof AdminIndexRoute
   '/orders': typeof OrdersIndexRoute
+  '/auth/reset-password/$token': typeof AuthResetPasswordTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -177,7 +201,9 @@ export interface FileRoutesById {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/escrows': typeof AdminEscrowsRoute
   '/admin/listings': typeof AdminListingsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
@@ -186,6 +212,7 @@ export interface FileRoutesById {
   '/sellers/$id': typeof SellersIdRoute
   '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/auth/reset-password/$token': typeof AuthResetPasswordTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -200,7 +227,9 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/escrows'
     | '/admin/listings'
+    | '/admin/orders'
     | '/admin/users'
+    | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
@@ -209,6 +238,7 @@ export interface FileRouteTypes {
     | '/sellers/$id'
     | '/admin/'
     | '/orders/'
+    | '/auth/reset-password/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,7 +249,9 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/escrows'
     | '/admin/listings'
+    | '/admin/orders'
     | '/admin/users'
+    | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
@@ -228,6 +260,7 @@ export interface FileRouteTypes {
     | '/sellers/$id'
     | '/admin'
     | '/orders'
+    | '/auth/reset-password/$token'
   id:
     | '__root__'
     | '/'
@@ -240,7 +273,9 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/escrows'
     | '/admin/listings'
+    | '/admin/orders'
     | '/admin/users'
+    | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/register'
     | '/auth/verify-email'
@@ -249,6 +284,7 @@ export interface FileRouteTypes {
     | '/sellers/$id'
     | '/admin/'
     | '/orders/'
+    | '/auth/reset-password/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -259,11 +295,13 @@ export interface RootRouteChildren {
   OrdersRoute: typeof OrdersRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   WalletRoute: typeof WalletRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   ListingsIdRoute: typeof ListingsIdRoute
   SellersIdRoute: typeof SellersIdRoute
+  AuthResetPasswordTokenRoute: typeof AuthResetPasswordTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -373,11 +411,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/listings': {
@@ -401,6 +453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/auth/reset-password/$token': {
+      id: '/auth/reset-password/$token'
+      path: '/auth/reset-password/$token'
+      fullPath: '/auth/reset-password/$token'
+      preLoaderRoute: typeof AuthResetPasswordTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -408,6 +467,7 @@ interface AdminRouteChildren {
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminEscrowsRoute: typeof AdminEscrowsRoute
   AdminListingsRoute: typeof AdminListingsRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -416,6 +476,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminEscrowsRoute: AdminEscrowsRoute,
   AdminListingsRoute: AdminListingsRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
@@ -443,11 +504,13 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersRoute: OrdersRouteWithChildren,
   ProfileRoute: ProfileRoute,
   WalletRoute: WalletRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   ListingsIdRoute: ListingsIdRoute,
   SellersIdRoute: SellersIdRoute,
+  AuthResetPasswordTokenRoute: AuthResetPasswordTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
