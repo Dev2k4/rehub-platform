@@ -6,10 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_admin, get_db
 from app.crud import crud_notification
 from app.crud.crud_listing import get_listing, get_pending_listings
+from app.crud import crud_order
 from app.crud.crud_user import get_user_by_id, get_users_list, update_user_status
 from app.models.enums import ListingStatus, NotificationType
 from app.models.user import User
 from app.schemas.listing import ListingRead
+from app.schemas.order import OrderRead
 from app.schemas.user import UserMe, UserStatusUpdate
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -60,6 +62,18 @@ async def get_pending_listings_route(
 ):
     """Admin only: List all pending listings."""
     return await get_pending_listings(db, skip=skip, limit=limit)
+
+
+@router.get("/orders", response_model=list[OrderRead])
+async def list_orders_for_admin(
+    skip: int = 0,
+    limit: int = 100,
+    admin_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin only: List all orders across the platform."""
+    _ = admin_user.id
+    return await crud_order.get_all_orders(db, skip=skip, limit=limit)
 
 @router.post("/listings/{listing_id}/approve", response_model=ListingRead)
 async def approve_listing(

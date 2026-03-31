@@ -45,6 +45,16 @@ async def get_user_orders(db: AsyncSession, user_id: uuid.UUID) -> list[Order]:
 	return list(result.scalars().all())
 
 
+async def get_all_orders(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[Order]:
+	result = await db.execute(
+		select(Order)
+		.order_by(Order.created_at.desc())
+		.offset(skip)
+		.limit(limit)
+	)
+	return list(result.scalars().all())
+
+
 async def create_direct_order(db: AsyncSession, buyer_id: uuid.UUID, listing_id: uuid.UUID) -> Order:
 	"""
 	Tạo order với SELECT FOR UPDATE để tránh race condition.

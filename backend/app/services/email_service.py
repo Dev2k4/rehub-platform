@@ -38,7 +38,7 @@ async def send_verify_email(to_email: str, full_name: str, verification_token: s
 
 
 async def send_password_reset_email(to_email: str, full_name: str, reset_token: str) -> bool:
-    reset_url = f"{settings.FRONTEND_HOST}/auth/login?reset_token={reset_token}"
+    reset_url = f"{settings.FRONTEND_HOST}/auth/reset-password/{reset_token}"
     html = _render(
         "reset_password.html",
         {
