@@ -1,6 +1,6 @@
 import { Box, Container, Heading, Text } from "@chakra-ui/react"
-import { usePendingListings } from "../hooks/useAdminListings"
 import { PendingListingsTable } from "../components/PendingListingsTable"
+import { usePendingListings } from "../hooks/useAdminListings"
 
 export function AdminListingsPage() {
   const { data: listings = [], isLoading } = usePendingListings({ limit: 100 })
@@ -17,7 +17,15 @@ export function AdminListingsPage() {
       </Box>
 
       {/* Table */}
-      <Box bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
+      <Box
+        bg="whiteAlpha.800"
+        backdropFilter="blur(20px)"
+        border="1px"
+        borderColor="whiteAlpha.400"
+        borderRadius="lg"
+        boxShadow="0 10px 40px rgba(0,0,0,0.06)"
+        overflow="hidden"
+      >
         <PendingListingsTable listings={listings} isLoading={isLoading} />
       </Box>
 

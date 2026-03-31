@@ -1,8 +1,16 @@
-import { Box, Container, Heading, SimpleGrid, Text, VStack, Flex } from "@chakra-ui/react"
-import { FiUsers, FiCheckCircle, FiGrid } from "react-icons/fi"
-import { useAdminUsers } from "../hooks/useAdminUsers"
-import { usePendingListings } from "../hooks/useAdminListings"
+import {
+  Box,
+  Container,
+  Flex,
+  Heading,
+  SimpleGrid,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { FiCheckCircle, FiGrid, FiUsers } from "react-icons/fi"
 import { useAdminCategories } from "../hooks/useAdminCategories"
+import { usePendingListings } from "../hooks/useAdminListings"
+import { useAdminUsers } from "../hooks/useAdminUsers"
 
 export function AdminDashboardPage() {
   const { data: users = [] } = useAdminUsers()
@@ -36,22 +44,30 @@ export function AdminDashboardPage() {
         <Heading as="h1" size="xl" color="gray.900" mb={2}>
           Tổng quan
         </Heading>
-        <Text color="gray.600">Chào mừng đến với trang quản trị ReHub Platform</Text>
+        <Text color="gray.600">
+          Chào mừng đến với trang quản trị ReHub Platform
+        </Text>
       </Box>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} gap={6}>
         {stats.map((stat) => (
           <Box
             key={stat.label}
-            bg="white"
+            bg="whiteAlpha.800"
+            backdropFilter="blur(20px)"
             borderRadius="xl"
-            boxShadow="sm"
+            boxShadow="0 4px 20px rgba(0,0,0,0.05)"
             p={6}
             border="1px"
-            borderColor="gray.200"
+            borderColor="whiteAlpha.400"
           >
             <Flex align="center" gap={4}>
-              <Box p={3} borderRadius="lg" bg={`${stat.color}.50`} color={`${stat.color}.600`}>
+              <Box
+                p={3}
+                borderRadius="lg"
+                bg={`${stat.color}.50`}
+                color={`${stat.color}.600`}
+              >
                 <Box as={stat.icon} w={6} h={6} />
               </Box>
               <Box>
@@ -68,26 +84,30 @@ export function AdminDashboardPage() {
       </SimpleGrid>
 
       <Box
-        bg="white"
+        bg="whiteAlpha.800"
+        backdropFilter="blur(20px)"
         borderRadius="xl"
-        boxShadow="sm"
+        boxShadow="0 10px 40px rgba(0,0,0,0.06)"
         p={6}
         mt={6}
         border="1px"
-        borderColor="gray.200"
+        borderColor="whiteAlpha.400"
       >
         <Heading as="h2" size="md" color="gray.900" mb={4}>
           Hướng dẫn sử dụng
         </Heading>
         <VStack align="stretch" gap={2} fontSize="sm" color="gray.600">
           <Text>
-            • <strong>Quản lý người dùng:</strong> Xem danh sách người dùng, cấm/bỏ cấm tài khoản
+            • <strong>Quản lý người dùng:</strong> Xem danh sách người dùng,
+            cấm/bỏ cấm tài khoản
           </Text>
           <Text>
-            • <strong>Phê duyệt tin đăng:</strong> Duyệt hoặc từ chối tin đăng chờ phê duyệt
+            • <strong>Phê duyệt tin đăng:</strong> Duyệt hoặc từ chối tin đăng
+            chờ phê duyệt
           </Text>
           <Text>
-            • <strong>Quản lý danh mục:</strong> Thêm, sửa, xóa danh mục sản phẩm
+            • <strong>Quản lý danh mục:</strong> Thêm, sửa, xóa danh mục sản
+            phẩm
           </Text>
         </VStack>
       </Box>

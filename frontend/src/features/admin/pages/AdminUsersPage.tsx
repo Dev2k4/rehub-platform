@@ -1,7 +1,7 @@
-import { Box, Container, Heading, Text, Flex, Input } from "@chakra-ui/react"
+import { Box, Container, Flex, Heading, Input, Text } from "@chakra-ui/react"
 import { useState } from "react"
-import { useAdminUsers } from "../hooks/useAdminUsers"
 import { UsersTable } from "../components/UsersTable"
+import { useAdminUsers } from "../hooks/useAdminUsers"
 
 export function AdminUsersPage() {
   const [searchKeyword, setSearchKeyword] = useState("")
@@ -11,7 +11,8 @@ export function AdminUsersPage() {
   const filteredUsers = users.filter((user) => {
     const keyword = searchKeyword.toLowerCase()
     return (
-      user.full_name.toLowerCase().includes(keyword) || user.email.toLowerCase().includes(keyword)
+      user.full_name.toLowerCase().includes(keyword) ||
+      user.email.toLowerCase().includes(keyword)
     )
   })
 
@@ -27,7 +28,16 @@ export function AdminUsersPage() {
       </Box>
 
       {/* Search */}
-      <Box bg="white" borderRadius="lg" boxShadow="sm" p={4} mb={6}>
+      <Box
+        bg="whiteAlpha.800"
+        backdropFilter="blur(20px)"
+        border="1px"
+        borderColor="whiteAlpha.400"
+        borderRadius="lg"
+        boxShadow="0 4px 20px rgba(0,0,0,0.05)"
+        p={4}
+        mb={6}
+      >
         <Input
           placeholder="Tìm kiếm theo tên hoặc email..."
           value={searchKeyword}
@@ -37,7 +47,15 @@ export function AdminUsersPage() {
       </Box>
 
       {/* Table */}
-      <Box bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
+      <Box
+        bg="whiteAlpha.800"
+        backdropFilter="blur(20px)"
+        border="1px"
+        borderColor="whiteAlpha.400"
+        borderRadius="lg"
+        boxShadow="0 10px 40px rgba(0,0,0,0.06)"
+        overflow="hidden"
+      >
         <UsersTable users={filteredUsers} isLoading={isLoading} />
       </Box>
 

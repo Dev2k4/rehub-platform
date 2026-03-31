@@ -1,14 +1,16 @@
+import { Box, Button, Container, Flex, Heading, Text } from "@chakra-ui/react"
 import { useState } from "react"
-import { Box, Container, Heading, Text, Button, Flex } from "@chakra-ui/react"
 import { FiPlus } from "react-icons/fi"
-import { useAdminCategories } from "../hooks/useAdminCategories"
+import type { CategoryRead } from "@/client"
 import { CategoriesTable } from "../components/CategoriesTable"
 import { CategoryFormModal } from "../components/CategoryFormModal"
-import type { CategoryRead } from "@/client"
+import { useAdminCategories } from "../hooks/useAdminCategories"
 
 export function AdminCategoriesPage() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<CategoryRead | null>(null)
+  const [editingCategory, setEditingCategory] = useState<CategoryRead | null>(
+    null,
+  )
   const { data: categories = [], isLoading } = useAdminCategories(false)
 
   const handleCreateNew = () => {
@@ -41,7 +43,15 @@ export function AdminCategoriesPage() {
       </Flex>
 
       {/* Table */}
-      <Box bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
+      <Box
+        bg="whiteAlpha.800"
+        backdropFilter="blur(20px)"
+        border="1px"
+        borderColor="whiteAlpha.400"
+        borderRadius="lg"
+        boxShadow="0 10px 40px rgba(0,0,0,0.06)"
+        overflow="hidden"
+      >
         <CategoriesTable
           categories={categories as CategoryRead[]}
           isLoading={isLoading}
@@ -55,7 +65,11 @@ export function AdminCategoriesPage() {
       </Text>
 
       {/* Form Modal */}
-      <CategoryFormModal open={modalOpen} onOpenChange={setModalOpen} category={editingCategory} />
+      <CategoryFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        category={editingCategory}
+      />
     </Container>
   )
 }

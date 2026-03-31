@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getUsers, updateUserStatus } from "../api/admin.users.api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { UserMe } from "@/client"
+import { getUsers, updateUserStatus } from "../api/admin.users.api"
 
 export function useAdminUsers(params?: { skip?: number; limit?: number }) {
   return useQuery<UserMe[]>({
