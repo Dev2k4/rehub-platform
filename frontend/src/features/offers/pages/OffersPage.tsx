@@ -10,11 +10,13 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { useMyReceivedOffers, useMySentOffers } from "@/features/offers/hooks/useOffers"
 import { useUpdateOfferMutation } from "@/features/offers/hooks/useUpdateOfferMutation"
 import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
+import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
 
 const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
   pending: { label: "Chờ xử lý", color: "yellow" },
@@ -26,10 +28,17 @@ const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
 
 export function OffersPage() {
   const navigate = useNavigate()
+  const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(undefined)
+  const [isOfferDetailOpen, setIsOfferDetailOpen] = useState(false)
   const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
   const sentOffersQuery = useMySentOffers({ limit: 20 })
   const receivedOffersQuery = useMyReceivedOffers({ limit: 20 })
   const updateOfferMutation = useUpdateOfferMutation()
+
+  const openOfferDetail = (offerId: string) => {
+    setSelectedOfferId(offerId)
+    setIsOfferDetailOpen(true)
+  }
 
   if (!authLoading && !isAuthenticated) {
     navigate({ to: "/auth/login" })
@@ -104,18 +113,20 @@ export function OffersPage() {
                                 >
                                   Reject
                                 </Button>
+                                <Button
+                                  size="xs"
+                                  variant="outline"
+                                  colorPalette="blue"
+                                  onClick={() => openOfferDetail(offer.id)}
+                                >
+                                  Counter
+                                </Button>
                               </>
                             )}
                             <Button
                               size="xs"
                               variant="outline"
-                              onClick={() =>
-                                navigate({
-                                  to: "/listings/$id",
-                                  params: { id: offer.listing_id },
-                                  search: { offerId: offer.id } as any,
-                                })
-                              }
+                              onClick={() => openOfferDetail(offer.id)}
                             >
                               Chi tiết
                             </Button>
@@ -162,6 +173,12 @@ export function OffersPage() {
           </Box>
         </VStack>
       </Container>
+
+      <OfferDetailModal
+        isOpen={isOfferDetailOpen}
+        onOpenChange={setIsOfferDetailOpen}
+        offerId={selectedOfferId}
+      />
     </Box>
   )
 }

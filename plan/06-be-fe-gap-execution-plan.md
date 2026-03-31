@@ -715,9 +715,13 @@ Mục này ghi nhận phần đã làm để tránh lặp khi triển khai tiế
 - [x] Bổ sung điều hướng vào Offers dashboard
   - Đã thêm nút `Offers` trên header khi user đăng nhập.
   - File: `frontend/src/features/home/components/MarketplaceHeader.tsx`.
+- [x] Hoàn thiện quick action counter trong OffersPage
+  - Đã thêm action `Counter` trực tiếp cho received offer trạng thái `pending`.
+  - Tái sử dụng `OfferDetailModal` để tránh thao tác sai và gom toàn bộ accept/reject/counter vào một flow nhất quán.
+  - File: `frontend/src/features/offers/pages/OffersPage.tsx`.
 
 ### 18.3 Đề xuất bước tiếp theo (không lặp việc đã xong)
 
 1. Regenerate route tree + OpenAPI client để bỏ workaround tạm thời.
-2. Hoàn thiện quick action counter trong OffersPage (hiện tại ưu tiên accept/reject + mở chi tiết).
-3. Bổ sung test cases cho Reviews/Offers theo checklist ở mục 11.
+2. Bổ sung test cases cho Reviews/Offers theo checklist ở mục 11.
+3. Chuẩn bị môi trường chạy E2E test (`bunx`/bun) để xác nhận hành vi runtime trước khi release.
