@@ -1,26 +1,26 @@
 // Auth types and interfaces
 
 export interface LocalUser {
-  id: string;
-  email: string;
-  full_name: string;
-  avatar_url?: string | null;
-  role: "user" | "seller" | "admin";
-  trust_score: number;
-  rating_avg: number;
-  rating_count: number;
-  completed_orders: number;
-  created_at: string;
+  id: string
+  email: string
+  full_name: string
+  avatar_url?: string | null
+  role: "user" | "seller" | "admin"
+  trust_score: number
+  rating_avg: number
+  rating_count: number
+  completed_orders: number
+  created_at: string
 }
 
 export interface AuthTokens {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
+  access_token: string
+  refresh_token: string
+  token_type: string
 }
 
 export interface AuthResponse extends AuthTokens {
-  user: LocalUser;
+  user: LocalUser
 }
 
 export enum AuthErrorCode {
@@ -36,7 +36,7 @@ export enum AuthErrorCode {
 }
 
 export interface AuthError {
-  code: AuthErrorCode;
-  message: string;
-  statusCode?: number;
+  code: AuthErrorCode
+  message: string
+  statusCode?: number
 }

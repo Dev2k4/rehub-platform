@@ -68,7 +68,10 @@ export async function getEscrow(orderId: string): Promise<EscrowRead> {
   return parseResponse<EscrowRead>(response)
 }
 
-export async function listDisputedEscrows(params?: { skip?: number; limit?: number }): Promise<EscrowRead[]> {
+export async function listDisputedEscrows(params?: {
+  skip?: number
+  limit?: number
+}): Promise<EscrowRead[]> {
   const search = new URLSearchParams()
   if (typeof params?.skip === "number") {
     search.set("skip", String(params.skip))
@@ -93,28 +96,44 @@ export async function fundEscrow(orderId: string): Promise<EscrowRead> {
   return parseResponse<EscrowRead>(response)
 }
 
-export async function requestEscrowRelease(orderId: string): Promise<EscrowRead> {
-  const response = await fetch(`${getApiBase()}/escrows/${orderId}/release-request`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  })
+export async function requestEscrowRelease(
+  orderId: string,
+): Promise<EscrowRead> {
+  const response = await fetch(
+    `${getApiBase()}/escrows/${orderId}/release-request`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }
 
-export async function confirmEscrowRelease(orderId: string): Promise<EscrowRead> {
-  const response = await fetch(`${getApiBase()}/escrows/${orderId}/confirm-release`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  })
+export async function confirmEscrowRelease(
+  orderId: string,
+): Promise<EscrowRead> {
+  const response = await fetch(
+    `${getApiBase()}/escrows/${orderId}/confirm-release`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }
 
-export async function openEscrowDispute(orderId: string, payload: EscrowDisputeRequest): Promise<EscrowRead> {
-  const response = await fetch(`${getApiBase()}/escrows/${orderId}/open-dispute`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  })
+export async function openEscrowDispute(
+  orderId: string,
+  payload: EscrowDisputeRequest,
+): Promise<EscrowRead> {
+  const response = await fetch(
+    `${getApiBase()}/escrows/${orderId}/open-dispute`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }
 
@@ -122,10 +141,13 @@ export async function resolveEscrowAsAdmin(
   orderId: string,
   payload: EscrowAdminResolveRequest,
 ): Promise<EscrowRead> {
-  const response = await fetch(`${getApiBase()}/escrows/${orderId}/admin-resolve`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  })
+  const response = await fetch(
+    `${getApiBase()}/escrows/${orderId}/admin-resolve`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }

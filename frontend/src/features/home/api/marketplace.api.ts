@@ -1,4 +1,10 @@
-import { CategoriesService, ListingsService, type CategoryRead, type CategoryTree, type ListingWithImages } from "@/client"
+import {
+  CategoriesService,
+  type CategoryRead,
+  type CategoryTree,
+  ListingsService,
+  type ListingWithImages,
+} from "@/client"
 
 export type CategoryNode = CategoryRead | CategoryTree
 
@@ -10,7 +16,9 @@ export type ListingsQueryParams = {
 }
 
 export async function getCategoriesTree(): Promise<CategoryTree[]> {
-  const response = await CategoriesService.getCategoriesApiV1CategoriesGet({ asTree: true })
+  const response = await CategoriesService.getCategoriesApiV1CategoriesGet({
+    asTree: true,
+  })
 
   if (!Array.isArray(response) || response.length === 0) {
     return []
