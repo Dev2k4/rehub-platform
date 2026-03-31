@@ -1,10 +1,10 @@
-import { useState } from "react"
-import { Box, Flex, Button, Spinner } from "@chakra-ui/react"
+import { Box, Button, Flex, Spinner } from "@chakra-ui/react"
 import { Outlet, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiMenu } from "react-icons/fi"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { AdminSidebar } from "./AdminSidebar"
 import { AdminDrawer } from "./AdminDrawer"
+import { AdminSidebar } from "./AdminSidebar"
 
 export function AdminLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -29,7 +29,13 @@ export function AdminLayout() {
   return (
     <Box minH="100vh" bg="gray.50">
       {/* Mobile menu button */}
-      <Box display={{ base: "block", lg: "none" }} position="fixed" top={4} left={4} zIndex={40}>
+      <Box
+        display={{ base: "block", lg: "none" }}
+        position="fixed"
+        top={4}
+        left={4}
+        zIndex={40}
+      >
         <Button
           onClick={() => setDrawerOpen(true)}
           variant="solid"
@@ -45,7 +51,13 @@ export function AdminLayout() {
       <AdminDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
 
       {/* Main content with sidebar */}
-      <Flex gap={8} maxW="8xl" mx="auto" px={{ base: 4, lg: 8 }} py={{ base: 16, lg: 8 }}>
+      <Flex
+        gap={8}
+        maxW="8xl"
+        mx="auto"
+        px={{ base: 4, lg: 8 }}
+        py={{ base: 16, lg: 8 }}
+      >
         <AdminSidebar />
 
         <Box flex={1} minW={0}>
