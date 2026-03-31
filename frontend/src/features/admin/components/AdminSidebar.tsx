@@ -6,6 +6,7 @@ import {
   FiGrid,
   FiHome,
   FiShield,
+  FiShoppingBag,
   FiUsers,
 } from "react-icons/fi"
 
@@ -28,6 +29,12 @@ const menuItems = [
     label: "Quản lý danh mục",
     path: "/admin/categories",
     icon: FiGrid,
+  },
+  {
+    id: "orders",
+    label: "Quản lý đơn hàng",
+    path: "/admin/orders",
+    icon: FiShoppingBag,
   },
   {
     id: "escrows",

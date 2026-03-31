@@ -4,6 +4,7 @@ import {
   type CreateCategoryInput,
   createCategory,
   deleteCategory,
+  getCategoryById,
   getCategories,
   type UpdateCategoryInput,
   updateCategory,
@@ -56,5 +57,13 @@ export function useDeleteCategory() {
       queryClient.invalidateQueries({ queryKey: ["admin", "categories"] })
       queryClient.invalidateQueries({ queryKey: ["categories"] })
     },
+  })
+}
+
+export function useAdminCategoryDetail(categoryId?: string) {
+  return useQuery<CategoryRead>({
+    queryKey: ["admin", "categories", "detail", categoryId],
+    queryFn: () => getCategoryById(categoryId as string),
+    enabled: !!categoryId,
   })
 }

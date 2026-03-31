@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
 import { InputGroup } from "@/components/ui/input-group"
 import {
+  useAdminCategoryDetail,
   useCreateCategory,
   useUpdateCategory,
 } from "../hooks/useAdminCategories"
@@ -33,6 +34,7 @@ export function CategoryFormModal({
   category,
 }: CategoryFormModalProps) {
   const isEdit = !!category
+  const categoryDetailQuery = useAdminCategoryDetail(category?.id)
   const createMutation = useCreateCategory()
   const updateMutation = useUpdateCategory()
 
@@ -52,16 +54,17 @@ export function CategoryFormModal({
 
   // Reset form when category changes
   useEffect(() => {
-    if (category) {
+    const latestCategory = categoryDetailQuery.data ?? category
+    if (latestCategory) {
       reset({
-        name: category.name,
-        slug: category.slug || "",
-        icon_url: category.icon_url || "",
+        name: latestCategory.name,
+        slug: latestCategory.slug || "",
+        icon_url: latestCategory.icon_url || "",
       })
     } else {
       reset({ name: "", slug: "", icon_url: "" })
     }
-  }, [category, reset])
+  }, [category, categoryDetailQuery.data, reset])
 
   const onSubmit = (data: CategoryFormData) => {
     const payload = {
