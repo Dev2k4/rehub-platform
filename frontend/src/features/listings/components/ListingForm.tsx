@@ -1,22 +1,26 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Box,
-  Button,
-  Stack,
-  Text,
   Input as ChakraInput,
-  Textarea,
-  NativeSelect,
   Flex,
-  SimpleGrid,
   IconButton,
   Image,
+  NativeSelect,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+  VStack,
 } from "@chakra-ui/react";
-import { FiCamera, FiTrash2 } from "react-icons/fi";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { FiCamera, FiTrash2 } from "react-icons/fi";
+import { z } from "zod";
 import type { CategoryTree } from "@/client";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field } from "@/components/ui/field";
+import { InputGroup } from "@/components/ui/input-group";
 
 const listingSchema = z.object({
   title: z.string().min(5, "Tiêu đề ít nhất 5 ký tự").max(200),
@@ -55,9 +59,10 @@ export function ListingForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm({
-    // @ts-ignore - zod resolver type coercion issue
+    // @ts-expect-error - zod resolver type coercion issue
     resolver: zodResolver(listingSchema),
     defaultValues: initialData || {
       condition_grade: "GOOD",
@@ -91,16 +96,11 @@ export function ListingForm({
     <Box as="form" onSubmit={handleSubmit(onFormSubmit as any)}>
       <Stack gap={6}>
         {/* Title */}
-        <Box>
-          <Text
-            display="block"
-            fontSize="sm"
-            fontWeight="semibold"
-            mb={2}
-            color="gray.700"
-          >
-            Tiêu đề
-          </Text>
+        <Field
+          label="Tiêu đề"
+          invalid={!!errors.title}
+          errorText={errors.title?.message}
+        >
           <ChakraInput
             {...register("title")}
             type="text"
@@ -108,7 +108,9 @@ export function ListingForm({
             bg="gray.50"
             borderRadius="xl"
             border="1px solid"
-            borderColor={errors.title ? "red.500" : "gray.200"}
+            borderColor="gray.200"
+            px={4}
+            py={2}
             _focus={{
               bg: "white",
               borderColor: "blue.500",
@@ -116,32 +118,24 @@ export function ListingForm({
               ringColor: "blue.500",
             }}
           />
-          {errors.title && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.title.message}
-            </Text>
-          )}
-        </Box>
+        </Field>
 
         {/* Description */}
-        <Box>
-          <Text
-            display="block"
-            fontSize="sm"
-            fontWeight="semibold"
-            mb={2}
-            color="gray.700"
-          >
-            Mô tả
-          </Text>
+        <Field
+          label="Mô tả"
+          invalid={!!errors.description}
+          errorText={errors.description?.message}
+        >
           <Textarea
             {...register("description")}
             placeholder="Mô tả chi tiết về sản phẩm..."
-            minH="120px"
+            minH="150px"
             bg="gray.50"
             borderRadius="xl"
             border="1px solid"
-            borderColor={errors.description ? "red.500" : "gray.200"}
+            borderColor="gray.200"
+            px={4}
+            py={3}
             _focus={{
               bg: "white",
               borderColor: "blue.500",
@@ -149,65 +143,61 @@ export function ListingForm({
               ringColor: "blue.500",
             }}
           />
-          {errors.description && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.description.message}
-            </Text>
-          )}
-        </Box>
+        </Field>
 
         {/* Price */}
-        <Box>
-          <Text
-            display="block"
-            fontSize="sm"
-            fontWeight="semibold"
-            mb={2}
-            color="gray.700"
+        <Field
+          label="Giá (VNĐ)"
+          invalid={!!errors.price}
+          errorText={errors.price?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={
+              <Box
+                color="gray.400"
+                display="flex"
+                alignItems="center"
+                ps={4}
+              ></Box>
+            }
           >
-            Giá (VNĐ)
-          </Text>
-          <ChakraInput
-            id="price"
-            {...register("price")}
-            type="number"
-            placeholder="0"
-            bg="gray.50"
-            borderRadius="xl"
-            border="1px solid"
-            borderColor={errors.price ? "red.500" : "gray.200"}
-            _focus={{
-              bg: "white",
-              borderColor: "blue.500",
-              ring: "1px",
-              ringColor: "blue.500",
-            }}
-          />
-          {errors.price && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.price.message}
-            </Text>
-          )}
-        </Box>
+            <ChakraInput
+              id="price"
+              {...register("price")}
+              type="number"
+              placeholder="0"
+              bg="gray.50"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              ps="10"
+              px={4}
+              _focus={{
+                bg: "white",
+                borderColor: "blue.500",
+                ring: "1px",
+                ringColor: "blue.500",
+              }}
+            />
+          </InputGroup>
+        </Field>
 
         {/* Category */}
-        <Box>
-          <Text
-            display="block"
-            fontSize="sm"
-            fontWeight="semibold"
-            mb={2}
-            color="gray.700"
-          >
-            Danh mục
-          </Text>
+        <Field
+          label="Danh mục"
+          invalid={!!errors.category_id}
+          errorText={errors.category_id?.message}
+        >
           <NativeSelect.Root>
             <NativeSelect.Field
               {...register("category_id")}
               bg="gray.50"
               borderRadius="xl"
               border="1px solid"
-              borderColor={errors.category_id ? "red.500" : "gray.200"}
+              borderColor="gray.200"
+              px={4}
+              py={2}
               _focus={{
                 bg: "white",
                 borderColor: "blue.500",
@@ -223,31 +213,23 @@ export function ListingForm({
               ))}
             </NativeSelect.Field>
           </NativeSelect.Root>
-          {errors.category_id && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.category_id.message}
-            </Text>
-          )}
-        </Box>
+        </Field>
 
         {/* Condition */}
-        <Box>
-          <Text
-            display="block"
-            fontSize="sm"
-            fontWeight="semibold"
-            mb={2}
-            color="gray.700"
-          >
-            Tình trạng
-          </Text>
+        <Field
+          label="Tình trạng"
+          invalid={!!errors.condition_grade}
+          errorText={errors.condition_grade?.message}
+        >
           <NativeSelect.Root>
             <NativeSelect.Field
               {...register("condition_grade")}
               bg="gray.50"
               borderRadius="xl"
               border="1px solid"
-              borderColor={errors.condition_grade ? "red.500" : "gray.200"}
+              borderColor="gray.200"
+              px={4}
+              py={2}
               _focus={{
                 bg: "white",
                 borderColor: "blue.500",
@@ -264,58 +246,54 @@ export function ListingForm({
               <option value="poor">Cũ (Trầy xước nhiều hoặc có lỗi nhẹ)</option>
             </NativeSelect.Field>
           </NativeSelect.Root>
-          {errors.condition_grade && (
-            <Text color="red.500" fontSize="sm" mt={1}>
-              {errors.condition_grade.message}
-            </Text>
-          )}
-        </Box>
+        </Field>
 
         {/* Negotiable */}
-        <Box>
-          <Flex align="center" gap={2} cursor="pointer" as="label">
-            <input
-              {...register("is_negotiable")}
-              type="checkbox"
-              style={{
-                width: "16px",
-                height: "16px",
-                cursor: "pointer",
-                accentColor: "#2563EB",
-              }}
-            />
-            <Text fontSize="sm" fontWeight="medium" color="gray.700">
-              Có thể thương lượng giá
-            </Text>
-          </Flex>
+        <Box pl={1}>
+          <Controller
+            control={control}
+            name="is_negotiable"
+            render={({ field }) => (
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={(e) => field.onChange(!!e.checked)}
+              >
+                <Text fontSize="sm" fontWeight="medium" color="gray.700">
+                  Có thể thương lượng giá
+                </Text>
+              </Checkbox>
+            )}
+          />
         </Box>
 
         {/* Images */}
-        <Box>
-          <Text
-            display="block"
-            fontSize="sm"
-            fontWeight="semibold"
-            mb={2}
-            color="gray.700"
-          >
-            Hình ảnh
-          </Text>
+        <Field label="Hình ảnh sản phẩm">
           <Box
             border="2px dashed"
-            borderColor="gray.200"
-            borderRadius="xl"
-            p={8}
-            bg="gray.50"
+            borderColor="blue.200"
+            borderRadius="2xl"
+            p={10}
+            bg="blue.50"
             textAlign="center"
             cursor="pointer"
-            _hover={{ borderColor: "blue.500", bg: "blue.50" }}
-            transition="all 0.2s"
+            _hover={{ borderColor: "blue.500", bg: "#EBF5FF" }}
+            transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
             onClick={() => document.getElementById("image-input")?.click()}
           >
-            <Flex align="center" justify="center" gap={2} color="gray.600">
-              <FiCamera size={20} />
-              <Text>Chọn ảnh hoặc kéo thả</Text>
+            <Flex
+              direction="column"
+              align="center"
+              justify="center"
+              gap={3}
+              color="gray.500"
+            >
+              <FiCamera size={32} />
+              <VStack gap={1}>
+                <Text fontWeight="medium" color="gray.600">
+                  Chọn ảnh hoặc kéo thả vào đây
+                </Text>
+                <Text fontSize="xs">Hỗ trợ JPG, PNG, WEBP (Tối đa 10 ảnh)</Text>
+              </VStack>
             </Flex>
             <input
               id="image-input"
@@ -326,40 +304,41 @@ export function ListingForm({
               style={{ display: "none" }}
             />
           </Box>
+        </Field>
 
-          {/* Image preview */}
-          {previewImages.length > 0 && (
-            <SimpleGrid columns={4} gap={4} mt={4}>
-              {previewImages.map((image, idx) => (
-                <Box key={idx} position="relative" role="group">
-                  <Image
-                    src={image}
-                    alt={`Preview ${idx}`}
-                    w="full"
-                    h={32}
-                    objectFit="cover"
-                    borderRadius="lg"
-                  />
-                  <IconButton
-                    aria-label="Xóa ảnh"
-                    position="absolute"
-                    top={1}
-                    right={1}
-                    size="sm"
-                    colorScheme="red"
-                    borderRadius="full"
-                    opacity={0}
-                    _groupHover={{ opacity: 1 }}
-                    transition="opacity 0.2s"
-                    onClick={() => removeImage(idx)}
-                  >
-                    <FiTrash2 />
-                  </IconButton>
-                </Box>
-              ))}
-            </SimpleGrid>
-          )}
-        </Box>
+        {/* Image preview */}
+        {previewImages.length > 0 && (
+          <SimpleGrid columns={4} gap={4}>
+            {previewImages.map((image, idx) => (
+              <Box key={idx} position="relative" role="group">
+                <Image
+                  src={image}
+                  alt={`Preview ${idx}`}
+                  w="full"
+                  h={32}
+                  objectFit="cover"
+                  borderRadius="lg"
+                />
+                <IconButton
+                  aria-label="Xóa ảnh"
+                  position="absolute"
+                  top={1}
+                  right={1}
+                  size="sm"
+                  colorPalette="red"
+                  variant="solid"
+                  borderRadius="full"
+                  opacity={0}
+                  _groupHover={{ opacity: 1 }}
+                  transition="opacity 0.2s"
+                  onClick={() => removeImage(idx)}
+                >
+                  <FiTrash2 />
+                </IconButton>
+              </Box>
+            ))}
+          </SimpleGrid>
+        )}
 
         {/* Actions */}
         <Flex gap={3} justify="flex-end" pt={4}>
@@ -379,18 +358,23 @@ export function ListingForm({
           )}
           <Button
             type="submit"
-            bg="blue.600"
+            bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
             color="white"
-            _hover={{ bg: "blue.700" }}
-            _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
+            _hover={{
+              bg: "linear-gradient(135deg, #013A67 0%, #017AAA 100%)",
+              boxShadow: "0 6px 20px rgba(2,69,122,0.4)",
+              transform: "translateY(-1px)",
+            }}
+            transition="all 0.2s"
             borderRadius="xl"
             fontWeight="bold"
             px={10}
             h="48px"
-            transition="all 0.2s"
-            disabled={isLoading}
+            loading={isLoading}
+            loadingText={initialData ? "Đang cập nhật..." : "Đang đăng..."}
+            boxShadow="0 4px 15px rgba(2,69,122,0.3)"
           >
-            {initialData ? "Cập nhật" : "Đăng tin"}
+            {initialData ? "Cập nhật" : "Đăng tin mới"}
           </Button>
         </Flex>
       </Stack>

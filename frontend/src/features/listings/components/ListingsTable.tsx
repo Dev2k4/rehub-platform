@@ -1,14 +1,14 @@
-import { FiEdit2, FiTrash2, FiEye } from "react-icons/fi"
 import {
+  Badge,
   Box,
   Flex,
-  Text,
-  Badge,
   IconButton,
-  Table,
   Spinner,
+  Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
+import { FiEdit2, FiEye, FiTrash2 } from "react-icons/fi"
 import type { ListingRead } from "@/client"
 
 interface ListingsTableProps {
@@ -50,7 +50,13 @@ export function ListingsTable({
 
   if (listings.length === 0) {
     return (
-      <Flex align="center" justify="center" py={12} bg="gray.50" borderRadius="lg">
+      <Flex
+        align="center"
+        justify="center"
+        py={12}
+        bg="gray.50"
+        borderRadius="lg"
+      >
         <VStack gap={1} textAlign="center">
           <Text color="gray.600">Bạn chưa có tin đăng nào</Text>
           <Text fontSize="sm" color="gray.500">
@@ -66,46 +72,104 @@ export function ListingsTable({
       <Table.Root size="md">
         <Table.Header>
           <Table.Row bg="gray.100">
-            <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+            <Table.ColumnHeader
+              px={6}
+              py={3}
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+            >
               Tiêu đề
             </Table.ColumnHeader>
-            <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+            <Table.ColumnHeader
+              px={6}
+              py={3}
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+            >
               Giá
             </Table.ColumnHeader>
-            <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+            <Table.ColumnHeader
+              px={6}
+              py={3}
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+            >
               Tình trạng
             </Table.ColumnHeader>
-            <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+            <Table.ColumnHeader
+              px={6}
+              py={3}
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+            >
               Trạng thái
             </Table.ColumnHeader>
-            <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+            <Table.ColumnHeader
+              px={6}
+              py={3}
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+            >
               Ngày tạo
             </Table.ColumnHeader>
-            <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900" textAlign="right">
+            <Table.ColumnHeader
+              px={6}
+              py={3}
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+              textAlign="right"
+            >
               Hành động
             </Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {listings.map((listing) => {
-            const condition = conditionLabels[listing.condition_grade] || listing.condition_grade
-            const status = statusConfig[listing.status] || { label: listing.status, colorPalette: "gray" }
+            const condition =
+              conditionLabels[listing.condition_grade] ||
+              listing.condition_grade
+            const status = statusConfig[listing.status] || {
+              label: listing.status,
+              colorPalette: "gray",
+            }
             return (
-              <Table.Row key={listing.id} _hover={{ bg: "gray.50" }} transition="all 0.2s">
+              <Table.Row
+                key={listing.id}
+                _hover={{ bg: "gray.50" }}
+                transition="all 0.2s"
+              >
                 <Table.Cell px={6} py={4} fontSize="sm" color="gray.900">
                   <Text fontWeight="medium">{listing.title}</Text>
                   <Text fontSize="xs" color="gray.500" lineClamp={1}>
                     {listing.description}
                   </Text>
                 </Table.Cell>
-                <Table.Cell px={6} py={4} fontSize="sm" fontWeight="medium" color="gray.900">
-                  {parseInt(listing.price).toLocaleString("vi-VN")} ₫
+                <Table.Cell
+                  px={6}
+                  py={4}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  color="gray.900"
+                >
+                  {parseInt(listing.price, 10).toLocaleString("vi-VN")} ₫
                 </Table.Cell>
                 <Table.Cell px={6} py={4} fontSize="sm" color="gray.700">
                   {condition}
                 </Table.Cell>
                 <Table.Cell px={6} py={4} fontSize="sm">
-                  <Badge colorPalette={status.colorPalette} variant="subtle" borderRadius="full" px={3} py={1}>
+                  <Badge
+                    colorPalette={status.colorPalette}
+                    variant="subtle"
+                    borderRadius="full"
+                    px={3}
+                    py={1}
+                  >
                     {status.label}
                   </Badge>
                 </Table.Cell>

@@ -1,12 +1,12 @@
-import { Dialog, Portal, CloseButton } from "@chakra-ui/react";
+import { CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
+import type { ListingRead } from "@/client";
+import { getCategoriesTree } from "@/features/home/api/marketplace.api";
+import { flattenCategories } from "@/features/home/utils/marketplace.utils";
 import {
   ListingForm,
   type ListingFormSubmitPayload,
 } from "@/features/listings/components/ListingForm";
-import { getCategoriesTree } from "@/features/home/api/marketplace.api";
-import { flattenCategories } from "@/features/home/utils/marketplace.utils";
-import type { ListingRead } from "@/client";
 
 type ListingModalProps = {
   isOpen: boolean;
@@ -54,32 +54,38 @@ export function ListingModal({
           <Dialog.Content
             maxW="2xl"
             maxH="90vh"
-            overflowY="auto"
+            overflow="hidden"
+            display="flex"
+            flexDirection="column"
             bg="white"
-            borderRadius="lg"
+            borderRadius="2xl"
+            boxShadow="0 20px 60px rgba(0,0,0,0.12)"
           >
             <Dialog.Header
               p={6}
+              pb={4}
               borderBottomWidth="1px"
+              borderColor="gray.100"
               display="flex"
               justifyContent="space-between"
               alignItems="center"
+              flexShrink={0}
             >
-              <Dialog.Title fontSize="xl" fontWeight="semibold">
+              <Dialog.Title fontSize="xl" fontWeight="bold" color="gray.900">
                 {editingListing ? "Sửa tin đăng" : "Đăng tin mới"}
               </Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" onClick={handleCancel} />
               </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body p={6}>
+            <Dialog.Body p={6} pt={5} overflowY="auto" flex="1">
               <ListingForm
                 initialData={
                   editingListing
                     ? {
                         title: editingListing.title,
                         description: editingListing.description || "",
-                        price: parseInt(editingListing.price),
+                        price: parseInt(editingListing.price, 10),
                         category_id: editingListing.category_id,
                         condition_grade: editingListing.condition_grade,
                         is_negotiable: editingListing.is_negotiable,
