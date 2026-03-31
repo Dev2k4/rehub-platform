@@ -19,9 +19,15 @@ export function useAdminResolveEscrow() {
       orderId: string
       result: "release" | "refund"
       note?: string
-    }) => resolveEscrowAsAdmin(params.orderId, { result: params.result, note: params.note }),
+    }) =>
+      resolveEscrowAsAdmin(params.orderId, {
+        result: params.result,
+        note: params.note,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "escrows", "disputed"] })
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "escrows", "disputed"],
+      })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
     },
   })

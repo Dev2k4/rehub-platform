@@ -1,13 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  getCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-  type CreateCategoryInput,
-  type UpdateCategoryInput,
-} from "../api/admin.categories.api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { CategoryRead, CategoryTree } from "@/client"
+import {
+  type CreateCategoryInput,
+  createCategory,
+  deleteCategory,
+  getCategories,
+  type UpdateCategoryInput,
+  updateCategory,
+} from "../api/admin.categories.api"
 
 export function useAdminCategories(asTree: boolean = false) {
   return useQuery<CategoryTree[] | CategoryRead[]>({
@@ -33,8 +33,13 @@ export function useUpdateCategory() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ categoryId, data }: { categoryId: string; data: UpdateCategoryInput }) =>
-      updateCategory(categoryId, data),
+    mutationFn: ({
+      categoryId,
+      data,
+    }: {
+      categoryId: string
+      data: UpdateCategoryInput
+    }) => updateCategory(categoryId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "categories"] })
       queryClient.invalidateQueries({ queryKey: ["categories"] })

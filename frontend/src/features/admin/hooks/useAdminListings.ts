@@ -1,6 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getPendingListings, approveListing, rejectListing } from "../api/admin.listings.api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ListingRead } from "@/client"
+import {
+  approveListing,
+  getPendingListings,
+  rejectListing,
+} from "../api/admin.listings.api"
 
 export function usePendingListings(params?: { skip?: number; limit?: number }) {
   return useQuery<ListingRead[]>({
