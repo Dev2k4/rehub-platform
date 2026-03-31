@@ -1,4 +1,5 @@
 import { OpenAPI } from "@/client"
+import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
 import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export type EscrowStatus =
@@ -32,8 +33,8 @@ interface EscrowDisputeRequest {
   note?: string
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getAccessToken()
+function getAuthHeaders(tokenOverride?: string | null): HeadersInit {
+  const token = tokenOverride ?? getAccessToken()
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -60,8 +61,27 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T
 }
 
+async function fetchWithAuthRetry(
+  path: string,
+  init: RequestInit,
+): Promise<Response> {
+  let response = await fetch(`${getApiBase()}${path}`, init)
+
+  if (response.status === 401) {
+    const refreshedToken = await refreshAccessTokenIfPossible()
+    if (refreshedToken) {
+      response = await fetch(`${getApiBase()}${path}`, {
+        ...init,
+        headers: getAuthHeaders(refreshedToken),
+      })
+    }
+  }
+
+  return response
+}
+
 export async function getEscrow(orderId: string): Promise<EscrowRead> {
-  const response = await fetch(`${getApiBase()}/escrows/${orderId}`, {
+  const response = await fetchWithAuthRetry(`/escrows/${orderId}`, {
     method: "GET",
     headers: getAuthHeaders(),
   })
@@ -81,7 +101,7 @@ export async function listDisputedEscrows(params?: {
   }
 
   const suffix = search.toString() ? `?${search.toString()}` : ""
-  const response = await fetch(`${getApiBase()}/escrows/disputed${suffix}`, {
+  const response = await fetchWithAuthRetry(`/escrows/disputed${suffix}`, {
     method: "GET",
     headers: getAuthHeaders(),
   })
@@ -89,7 +109,7 @@ export async function listDisputedEscrows(params?: {
 }
 
 export async function fundEscrow(orderId: string): Promise<EscrowRead> {
-  const response = await fetch(`${getApiBase()}/escrows/${orderId}/fund`, {
+  const response = await fetchWithAuthRetry(`/escrows/${orderId}/fund`, {
     method: "POST",
     headers: getAuthHeaders(),
   })
@@ -99,26 +119,20 @@ export async function fundEscrow(orderId: string): Promise<EscrowRead> {
 export async function requestEscrowRelease(
   orderId: string,
 ): Promise<EscrowRead> {
-  const response = await fetch(
-    `${getApiBase()}/escrows/${orderId}/release-request`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(),
-    },
-  )
+  const response = await fetchWithAuthRetry(`/escrows/${orderId}/release-request`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  })
   return parseResponse<EscrowRead>(response)
 }
 
 export async function confirmEscrowRelease(
   orderId: string,
 ): Promise<EscrowRead> {
-  const response = await fetch(
-    `${getApiBase()}/escrows/${orderId}/confirm-release`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(),
-    },
-  )
+  const response = await fetchWithAuthRetry(`/escrows/${orderId}/confirm-release`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  })
   return parseResponse<EscrowRead>(response)
 }
 
@@ -126,14 +140,11 @@ export async function openEscrowDispute(
   orderId: string,
   payload: EscrowDisputeRequest,
 ): Promise<EscrowRead> {
-  const response = await fetch(
-    `${getApiBase()}/escrows/${orderId}/open-dispute`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    },
-  )
+  const response = await fetchWithAuthRetry(`/escrows/${orderId}/open-dispute`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  })
   return parseResponse<EscrowRead>(response)
 }
 
@@ -141,13 +152,10 @@ export async function resolveEscrowAsAdmin(
   orderId: string,
   payload: EscrowAdminResolveRequest,
 ): Promise<EscrowRead> {
-  const response = await fetch(
-    `${getApiBase()}/escrows/${orderId}/admin-resolve`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    },
-  )
+  const response = await fetchWithAuthRetry(`/escrows/${orderId}/admin-resolve`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  })
   return parseResponse<EscrowRead>(response)
 }

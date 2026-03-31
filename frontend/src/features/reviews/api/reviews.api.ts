@@ -12,7 +12,7 @@ export async function getUserReviews(userId: string): Promise<ReviewRead[]> {
 }
 
 export async function getOrderReviews(orderId: string): Promise<ReviewRead[]> {
-  const response = await ReviewsService.getReviewApiV1ReviewsOrderIdGet({
+  const response = await ReviewsService.getReviewsForOrderApiV1ReviewsOrderIdGet({
     orderId,
   })
 

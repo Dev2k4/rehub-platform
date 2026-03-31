@@ -1,4 +1,5 @@
 import { OpenAPI } from "@/client"
+import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
 import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface WalletAccountRead {
@@ -22,8 +23,8 @@ export interface WalletTransactionRead {
   created_at: string
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getAccessToken()
+function getAuthHeaders(tokenOverride?: string | null): HeadersInit {
+  const token = tokenOverride ?? getAccessToken()
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -50,8 +51,27 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T
 }
 
+async function fetchWithAuthRetry(
+  path: string,
+  init: RequestInit,
+): Promise<Response> {
+  let response = await fetch(`${getApiBase()}${path}`, init)
+
+  if (response.status === 401) {
+    const refreshedToken = await refreshAccessTokenIfPossible()
+    if (refreshedToken) {
+      response = await fetch(`${getApiBase()}${path}`, {
+        ...init,
+        headers: getAuthHeaders(refreshedToken),
+      })
+    }
+  }
+
+  return response
+}
+
 export async function getMyWallet(): Promise<WalletAccountRead> {
-  const response = await fetch(`${getApiBase()}/wallet/me`, {
+  const response = await fetchWithAuthRetry(`/wallet/me`, {
     method: "GET",
     headers: getAuthHeaders(),
   })
@@ -61,7 +81,7 @@ export async function getMyWallet(): Promise<WalletAccountRead> {
 export async function demoTopupWallet(
   amount: number,
 ): Promise<WalletAccountRead> {
-  const response = await fetch(`${getApiBase()}/wallet/demo-topup`, {
+  const response = await fetchWithAuthRetry(`/wallet/demo-topup`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ amount }),
@@ -72,7 +92,7 @@ export async function demoTopupWallet(
 export async function getWalletTransactions(): Promise<
   WalletTransactionRead[]
 > {
-  const response = await fetch(`${getApiBase()}/wallet/transactions`, {
+  const response = await fetchWithAuthRetry(`/wallet/transactions`, {
     method: "GET",
     headers: getAuthHeaders(),
   })

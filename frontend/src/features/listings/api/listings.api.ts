@@ -70,7 +70,7 @@ export async function uploadListingImage(
 ): Promise<any> {
   return ListingsService.uploadListingImageApiV1ListingsListingIdImagesPost({
     listingId,
-    formData: { file },
+    formData: { file: file as any },
     isPrimary,
   })
 }
