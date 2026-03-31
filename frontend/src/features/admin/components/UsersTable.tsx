@@ -1,9 +1,17 @@
+import {
+  Badge,
+  Box,
+  Flex,
+  IconButton,
+  Spinner,
+  Table,
+  Text,
+} from "@chakra-ui/react"
 import { useState } from "react"
-import { Table, Box, Badge, IconButton, Text, Flex, Spinner } from "@chakra-ui/react"
-import { FiUserX, FiUserCheck } from "react-icons/fi"
+import { FiUserCheck, FiUserX } from "react-icons/fi"
 import type { UserMe } from "@/client"
-import { ConfirmDialog } from "./ConfirmDialog"
 import { useUpdateUserStatus } from "../hooks/useAdminUsers"
+import { ConfirmDialog } from "./ConfirmDialog"
 
 interface UsersTableProps {
   users: UserMe[]
@@ -30,7 +38,7 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
           setConfirmOpen(false)
           setSelectedUser(null)
         },
-      }
+      },
     )
   }
 
@@ -56,30 +64,76 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
         <Table.Root size="md">
           <Table.Header>
             <Table.Row bg="gray.100">
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Tên
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Email
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Vai trò
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Trạng thái
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Điểm tin cậy
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Hành động
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {users.map((user) => (
-              <Table.Row key={user.id} _hover={{ bg: "gray.50" }} transition="all 0.2s">
-                <Table.Cell px={6} py={4} fontSize="sm" fontWeight="medium" color="gray.900">
+              <Table.Row
+                key={user.id}
+                _hover={{ bg: "gray.50" }}
+                transition="all 0.2s"
+              >
+                <Table.Cell
+                  px={6}
+                  py={4}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  color="gray.900"
+                >
                   {user.full_name}
                 </Table.Cell>
                 <Table.Cell px={6} py={4} fontSize="sm" color="gray.600">
@@ -88,7 +142,11 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
                 <Table.Cell px={6} py={4}>
                   <Badge
                     colorPalette={
-                      user.role === "admin" ? "red" : user.role === "moderator" ? "purple" : "blue"
+                      user.role === "admin"
+                        ? "red"
+                        : user.role === "moderator"
+                          ? "purple"
+                          : "blue"
                     }
                     variant="subtle"
                     borderRadius="full"
@@ -127,7 +185,11 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
                       _hover={{ bg: user.is_active ? "red.50" : "green.50" }}
                       title={user.is_active ? "Cấm người dùng" : "Bỏ cấm"}
                     >
-                      <Box as={user.is_active ? FiUserX : FiUserCheck} w={5} h={5} />
+                      <Box
+                        as={user.is_active ? FiUserX : FiUserCheck}
+                        w={5}
+                        h={5}
+                      />
                     </IconButton>
                   </Flex>
                 </Table.Cell>
@@ -140,7 +202,9 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title={selectedUser?.is_active ? "Cấm người dùng?" : "Bỏ cấm người dùng?"}
+        title={
+          selectedUser?.is_active ? "Cấm người dùng?" : "Bỏ cấm người dùng?"
+        }
         description={
           selectedUser?.is_active
             ? `Bạn có chắc muốn cấm người dùng "${selectedUser?.full_name}"?`

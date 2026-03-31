@@ -1,9 +1,17 @@
+import {
+  Badge,
+  Box,
+  Flex,
+  IconButton,
+  Spinner,
+  Table,
+  Text,
+} from "@chakra-ui/react"
 import { useState } from "react"
-import { Table, Box, Badge, IconButton, Text, Flex, Spinner } from "@chakra-ui/react"
 import { FiCheck, FiX } from "react-icons/fi"
 import type { ListingRead } from "@/client"
-import { ConfirmDialog } from "./ConfirmDialog"
 import { useApproveListing, useRejectListing } from "../hooks/useAdminListings"
+import { ConfirmDialog } from "./ConfirmDialog"
 
 interface PendingListingsTableProps {
   listings: ListingRead[]
@@ -12,8 +20,13 @@ interface PendingListingsTableProps {
 
 type ActionType = "approve" | "reject" | null
 
-export function PendingListingsTable({ listings, isLoading }: PendingListingsTableProps) {
-  const [selectedListing, setSelectedListing] = useState<ListingRead | null>(null)
+export function PendingListingsTable({
+  listings,
+  isLoading,
+}: PendingListingsTableProps) {
+  const [selectedListing, setSelectedListing] = useState<ListingRead | null>(
+    null,
+  )
   const [actionType, setActionType] = useState<ActionType>(null)
 
   const approveMutation = useApproveListing()
@@ -41,7 +54,7 @@ export function PendingListingsTable({ listings, isLoading }: PendingListingsTab
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(parseInt(price))
+    }).format(parseInt(price, 10))
   }
 
   if (isLoading) {
@@ -66,26 +79,60 @@ export function PendingListingsTable({ listings, isLoading }: PendingListingsTab
         <Table.Root size="md">
           <Table.Header>
             <Table.Row bg="gray.100">
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Tiêu đề
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Giá
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Tình trạng
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Ngày tạo
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Hành động
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {listings.map((listing) => (
-              <Table.Row key={listing.id} _hover={{ bg: "gray.50" }} transition="all 0.2s">
+              <Table.Row
+                key={listing.id}
+                _hover={{ bg: "gray.50" }}
+                transition="all 0.2s"
+              >
                 <Table.Cell
                   px={6}
                   py={4}
@@ -167,7 +214,9 @@ export function PendingListingsTable({ listings, isLoading }: PendingListingsTab
             setActionType(null)
           }
         }}
-        title={actionType === "approve" ? "Phê duyệt tin đăng?" : "Từ chối tin đăng?"}
+        title={
+          actionType === "approve" ? "Phê duyệt tin đăng?" : "Từ chối tin đăng?"
+        }
         description={
           actionType === "approve"
             ? `Xác nhận phê duyệt tin đăng "${selectedListing?.title}"?`

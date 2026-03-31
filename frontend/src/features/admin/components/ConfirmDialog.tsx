@@ -1,4 +1,5 @@
-import { Dialog, Portal, Button, Text, Flex } from "@chakra-ui/react"
+import { Dialog, Flex, Portal, Text } from "@chakra-ui/react"
+import { Button } from "@/components/ui/button"
 
 interface ConfirmDialogProps {
   open: boolean
@@ -28,7 +29,11 @@ export function ConfirmDialog({
         <Dialog.Positioner>
           <Dialog.Content maxW="md" borderRadius="xl" p={6}>
             <Dialog.Header>
-              <Dialog.Title fontSize="lg" fontWeight="semibold" color="gray.900">
+              <Dialog.Title
+                fontSize="lg"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 {title}
               </Dialog.Title>
             </Dialog.Header>
@@ -43,6 +48,7 @@ export function ConfirmDialog({
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isLoading}
+                  borderRadius="lg"
                 >
                   Hủy
                 </Button>
@@ -50,6 +56,8 @@ export function ConfirmDialog({
                   colorPalette={confirmColorPalette}
                   onClick={onConfirm}
                   loading={isLoading}
+                  loadingText="Đang xử lý..."
+                  borderRadius="lg"
                 >
                   {confirmText}
                 </Button>

@@ -1,10 +1,17 @@
-import { useEffect } from "react"
-import { Dialog, Portal, Button, Input, Flex, VStack, Text, Box } from "@chakra-ui/react"
-import { useForm } from "react-hook-form"
+import { Dialog, Flex, Input, Portal, Stack } from "@chakra-ui/react"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
+import { useForm } from "react-hook-form"
+import { FiLink, FiSlash, FiTag } from "react-icons/fi"
 import { z } from "zod"
 import type { CategoryRead } from "@/client"
-import { useCreateCategory, useUpdateCategory } from "../hooks/useAdminCategories"
+import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
+import {
+  useCreateCategory,
+  useUpdateCategory,
+} from "../hooks/useAdminCategories"
 
 const categorySchema = z.object({
   name: z.string().min(1, "Tên danh mục là bắt buộc").max(100),
@@ -20,7 +27,11 @@ interface CategoryFormModalProps {
   category?: CategoryRead | null
 }
 
-export function CategoryFormModal({ open, onOpenChange, category }: CategoryFormModalProps) {
+export function CategoryFormModal({
+  open,
+  onOpenChange,
+  category,
+}: CategoryFormModalProps) {
   const isEdit = !!category
   const createMutation = useCreateCategory()
   const updateMutation = useUpdateCategory()
@@ -31,8 +42,7 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
     reset,
     formState: { errors },
   } = useForm<CategoryFormData>({
-    // @ts-ignore
-    resolver: zodResolver(categorySchema),
+    resolver: zodResolver(categorySchema) as any,
     defaultValues: {
       name: "",
       slug: "",
@@ -58,7 +68,7 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
       name: data.name,
       slug: data.slug || null,
       icon_url: data.icon_url || null,
-      parent_id: null, // Simple version without parent support
+      parent_id: null,
     }
 
     if (isEdit && category) {
@@ -69,7 +79,7 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
             onOpenChange(false)
             reset()
           },
-        }
+        },
       )
     } else {
       createMutation.mutate(payload, {
@@ -80,6 +90,8 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
       })
     }
   }
+
+  const isPending = createMutation.isPending || updateMutation.isPending
 
   return (
     <Dialog.Root
@@ -94,58 +106,70 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
         <Dialog.Positioner>
           <Dialog.Content maxW="xl" borderRadius="xl">
             <Dialog.Header>
-              <Dialog.Title fontSize="lg" fontWeight="semibold" color="gray.900">
+              <Dialog.Title
+                fontSize="lg"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 {isEdit ? "Sửa danh mục" : "Thêm danh mục mới"}
               </Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
               <form onSubmit={handleSubmit(onSubmit)}>
-                <VStack gap={4} align="stretch">
+                <Stack gap={4}>
                   {/* Name */}
-                  <Box>
-                    <Text fontSize="sm" fontWeight="medium" color="gray.700" mb={2}>
-                      Tên danh mục *
-                    </Text>
-                    <Input {...register("name")} placeholder="Điện thoại, Laptop, ..." size="md" />
-                    {errors.name && (
-                      <Text fontSize="sm" color="red.600" mt={1}>
-                        {errors.name.message}
-                      </Text>
-                    )}
-                  </Box>
+                  <Field
+                    label="Tên danh mục *"
+                    invalid={!!errors.name}
+                    errorText={errors.name?.message}
+                  >
+                    <InputGroup
+                      width="full"
+                      startElement={<FiTag color="#9CA3AF" />}
+                    >
+                      <Input
+                        {...register("name")}
+                        placeholder="Điện thoại, Laptop, ..."
+                        ps="10"
+                      />
+                    </InputGroup>
+                  </Field>
 
                   {/* Slug */}
-                  <Box>
-                    <Text fontSize="sm" fontWeight="medium" color="gray.700" mb={2}>
-                      Slug (tùy chọn)
-                    </Text>
-                    <Input
-                      {...register("slug")}
-                      placeholder="dien-thoai, laptop, ..."
-                      size="md"
-                    />
-                    <Text fontSize="xs" color="gray.500" mt={1}>
-                      Để trống để tự động tạo từ tên
-                    </Text>
-                  </Box>
+                  <Field
+                    label="Slug (tùy chọn)"
+                    helperText="Để trống để tự động tạo từ tên"
+                  >
+                    <InputGroup
+                      width="full"
+                      startElement={<FiSlash color="#9CA3AF" />}
+                    >
+                      <Input
+                        {...register("slug")}
+                        placeholder="dien-thoai, laptop, ..."
+                        ps="10"
+                      />
+                    </InputGroup>
+                  </Field>
 
                   {/* Icon URL */}
-                  <Box>
-                    <Text fontSize="sm" fontWeight="medium" color="gray.700" mb={2}>
-                      Icon URL (tùy chọn)
-                    </Text>
-                    <Input
-                      {...register("icon_url")}
-                      placeholder="https://example.com/icon.png"
-                      size="md"
-                    />
-                    {errors.icon_url && (
-                      <Text fontSize="sm" color="red.600" mt={1}>
-                        {errors.icon_url.message}
-                      </Text>
-                    )}
-                  </Box>
-                </VStack>
+                  <Field
+                    label="Icon URL (tùy chọn)"
+                    invalid={!!errors.icon_url}
+                    errorText={errors.icon_url?.message}
+                  >
+                    <InputGroup
+                      width="full"
+                      startElement={<FiLink color="#9CA3AF" />}
+                    >
+                      <Input
+                        {...register("icon_url")}
+                        placeholder="https://example.com/icon.png"
+                        ps="10"
+                      />
+                    </InputGroup>
+                  </Field>
+                </Stack>
               </form>
             </Dialog.Body>
             <Dialog.Footer>
@@ -153,14 +177,17 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
                 <Button
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={isPending}
+                  borderRadius="lg"
                 >
                   Hủy
                 </Button>
                 <Button
                   colorPalette="blue"
                   onClick={handleSubmit(onSubmit)}
-                  loading={createMutation.isPending || updateMutation.isPending}
+                  loading={isPending}
+                  loadingText={isEdit ? "Đang cập nhật..." : "Đang tạo..."}
+                  borderRadius="lg"
                 >
                   {isEdit ? "Cập nhật" : "Tạo mới"}
                 </Button>

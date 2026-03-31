@@ -1,9 +1,9 @@
+import { Box, Flex, IconButton, Spinner, Table, Text } from "@chakra-ui/react"
 import { useState } from "react"
-import { Table, Box, IconButton, Text, Flex, Spinner } from "@chakra-ui/react"
 import { FiEdit2, FiTrash2 } from "react-icons/fi"
 import type { CategoryRead } from "@/client"
-import { ConfirmDialog } from "./ConfirmDialog"
 import { useDeleteCategory } from "../hooks/useAdminCategories"
+import { ConfirmDialog } from "./ConfirmDialog"
 
 interface CategoriesTableProps {
   categories: CategoryRead[]
@@ -11,8 +11,14 @@ interface CategoriesTableProps {
   onEdit: (category: CategoryRead) => void
 }
 
-export function CategoriesTable({ categories, isLoading, onEdit }: CategoriesTableProps) {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryRead | null>(null)
+export function CategoriesTable({
+  categories,
+  isLoading,
+  onEdit,
+}: CategoriesTableProps) {
+  const [selectedCategory, setSelectedCategory] = useState<CategoryRead | null>(
+    null,
+  )
   const deleteMutation = useDeleteCategory()
 
   const handleDelete = (category: CategoryRead) => {
@@ -51,33 +57,79 @@ export function CategoriesTable({ categories, isLoading, onEdit }: CategoriesTab
         <Table.Root size="md">
           <Table.Header>
             <Table.Row bg="gray.100">
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Tên
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Slug
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Icon URL
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Ngày tạo
               </Table.ColumnHeader>
-              <Table.ColumnHeader px={6} py={3} fontSize="sm" fontWeight="semibold" color="gray.900">
+              <Table.ColumnHeader
+                px={6}
+                py={3}
+                fontSize="sm"
+                fontWeight="semibold"
+                color="gray.900"
+              >
                 Hành động
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {categories.map((category) => (
-              <Table.Row key={category.id} _hover={{ bg: "gray.50" }} transition="all 0.2s">
-                <Table.Cell px={6} py={4} fontSize="sm" fontWeight="medium" color="gray.900">
+              <Table.Row
+                key={category.id}
+                _hover={{ bg: "gray.50" }}
+                transition="all 0.2s"
+              >
+                <Table.Cell
+                  px={6}
+                  py={4}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  color="gray.900"
+                >
                   {category.name}
                 </Table.Cell>
                 <Table.Cell px={6} py={4} fontSize="sm" color="gray.600">
                   {category.slug || "-"}
                 </Table.Cell>
-                <Table.Cell px={6} py={4} fontSize="sm" color="gray.600" maxW="200px">
+                <Table.Cell
+                  px={6}
+                  py={4}
+                  fontSize="sm"
+                  color="gray.600"
+                  maxW="200px"
+                >
                   <Text lineClamp={1}>{category.icon_url || "-"}</Text>
                 </Table.Cell>
                 <Table.Cell px={6} py={4} fontSize="sm" color="gray.600">
