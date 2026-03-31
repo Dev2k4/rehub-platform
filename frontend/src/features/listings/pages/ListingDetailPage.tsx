@@ -1,53 +1,54 @@
-import { useState, useEffect } from "react"
 import {
+  Badge,
   Box,
+  Button,
+  CloseButton,
   Container,
+  Dialog,
   Flex,
   Heading,
-  Text,
-  Button,
-  Badge,
-  VStack,
   HStack,
-  Spinner,
   Image,
-  SimpleGrid,
-  Separator,
-  Dialog,
-  Portal,
-  CloseButton,
   Input,
+  Portal,
+  Separator,
+  SimpleGrid,
+  Spinner,
+  Text,
+  VStack,
 } from "@chakra-ui/react"
-import { useNavigate, useParams, Link, useSearch } from "@tanstack/react-router"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
 import {
+  FiAlertCircle,
   FiArrowLeft,
+  FiCalendar,
+  FiCheckCircle,
+  FiHeart,
+  FiMessageCircle,
+  FiShare2,
+  FiStar,
   FiTag,
   FiUser,
-  FiStar,
-  FiCalendar,
-  FiMessageCircle,
-  FiHeart,
-  FiShare2,
-  FiCheckCircle,
-  FiAlertCircle,
 } from "react-icons/fi"
 import type { CategoryTree } from "@/client"
 import { ApiError } from "@/client"
+import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { getListingDetails } from "@/features/listings/api/listings.api"
 import { getCategoriesTree } from "@/features/home/api/marketplace.api"
-import { getUserPublicProfile } from "@/features/users/api/users.api"
-import { createOrder } from "@/features/orders/api/orders.api"
-import { createOffer } from "@/features/offers/api/offers.api"
-import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
-import { useOffersForListing } from "@/features/offers/hooks/useOffers"
 import {
+  flattenCategories,
   formatCurrencyVnd,
   formatPostedTime,
   getListingImageUrl,
-  flattenCategories,
 } from "@/features/home/utils/marketplace.utils"
+import { getListingDetails } from "@/features/listings/api/listings.api"
+import { createOffer } from "@/features/offers/api/offers.api"
+import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
+import { useOffersForListing } from "@/features/offers/hooks/useOffers"
+import { createOrder } from "@/features/orders/api/orders.api"
+import { getUserPublicProfile } from "@/features/users/api/users.api"
 
 const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
   brand_new: { label: "Mới 100%", color: "green" },
@@ -97,14 +98,16 @@ function getErrorMessage(error: unknown, fallback: string): string {
 export function ListingDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams({ from: "/listings/$id" })
-  const search = useSearch({ from: "/listings/$id" }) as { offerId?: string } | undefined
+  const search = useSearch({ from: "/listings/$id" }) as
+    | { offerId?: string }
+    | undefined
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [offerPrice, setOfferPrice] = useState("")
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false)
   const [isOfferDetailModalOpen, setIsOfferDetailModalOpen] = useState(false)
-  const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(undefined)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+  const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(
+    undefined,
+  )
   const { user, isAuthenticated } = useAuthUser()
 
   // Auto-open offer detail modal if offerId is in URL search params
@@ -140,6 +143,15 @@ export function ListingDetailPage() {
   const createOfferMutation = useMutation({
     mutationFn: createOffer,
   })
+
+  // Hook must be called unconditionally before early returns
+  const isOwnListingCheck = user?.id && listingQuery.data?.seller_id === user.id
+  const listingOffersQuery = useOffersForListing(
+    isOwnListingCheck && listingQuery.data ? listingQuery.data.id : "",
+    {
+      limit: 20,
+    },
+  )
 
   const categoryMap = new Map<string, CategoryTree>()
   if (categoriesQuery.data) {
@@ -212,9 +224,6 @@ export function ListingDetailPage() {
   const currentImage = images[selectedImageIndex]
   const isOwnListing = user?.id === listing.seller_id
   const canTransact = listing.status === "active" && !isOwnListing
-  const listingOffersQuery = useOffersForListing(isOwnListing ? listing.id : "", {
-    limit: 20,
-  })
 
   const requireAuth = () => {
     if (isAuthenticated) {
@@ -225,15 +234,15 @@ export function ListingDetailPage() {
   }
 
   const handleBuyNow = async () => {
-    setActionError(null)
-    setActionSuccess(null)
-
     if (!requireAuth()) {
       return
     }
 
     if (!canTransact) {
-      setActionError("Bạn không thể mua sản phẩm này ở thời điểm hiện tại.")
+      toaster.create({
+        title: "Bạn không thể mua sản phẩm này ở thời điểm hiện tại.",
+        type: "error",
+      })
       return
     }
 
@@ -242,26 +251,31 @@ export function ListingDetailPage() {
         listing_id: listing.id,
         use_escrow: true,
       })
-      setActionSuccess(
-        `Đặt hàng escrow thành công. Mã đơn: ${order.id.slice(0, 8)}... Vào trang đơn hàng để fund ví demo.`,
-      )
+      toaster.create({
+        title: `Đặt hàng thành công. Mã đơn: ${order.id.slice(0, 8)}... Vào trang đơn hàng để fund ví demo.`,
+        type: "success",
+      })
     } catch (error) {
-      setActionError(
-        getErrorMessage(error, "Không thể tạo đơn hàng. Vui lòng thử lại."),
-      )
+      toaster.create({
+        title: getErrorMessage(
+          error,
+          "Không thể tạo đơn hàng. Vui lòng thử lại.",
+        ),
+        type: "error",
+      })
     }
   }
 
   const handleOpenOfferDialog = () => {
-    setActionError(null)
-    setActionSuccess(null)
-
     if (!requireAuth()) {
       return
     }
 
     if (!canTransact) {
-      setActionError("Bạn không thể thương lượng sản phẩm này ở thời điểm hiện tại.")
+      toaster.create({
+        title: "Bạn không thể thương lượng sản phẩm này ở thời điểm hiện tại.",
+        type: "error",
+      })
       return
     }
 
@@ -270,12 +284,12 @@ export function ListingDetailPage() {
   }
 
   const handleSubmitOffer = async () => {
-    setActionError(null)
-    setActionSuccess(null)
-
     const parsedPrice = Number(offerPrice)
     if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      setActionError("Giá đề xuất phải là số lớn hơn 0.")
+      toaster.create({
+        title: "Giá đề xuất phải là số lớn hơn 0.",
+        type: "error",
+      })
       return
     }
 
@@ -285,11 +299,18 @@ export function ListingDetailPage() {
         offer_price: parsedPrice,
       })
       setIsOfferDialogOpen(false)
-      setActionSuccess("Đã gửi đề xuất giá cho người bán thành công.")
+      toaster.create({
+        title: "Đã gửi đề xuất giá cho người bán thành công.",
+        type: "success",
+      })
     } catch (error) {
-      setActionError(
-        getErrorMessage(error, "Không thể gửi đề xuất giá. Vui lòng thử lại."),
-      )
+      toaster.create({
+        title: getErrorMessage(
+          error,
+          "Không thể gửi đề xuất giá. Vui lòng thử lại.",
+        ),
+        type: "error",
+      })
     }
   }
 
@@ -312,12 +333,13 @@ export function ListingDetailPage() {
           {/* Image Gallery */}
           <Box flex={1} minW={0}>
             <Box
-              bg="white"
+              bg="whiteAlpha.800"
+              backdropFilter="blur(20px)"
               borderRadius="xl"
               overflow="hidden"
-              boxShadow="sm"
+              boxShadow="0 10px 40px rgba(0,0,0,0.06)"
               border="1px"
-              borderColor="gray.200"
+              borderColor="whiteAlpha.400"
             >
               {/* Main Image */}
               <Box aspectRatio={1} bg="gray.100" position="relative">
@@ -395,11 +417,12 @@ export function ListingDetailPage() {
             <VStack gap={4} align="stretch">
               {/* Main Info Card */}
               <Box
-                bg="white"
+                bg="whiteAlpha.800"
+                backdropFilter="blur(20px)"
                 borderRadius="xl"
-                boxShadow="sm"
+                boxShadow="0 10px 40px rgba(0,0,0,0.06)"
                 border="1px"
-                borderColor="gray.200"
+                borderColor="whiteAlpha.400"
                 overflow="hidden"
               >
                 <Box p={6}>
@@ -467,36 +490,6 @@ export function ListingDetailPage() {
                 {/* Action Buttons */}
                 <Box p={4}>
                   <VStack gap={3}>
-                    {actionSuccess && (
-                      <Box
-                        w="full"
-                        px={3}
-                        py={2}
-                        borderRadius="md"
-                        bg="green.50"
-                        border="1px"
-                        borderColor="green.200"
-                      >
-                        <Text fontSize="sm" color="green.700">
-                          {actionSuccess}
-                        </Text>
-                      </Box>
-                    )}
-                    {actionError && (
-                      <Box
-                        w="full"
-                        px={3}
-                        py={2}
-                        borderRadius="md"
-                        bg="red.50"
-                        border="1px"
-                        borderColor="red.200"
-                      >
-                        <Text fontSize="sm" color="red.700">
-                          {actionError}
-                        </Text>
-                      </Box>
-                    )}
                     <Button
                       w="full"
                       bg="blue.600"
@@ -568,14 +561,19 @@ export function ListingDetailPage() {
                 style={{ textDecoration: "none" }}
               >
                 <Box
-                  bg="white"
+                  bg="whiteAlpha.800"
+                  backdropFilter="blur(20px)"
                   borderRadius="xl"
-                  boxShadow="sm"
+                  boxShadow="0 10px 40px rgba(0,0,0,0.06)"
                   border="1px"
-                  borderColor="gray.200"
+                  borderColor="whiteAlpha.400"
                   p={5}
-                  transition="all 0.2s"
-                  _hover={{ boxShadow: "md", borderColor: "blue.200" }}
+                  transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
+                  _hover={{
+                    boxShadow: "0 12px 30px rgba(0,0,0,0.1)",
+                    borderColor: "blue.200",
+                    transform: "translateY(-2px)",
+                  }}
                   cursor="pointer"
                 >
                   <HStack gap={3} mb={3}>
@@ -616,17 +614,27 @@ export function ListingDetailPage() {
                       )}
                     </Box>
                     <Box flex={1}>
-                      <Text fontSize="sm" fontWeight="semibold" color="gray.900" lineClamp={1}>
+                      <Text
+                        fontSize="sm"
+                        fontWeight="semibold"
+                        color="gray.900"
+                        lineClamp={1}
+                      >
                         {sellerProfileQuery.data?.full_name || "Người bán"}
                       </Text>
                       <HStack gap={3} mt={1} flexWrap="wrap">
                         <Text fontSize="xs" color="gray.600">
-                          Đã bán: {sellerProfileQuery.data?.completed_orders ?? 0} sản phẩm
+                          Đã bán:{" "}
+                          {sellerProfileQuery.data?.completed_orders ?? 0} sản
+                          phẩm
                         </Text>
                         <HStack gap={1} color="yellow.500">
                           <Box as={FiStar} w={3.5} h={3.5} />
                           <Text fontSize="xs" color="gray.600">
-                            {sellerProfileQuery.data ? sellerProfileQuery.data.rating_avg.toFixed(1) : "0.0"} sao
+                            {sellerProfileQuery.data
+                              ? sellerProfileQuery.data.rating_avg.toFixed(1)
+                              : "0.0"}{" "}
+                            sao
                           </Text>
                         </HStack>
                       </HStack>
@@ -655,11 +663,12 @@ export function ListingDetailPage() {
         {isOwnListing && (
           <Box
             mt={8}
-            bg="white"
+            bg="whiteAlpha.800"
+            backdropFilter="blur(20px)"
             borderRadius="xl"
-            boxShadow="sm"
+            boxShadow="0 10px 40px rgba(0,0,0,0.06)"
             border="1px"
-            borderColor="gray.200"
+            borderColor="whiteAlpha.400"
             p={6}
           >
             <Heading as="h2" size="md" color="gray.900" mb={4}>
@@ -670,7 +679,8 @@ export function ListingDetailPage() {
               <Flex py={6} justify="center">
                 <Spinner size="md" color="blue.500" />
               </Flex>
-            ) : listingOffersQuery.data && listingOffersQuery.data.length > 0 ? (
+            ) : listingOffersQuery.data &&
+              listingOffersQuery.data.length > 0 ? (
               <VStack align="stretch" gap={3}>
                 {listingOffersQuery.data.map((offer) => {
                   const statusMeta = OFFER_STATUS_META[offer.status] ?? {
@@ -686,18 +696,27 @@ export function ListingDetailPage() {
                       borderRadius="lg"
                       p={4}
                     >
-                      <Flex justify="space-between" align={{ base: "start", md: "center" }} gap={3}>
+                      <Flex
+                        justify="space-between"
+                        align={{ base: "start", md: "center" }}
+                        gap={3}
+                      >
                         <Box>
                           <Text fontWeight="semibold" color="gray.900">
-                            {formatCurrencyVnd(Math.floor(Number(offer.offer_price)))}
+                            {formatCurrencyVnd(
+                              Math.floor(Number(offer.offer_price)),
+                            )}
                           </Text>
                           <Text fontSize="sm" color="gray.500">
-                            Buyer: {offer.buyer_id.slice(0, 8)}... · {new Date(offer.created_at).toLocaleString("vi-VN")}
+                            Offer: {offer.id.slice(0, 8)}... ·{" "}
+                            {new Date(offer.created_at).toLocaleString("vi-VN")}
                           </Text>
                         </Box>
 
                         <HStack>
-                          <Badge colorPalette={statusMeta.color as any}>{statusMeta.label}</Badge>
+                          <Badge colorPalette={statusMeta.color as any}>
+                            {statusMeta.label}
+                          </Badge>
                           <Button
                             size="sm"
                             variant="outline"
@@ -724,11 +743,12 @@ export function ListingDetailPage() {
 
         <Box
           mt={8}
-          bg="white"
+          bg="whiteAlpha.800"
+          backdropFilter="blur(20px)"
           borderRadius="xl"
-          boxShadow="sm"
+          boxShadow="0 10px 40px rgba(0,0,0,0.06)"
           border="1px"
-          borderColor="gray.200"
+          borderColor="whiteAlpha.400"
           p={6}
         >
           <Heading as="h2" size="md" color="gray.900" mb={4}>

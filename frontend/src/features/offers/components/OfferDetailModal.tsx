@@ -1,28 +1,28 @@
-import { useState } from "react"
 import {
-  Dialog,
-  Portal,
-  CloseButton,
+  Badge,
   Box,
   Button,
+  CloseButton,
+  Dialog,
+  Flex,
   Heading,
+  Image,
+  Portal,
+  Spinner,
   Text,
   VStack,
-  Spinner,
-  Image,
-  Badge,
-  Flex,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
 import { ApiError } from "@/client"
-import { getOffer } from "@/features/offers/api/offers.api"
-import { getListingDetails } from "@/features/listings/api/listings.api"
 import {
   formatCurrencyVnd,
   getListingImageUrl,
 } from "@/features/home/utils/marketplace.utils"
-import { CounterOfferModal } from "./CounterOfferModal"
+import { getListingDetails } from "@/features/listings/api/listings.api"
+import { getOffer } from "@/features/offers/api/offers.api"
 import { useUpdateOfferMutation } from "@/features/offers/hooks/useUpdateOfferMutation"
+import { CounterOfferModal } from "./CounterOfferModal"
 
 type OfferDetailModalProps = {
   isOpen: boolean
@@ -87,7 +87,9 @@ export function OfferDetailModal({
       })
       handleClose()
     } catch (err) {
-      setError(getErrorMessage(err, "Không thể đồng ý offer. Vui lòng thử lại."))
+      setError(
+        getErrorMessage(err, "Không thể đồng ý offer. Vui lòng thử lại."),
+      )
     } finally {
       setIsProcessing(false)
     }
@@ -106,7 +108,9 @@ export function OfferDetailModal({
       })
       handleClose()
     } catch (err) {
-      setError(getErrorMessage(err, "Không thể từ chối offer. Vui lòng thử lại."))
+      setError(
+        getErrorMessage(err, "Không thể từ chối offer. Vui lòng thử lại."),
+      )
     } finally {
       setIsProcessing(false)
     }
@@ -229,16 +233,26 @@ export function OfferDetailModal({
                           <Text fontSize="xs" color="gray.600" mb={1}>
                             Giá gốc
                           </Text>
-                          <Text fontSize="lg" fontWeight="bold" color="gray.700">
-                            {formatCurrencyVnd(parseInt(listing.price))}
+                          <Text
+                            fontSize="lg"
+                            fontWeight="bold"
+                            color="gray.700"
+                          >
+                            {formatCurrencyVnd(parseInt(listing.price, 10))}
                           </Text>
                         </Box>
                         <Box w="full" borderTopWidth="1px" pt={2}>
                           <Text fontSize="xs" color="gray.600" mb={1}>
                             Giá đề xuất
                           </Text>
-                          <Text fontSize="xl" fontWeight="bold" color="blue.600">
-                            {formatCurrencyVnd(Math.floor(Number(offer.offer_price)))}
+                          <Text
+                            fontSize="xl"
+                            fontWeight="bold"
+                            color="blue.600"
+                          >
+                            {formatCurrencyVnd(
+                              Math.floor(Number(offer.offer_price)),
+                            )}
                           </Text>
                         </Box>
                         <Box w="full" borderTopWidth="1px" pt={2}>
@@ -247,27 +261,29 @@ export function OfferDetailModal({
                           </Text>
                           <Flex justify="space-between" align="center">
                             <Text fontSize="sm" fontWeight="semibold">
-                              {Math.floor(Number(offer.offer_price)) < parseInt(listing.price)
+                              {Math.floor(Number(offer.offer_price)) <
+                              parseInt(listing.price, 10)
                                 ? "Giảm "
                                 : "Tăng "}
                               {formatCurrencyVnd(
                                 Math.abs(
                                   Math.floor(Number(offer.offer_price)) -
-                                    parseInt(listing.price),
+                                    parseInt(listing.price, 10),
                                 ),
                               )}
                             </Text>
                             <Badge
                               colorScheme={
-                                Math.floor(Number(offer.offer_price)) < parseInt(listing.price)
+                                Math.floor(Number(offer.offer_price)) <
+                                parseInt(listing.price, 10)
                                   ? "orange"
                                   : "green"
                               }
                             >
                               {Math.floor(
                                 ((Math.floor(Number(offer.offer_price)) -
-                                  parseInt(listing.price)) /
-                                  parseInt(listing.price)) *
+                                  parseInt(listing.price, 10)) /
+                                  parseInt(listing.price, 10)) *
                                   100,
                               )}
                               %
@@ -385,7 +401,7 @@ export function OfferDetailModal({
           onOpenChange={handleCounterClose}
           offerId={offerId}
           currentOfferPrice={Math.floor(Number(offer.offer_price))}
-          originalPrice={parseInt(listing.price)}
+          originalPrice={parseInt(listing.price, 10)}
           onSuccess={handleCounterSuccess}
         />
       )}
