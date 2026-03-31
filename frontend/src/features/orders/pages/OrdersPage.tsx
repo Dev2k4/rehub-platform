@@ -1,5 +1,5 @@
-import { useState } from "react"
 import {
+  Badge,
   Box,
   Button,
   Container,
@@ -9,19 +9,20 @@ import {
   Spinner,
   Text,
   VStack,
-  Badge,
 } from "@chakra-ui/react"
 import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiArrowLeft } from "react-icons/fi"
+import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import {
-  useMyOrders,
-  useCompleteOrder,
-  useCancelOrder,
-} from "@/features/orders/hooks/useOrders"
 import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
+import {
+  useCancelOrder,
+  useCompleteOrder,
+  useMyOrders,
+} from "@/features/orders/hooks/useOrders"
 
-type OrderTab = "all" | "buying" | "selling"
+type OrderTab = "buying" | "selling"
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
@@ -39,7 +40,7 @@ function statusMeta(status: string): { label: string; color: string } {
 export function OrdersPage() {
   const navigate = useNavigate()
   const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
-  const [tab, setTab] = useState<OrderTab>("all")
+  const [tab, setTab] = useState<OrderTab>("buying")
 
   const ordersQuery = useMyOrders()
   const completeMutation = useCompleteOrder()
@@ -70,70 +71,230 @@ export function OrdersPage() {
   })()
 
   const handleComplete = async (orderId: string) => {
-    await completeMutation.mutateAsync(orderId)
+    try {
+      await completeMutation.mutateAsync(orderId)
+      toaster.create({ title: "Đã hoàn thành đơn hàng", type: "success" })
+    } catch (e: any) {
+      toaster.create({
+        title: e?.message || "Lỗi hoàn thành đơn hàng",
+        type: "error",
+      })
+    }
   }
 
   const handleCancel = async (orderId: string) => {
-    await cancelMutation.mutateAsync(orderId)
+    try {
+      await cancelMutation.mutateAsync(orderId)
+      toaster.create({ title: "Đã hủy đơn hàng", type: "info" })
+    } catch (e: any) {
+      toaster.create({
+        title: e?.message || "Lỗi hủy đơn hàng",
+        type: "error",
+      })
+    }
   }
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="5xl" py={10}>
+      <Container maxW="5xl" py={10} mx="auto">
         <Flex align="center" justify="space-between" mb={6}>
-          <HStack>
-            <Button variant="ghost" onClick={() => navigate({ to: "/" })} color="blue.600">
+          <HStack gap={3}>
+            <Button
+              variant="ghost"
+              onClick={() => navigate({ to: "/" })}
+              color="blue.600"
+              borderRadius="xl"
+              _hover={{ bg: "blue.50" }}
+            >
               <FiArrowLeft style={{ marginRight: "0.5rem" }} />
               Quay lại
             </Button>
-            <Button variant="outline" colorPalette="blue" onClick={() => navigate({ to: "/wallet" })}>
+            <Button
+              variant="ghost"
+              colorPalette="blue"
+              onClick={() => navigate({ to: "/wallet" })}
+              borderRadius="xl"
+            >
               Ví demo
             </Button>
           </HStack>
         </Flex>
 
-        <Heading size="lg" mb={2}>Đơn hàng của tôi</Heading>
-        <Text color="gray.600" mb={6}>Quản lý các đơn mua và đơn bán của bạn.</Text>
+        <Box mb={8}>
+          <Heading size="3xl" mb={3} color="gray.900" fontWeight="extrabold">
+            Đơn hàng của tôi
+          </Heading>
+          <Text color="gray.500" fontSize="lg">
+            Quản lý các giao dịch mua và bán của bạn một cách nhanh chóng.
+          </Text>
+        </Box>
 
-        <HStack mb={6} gap={3}>
-          <Button variant={tab === "all" ? "solid" : "outline"} onClick={() => setTab("all")}>Tất cả</Button>
-          <Button variant={tab === "buying" ? "solid" : "outline"} onClick={() => setTab("buying")}>Đơn mua</Button>
-          <Button variant={tab === "selling" ? "solid" : "outline"} onClick={() => setTab("selling")}>Đơn bán</Button>
+        <HStack
+          mb={8}
+          gap={1.5}
+          bg="whiteAlpha.800"
+          backdropFilter="blur(20px)"
+          p={1.5}
+          borderRadius="2xl"
+          display="inline-flex"
+          border="1px"
+          borderColor="whiteAlpha.400"
+          boxShadow="0 4px 15px rgba(0,0,0,0.04)"
+        >
+          <Button
+            size="md"
+            borderRadius="xl"
+            variant={tab === "buying" ? "solid" : "ghost"}
+            bg={tab === "buying" ? "blue.600" : "transparent"}
+            color={tab === "buying" ? "white" : "gray.600"}
+            onClick={() => setTab("buying")}
+            px={8}
+            _hover={tab === "buying" ? { bg: "blue.700" } : { bg: "blue.50" }}
+          >
+            Đơn mua
+          </Button>
+          <Button
+            size="md"
+            borderRadius="xl"
+            variant={tab === "selling" ? "solid" : "ghost"}
+            bg={tab === "selling" ? "blue.600" : "transparent"}
+            color={tab === "selling" ? "white" : "gray.600"}
+            onClick={() => setTab("selling")}
+            px={8}
+            _hover={tab === "selling" ? { bg: "blue.700" } : { bg: "blue.50" }}
+          >
+            Đơn bán
+          </Button>
         </HStack>
 
         {ordersQuery.isLoading ? (
-          <Flex justify="center" py={10}><Spinner /></Flex>
+          <Flex justify="center" py={20}>
+            <Spinner size="xl" color="blue.500" borderWidth="4px" />
+          </Flex>
         ) : filteredOrders.length === 0 ? (
-          <Box bg="white" borderRadius="lg" p={8} textAlign="center" color="gray.500">
-            Chưa có đơn hàng nào.
+          <Box
+            bg="whiteAlpha.800"
+            backdropFilter="blur(20px)"
+            borderRadius="2xl"
+            p={16}
+            textAlign="center"
+            border="1px solid"
+            borderColor="gray.100"
+            boxShadow="sm"
+          >
+            <VStack gap={4}>
+              <Text fontSize="xl" color="gray.400" fontWeight="medium">
+                Chưa có đơn hàng nào trong danh sách.
+              </Text>
+              <Button
+                variant="outline"
+                colorPalette="blue"
+                onClick={() => navigate({ to: "/" })}
+                borderRadius="xl"
+              >
+                Tiếp tục mua hàng
+              </Button>
+            </VStack>
           </Box>
         ) : (
-          <VStack align="stretch" gap={4}>
+          <VStack align="stretch" gap={5}>
             {filteredOrders.map((order) => {
               const status = statusMeta(order.status)
               const isBuyer = order.buyer_id === user.id
               const canAct = order.status === "pending"
               return (
-                <Box key={order.id} bg="white" borderRadius="lg" p={5} boxShadow="sm" border="1px" borderColor="gray.200">
-                  <Flex justify="space-between" align={{ base: "start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+                <Box
+                  key={order.id}
+                  bg="whiteAlpha.800"
+                  backdropFilter="blur(20px)"
+                  borderRadius="2xl"
+                  p={8}
+                  boxShadow="0 4px 25px rgba(0,0,0,0.03)"
+                  border="1px"
+                  borderColor="whiteAlpha.500"
+                  _hover={{
+                    boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
+                    borderColor: "blue.200",
+                    transform: "translateY(-3px)",
+                  }}
+                  transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                >
+                  <Flex
+                    justify="space-between"
+                    align={{ base: "start", md: "center" }}
+                    direction={{ base: "column", md: "row" }}
+                    gap={6}
+                  >
                     <Box>
-                      <Text fontWeight="semibold">Mã đơn: {order.id.slice(0, 8)}...</Text>
-                      <Text fontSize="sm" color="gray.600">Listing: {order.listing_id.slice(0, 8)}...</Text>
-                      <Text fontSize="sm" color="gray.600">Giá trị: {formatCurrencyVnd(order.final_price)}</Text>
-                      <Badge mt={2} colorPalette={status.color as any}>{status.label}</Badge>
+                      <Flex align="center" gap={3} mb={2}>
+                        <Text
+                          fontWeight="bold"
+                          fontSize="2xl"
+                          color="blue.600"
+                          letterSpacing="tight"
+                        >
+                          {formatCurrencyVnd(order.final_price)}
+                        </Text>
+                        <Badge
+                          colorPalette={status.color as any}
+                          variant="surface"
+                          size="lg"
+                          borderRadius="full"
+                          px={4}
+                        >
+                          {status.label}
+                        </Badge>
+                      </Flex>
+                      <HStack fontSize="sm" color="gray.500" gap={4}>
+                        <Text>
+                          Mã định danh:{" "}
+                          <Text
+                            as="span"
+                            fontFamily="mono"
+                            color="gray.400"
+                            fontSize="xs"
+                          >
+                            {order.id}
+                          </Text>
+                        </Text>
+                      </HStack>
                     </Box>
-                    <HStack>
-                      <Button size="sm" variant="outline" onClick={() => navigate({ to: "/orders/$id", params: { id: order.id } })}>
-                        Chi tiết
+                    <HStack gap={3}>
+                      <Button
+                        variant="surface"
+                        colorPalette="blue"
+                        borderRadius="xl"
+                        px={6}
+                        onClick={() =>
+                          navigate({
+                            to: "/orders/$id",
+                            params: { id: order.id },
+                          })
+                        }
+                      >
+                        Chi tiết đơn
                       </Button>
                       {canAct && isBuyer && (
-                        <Button size="sm" colorPalette="green" onClick={() => handleComplete(order.id)} loading={completeMutation.isPending}>
-                          Hoàn thành
+                        <Button
+                          colorPalette="green"
+                          borderRadius="xl"
+                          px={6}
+                          onClick={() => handleComplete(order.id)}
+                          loading={completeMutation.isPending}
+                        >
+                          Hoàn thành đơn
                         </Button>
                       )}
                       {canAct && (
-                        <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleCancel(order.id)} loading={cancelMutation.isPending}>
-                          Hủy
+                        <Button
+                          colorPalette="red"
+                          variant="outline"
+                          borderRadius="xl"
+                          px={6}
+                          onClick={() => handleCancel(order.id)}
+                          loading={cancelMutation.isPending}
+                        >
+                          Hủy đơn
                         </Button>
                       )}
                     </HStack>

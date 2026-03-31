@@ -1,7 +1,9 @@
+import { Box, Text, Textarea, VStack } from "@chakra-ui/react"
 import { useState } from "react"
-import { Box, Button, Text, Textarea, VStack } from "@chakra-ui/react"
-import { useCreateReview } from "@/features/reviews/hooks/useReviews"
+import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
 import { RatingStars } from "@/features/reviews/components/RatingStars"
+import { useCreateReview } from "@/features/reviews/hooks/useReviews"
 
 type ReviewFormProps = {
   orderId: string
@@ -40,21 +42,37 @@ export function ReviewForm({ orderId, onSuccess }: ReviewFormProps) {
   }
 
   return (
-    <Box border="1px" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
-      <VStack align="stretch" gap={3}>
-        <Text fontWeight="semibold" color="gray.900">
-          Đánh giá giao dịch
-        </Text>
+    <Box
+      border="1px"
+      borderColor="gray.200"
+      borderRadius="xl"
+      p={6}
+      bg="white"
+      boxShadow="0 2px 8px rgba(0,0,0,0.04)"
+    >
+      <VStack align="stretch" gap={4}>
+        <Field label="Chấm điểm">
+          <RatingStars value={rating} onChange={setRating} />
+        </Field>
 
-        <RatingStars value={rating} onChange={setRating} />
-
-        <Textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Chia sẻ trải nghiệm của bạn (không bắt buộc)..."
-          maxLength={500}
-          resize="vertical"
-        />
+        <Field label="Nhận xét">
+          <Textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Chia sẻ trải nghiệm của bạn (không bắt buộc)..."
+            maxLength={500}
+            resize="vertical"
+            borderRadius="lg"
+            borderColor="gray.200"
+            px={4}
+            py={3}
+            _focus={{
+              borderColor: "blue.400",
+              ring: "1px",
+              ringColor: "blue.400",
+            }}
+          />
+        </Field>
 
         {formError && (
           <Text fontSize="sm" color="red.600">
@@ -67,6 +85,10 @@ export function ReviewForm({ orderId, onSuccess }: ReviewFormProps) {
           colorPalette="blue"
           onClick={handleSubmit}
           loading={createReviewMutation.isPending}
+          loadingText="Đang gửi..."
+          borderRadius="xl"
+          px={6}
+          boxShadow="0 4px 12px rgba(66,153,225,0.3)"
         >
           Gửi đánh giá
         </Button>

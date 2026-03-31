@@ -31,7 +31,13 @@ export function ReviewsList({
 
   if (reviews.length === 0) {
     return (
-      <Box border="1px" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+      <Box
+        border="1px"
+        borderColor="gray.200"
+        borderRadius="lg"
+        p={4}
+        bg="white"
+      >
         <Text fontSize="sm" color="gray.500">
           {emptyText}
         </Text>
@@ -42,8 +48,19 @@ export function ReviewsList({
   return (
     <VStack gap={3} align="stretch">
       {reviews.map((review) => (
-        <Box key={review.id} border="1px" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
-          <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} gap={2}>
+        <Box
+          key={review.id}
+          border="1px"
+          borderColor="gray.200"
+          borderRadius="lg"
+          p={4}
+          bg="white"
+        >
+          <Flex
+            justify="space-between"
+            align={{ base: "flex-start", md: "center" }}
+            gap={2}
+          >
             <Text fontSize="sm" color="gray.700" fontWeight="medium">
               Reviewer: {review.reviewer_id.slice(0, 8)}...
             </Text>
