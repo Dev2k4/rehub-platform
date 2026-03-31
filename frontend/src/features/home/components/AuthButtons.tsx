@@ -1,5 +1,5 @@
+import { Button, Link as ChakraLink, HStack } from "@chakra-ui/react";
 import { Link } from "@tanstack/react-router";
-import { HStack, Button, Link as ChakraLink } from "@chakra-ui/react";
 
 export function AuthButtons() {
   return (
@@ -7,11 +7,19 @@ export function AuthButtons() {
       <ChakraLink asChild>
         <Link to="/auth/login">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            color="blue.600"
-            _hover={{ bg: "blue.50" }}
+            color="gray.700"
+            bg="whiteAlpha.600"
+            backdropFilter="blur(8px)"
+            borderColor="whiteAlpha.400"
+            _hover={{
+              bg: "whiteAlpha.800",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+              transform: "translateY(-1px)",
+            }}
             fontWeight="medium"
+            transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
           >
             Đăng nhập
           </Button>
@@ -21,11 +29,16 @@ export function AuthButtons() {
         <Link to="/auth/register">
           <Button
             size="sm"
-            bg="blue.600"
+            bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
             color="white"
-            _hover={{ bg: "blue.700" }}
+            _hover={{
+              bg: "linear-gradient(135deg, #013A67 0%, #017AAA 100%)",
+              transform: "translateY(-1px)",
+              boxShadow: "0 4px 15px rgba(2,69,122,0.4)",
+            }}
             fontWeight="medium"
-            borderRadius="md"
+            borderRadius="full"
+            transition="all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
           >
             Đăng ký
           </Button>
