@@ -58,7 +58,9 @@ export async function getMyWallet(): Promise<WalletAccountRead> {
   return parseResponse<WalletAccountRead>(response)
 }
 
-export async function demoTopupWallet(amount: number): Promise<WalletAccountRead> {
+export async function demoTopupWallet(
+  amount: number,
+): Promise<WalletAccountRead> {
   const response = await fetch(`${getApiBase()}/wallet/demo-topup`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -67,7 +69,9 @@ export async function demoTopupWallet(amount: number): Promise<WalletAccountRead
   return parseResponse<WalletAccountRead>(response)
 }
 
-export async function getWalletTransactions(): Promise<WalletTransactionRead[]> {
+export async function getWalletTransactions(): Promise<
+  WalletTransactionRead[]
+> {
   const response = await fetch(`${getApiBase()}/wallet/transactions`, {
     method: "GET",
     headers: getAuthHeaders(),

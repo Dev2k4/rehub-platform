@@ -1,5 +1,5 @@
-import { useState } from "react"
 import {
+  Badge,
   Box,
   Button,
   Container,
@@ -12,16 +12,18 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useNavigate } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { FiArrowLeft } from "react-icons/fi"
+import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
 import {
   demoTopupWallet,
   getMyWallet,
   getWalletTransactions,
 } from "@/features/wallet/api/wallet.api"
-import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
 
 export function WalletPage() {
   const navigate = useNavigate()
@@ -43,9 +45,16 @@ export function WalletPage() {
 
   const topupMutation = useMutation({
     mutationFn: (value: number) => demoTopupWallet(value),
-    onSuccess: () => {
+    onSuccess: (_, value) => {
       queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
       queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] })
+      toaster.create({
+        title: `Nạp thành công ${formatCurrencyVnd(String(value))}`,
+        type: "success",
+      })
+    },
+    onError: (e: any) => {
+      toaster.create({ title: e?.message || "Lỗi nạp ví", type: "error" })
     },
   })
 
@@ -65,15 +74,27 @@ export function WalletPage() {
   const wallet = walletQuery.data
 
   if (walletQuery.isError) {
-    const message = walletQuery.error instanceof Error ? walletQuery.error.message : "Không xác định"
+    const message =
+      walletQuery.error instanceof Error
+        ? walletQuery.error.message
+        : "Không xác định"
     return (
       <Container py={10}>
-        <Text color="red.600" mb={2}>Không tải được thông tin ví.</Text>
-        <Text color="gray.600" fontSize="sm" mb={4}>Chi tiết: {message}</Text>
-        <Text color="gray.600" fontSize="sm" mb={4}>
-          Nếu lỗi là 404, backend chưa reload route mới. Hãy restart backend rồi tải lại trang.
+        <Text color="red.600" mb={2}>
+          Không tải được thông tin ví.
         </Text>
-        <Button onClick={() => walletQuery.refetch()} colorPalette="blue" variant="outline">
+        <Text color="gray.600" fontSize="sm" mb={4}>
+          Chi tiết: {message}
+        </Text>
+        <Text color="gray.600" fontSize="sm" mb={4}>
+          Nếu lỗi là 404, backend chưa reload route mới. Hãy restart backend rồi
+          tải lại trang.
+        </Text>
+        <Button
+          onClick={() => walletQuery.refetch()}
+          colorPalette="blue"
+          variant="outline"
+        >
           Thử lại
         </Button>
       </Container>
@@ -90,77 +111,201 @@ export function WalletPage() {
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="5xl" py={10}>
-        <Button variant="ghost" onClick={() => navigate({ to: "/orders" })} color="blue.600" mb={6}>
+      <Container maxW="5xl" py={10} mx="auto">
+        <Button
+          variant="ghost"
+          onClick={() => navigate({ to: "/orders" })}
+          color="blue.600"
+          mb={6}
+          borderRadius="xl"
+          _hover={{ bg: "blue.50" }}
+          px={4}
+        >
           <FiArrowLeft style={{ marginRight: "0.5rem" }} />
           Quay lại đơn hàng
         </Button>
 
-        <Heading size="lg" mb={2}>Ví demo</Heading>
-        <Text color="gray.600" mb={6}>Dùng để test escrow flow, không phải tiền thật.</Text>
+        <Box mb={8}>
+          <Heading size="xl" mb={2} color="gray.900">
+            Ví demo
+          </Heading>
+          <Text color="gray.500">
+            Dùng để test giao dịch thanh toán và Escrow, không phải tiền thật.
+          </Text>
+        </Box>
 
-        <Box bg="white" borderRadius="xl" p={5} boxShadow="sm" border="1px" borderColor="gray.200" mb={6}>
-          <HStack justify="space-between" align={{ base: "start", md: "center" }} flexDir={{ base: "column", md: "row" }} gap={4}>
-            <VStack align="start" gap={1}>
-              <Text fontSize="sm" color="gray.600">Số dư khả dụng</Text>
-              <Text fontWeight="bold" fontSize="2xl">{formatCurrencyVnd(wallet.available_balance)}</Text>
-              <Text fontSize="sm" color="gray.600">Số dư đang giữ escrow: {formatCurrencyVnd(wallet.locked_balance)}</Text>
+        <Box
+          borderRadius="2xl"
+          p={8}
+          boxShadow="0 10px 40px rgba(66,153,225,0.25)"
+          color="white"
+          mb={8}
+          style={{
+            background:
+              "linear-gradient(135deg, #3B82F6 0%, #7C3AED 50%, #06B6D4 100%)",
+          }}
+        >
+          <HStack
+            justify="space-between"
+            align={{ base: "start", md: "center" }}
+            flexDir={{ base: "column", md: "row" }}
+            gap={6}
+          >
+            <VStack align="start" gap={2}>
+              <Text fontSize="sm" fontWeight="medium" opacity={0.8}>
+                SỐ DƯ KHẢ DỤNG
+              </Text>
+              <Text fontWeight="bold" fontSize="4xl" letterSpacing="tight">
+                {formatCurrencyVnd(wallet.available_balance)}
+              </Text>
+              <HStack
+                mt={1}
+                bg="whiteAlpha.200"
+                px={4}
+                py={1.5}
+                borderRadius="full"
+              >
+                <Text fontSize="sm" opacity={0.9}>
+                  Đang giữ escrow:
+                </Text>
+                <Text fontSize="sm" fontWeight="bold">
+                  {formatCurrencyVnd(wallet.locked_balance)}
+                </Text>
+              </HStack>
             </VStack>
 
-            <HStack>
-              <Input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                type="number"
-                min={1000}
-                step={1000}
-                maxW="180px"
-              />
-              <Button
-                colorPalette="blue"
-                onClick={async () => {
-                  const numeric = Number(amount)
-                  if (!Number.isFinite(numeric) || numeric <= 0) {
-                    return
-                  }
-                  await topupMutation.mutateAsync(numeric)
-                }}
-                loading={topupMutation.isPending}
-              >
-                Nạp ví demo
-              </Button>
-            </HStack>
+            <Box
+              bg="whiteAlpha.900"
+              backdropFilter="blur(8px)"
+              p={1.5}
+              borderRadius="xl"
+              boxShadow="xl"
+              w={{ base: "full", md: "auto" }}
+            >
+              <HStack gap={2}>
+                <Input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  type="number"
+                  min={1000}
+                  step={1000}
+                  w={{ base: "full", md: "150px" }}
+                  bg="transparent"
+                  border="none"
+                  color="gray.800"
+                  fontWeight="medium"
+                  px={4}
+                  _focus={{ boxShadow: "none" }}
+                />
+                <Button
+                  colorPalette="blue"
+                  borderRadius="lg"
+                  px={6}
+                  onClick={async () => {
+                    const numeric = Number(amount)
+                    if (!Number.isFinite(numeric) || numeric <= 0) {
+                      return
+                    }
+                    await topupMutation.mutateAsync(numeric)
+                  }}
+                  loading={topupMutation.isPending}
+                >
+                  Nạp ví demo
+                </Button>
+              </HStack>
+            </Box>
           </HStack>
         </Box>
 
-        <Box bg="white" borderRadius="xl" p={5} boxShadow="sm" border="1px" borderColor="gray.200">
-          <Heading size="sm" mb={4}>Lịch sử giao dịch</Heading>
+        <Box
+          bg="whiteAlpha.800"
+          backdropFilter="blur(20px)"
+          borderRadius="2xl"
+          p={6}
+          boxShadow="0 10px 40px rgba(0,0,0,0.06)"
+          border="1px"
+          borderColor="whiteAlpha.400"
+        >
+          <Heading size="md" mb={6} color="gray.800">
+            Lịch sử giao dịch
+          </Heading>
 
           {transactionsQuery.isLoading ? (
-            <Spinner />
+            <Flex justify="center" py={10}>
+              <Spinner color="blue.500" />
+            </Flex>
           ) : transactionsQuery.data && transactionsQuery.data.length > 0 ? (
-            <Table.Root size="sm">
-              <Table.Header>
-                <Table.Row>
-                  <Table.ColumnHeader>Thời gian</Table.ColumnHeader>
-                  <Table.ColumnHeader>Loại</Table.ColumnHeader>
-                  <Table.ColumnHeader>Chiều</Table.ColumnHeader>
-                  <Table.ColumnHeader textAlign="right">Số tiền</Table.ColumnHeader>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {transactionsQuery.data.map((tx) => (
-                  <Table.Row key={tx.id}>
-                    <Table.Cell>{new Date(tx.created_at).toLocaleString("vi-VN")}</Table.Cell>
-                    <Table.Cell>{tx.type}</Table.Cell>
-                    <Table.Cell>{tx.direction}</Table.Cell>
-                    <Table.Cell textAlign="right">{formatCurrencyVnd(tx.amount)}</Table.Cell>
+            <Box overflowX="auto">
+              <Table.Root size="md" variant="line">
+                <Table.Header>
+                  <Table.Row bg="gray.50">
+                    <Table.ColumnHeader
+                      color="gray.600"
+                      py={3}
+                      borderRadius="tl-lg"
+                    >
+                      Thời gian
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader color="gray.600" py={3}>
+                      Loại
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader color="gray.600" py={3}>
+                      Chiều
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader
+                      textAlign="right"
+                      color="gray.600"
+                      py={3}
+                      borderRadius="tr-lg"
+                    >
+                      Số tiền
+                    </Table.ColumnHeader>
                   </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Root>
+                </Table.Header>
+                <Table.Body>
+                  {transactionsQuery.data.map((tx) => (
+                    <Table.Row
+                      key={tx.id}
+                      _hover={{ bg: "gray.50" }}
+                      transition="all 0.2s"
+                    >
+                      <Table.Cell color="gray.600">
+                        {new Date(tx.created_at).toLocaleString("vi-VN")}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge colorPalette="gray" variant="subtle">
+                          {tx.type}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge
+                          colorPalette={
+                            tx.direction === "credit" ? "green" : "red"
+                          }
+                          variant="subtle"
+                        >
+                          {tx.direction === "credit" ? "Cộng (+)" : "Trừ (-)"}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell
+                        textAlign="right"
+                        fontWeight="bold"
+                        color={
+                          tx.direction === "credit" ? "green.600" : "gray.900"
+                        }
+                      >
+                        {tx.direction === "credit" ? "+" : "-"}
+                        {formatCurrencyVnd(tx.amount)}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
+            </Box>
           ) : (
-            <Text color="gray.500">Chưa có giao dịch nào.</Text>
+            <Text color="gray.500" textAlign="center" py={8}>
+              Chưa có giao dịch nào.
+            </Text>
           )}
         </Box>
       </Container>
