@@ -10,17 +10,17 @@ import {
   Text,
   Textarea,
   VStack,
-} from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { FiCamera, FiTrash2 } from "react-icons/fi";
-import { z } from "zod";
-import type { CategoryTree } from "@/client";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field } from "@/components/ui/field";
-import { InputGroup } from "@/components/ui/input-group";
+} from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { FiCamera, FiTrash2 } from "react-icons/fi"
+import { z } from "zod"
+import type { CategoryTree } from "@/client"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
 
 const listingSchema = z.object({
   title: z.string().min(5, "Tiêu đề ít nhất 5 ký tự").max(200),
@@ -29,21 +29,21 @@ const listingSchema = z.object({
   category_id: z.string().min(1, "Chọn danh mục"),
   condition_grade: z.string().min(1, "Chọn tình trạng"),
   is_negotiable: z.boolean().default(false),
-});
+})
 
-type ListingFormData = z.infer<typeof listingSchema>;
+type ListingFormData = z.infer<typeof listingSchema>
 
 export interface ListingFormSubmitPayload {
-  data: ListingFormData;
-  files: File[];
+  data: ListingFormData
+  files: File[]
 }
 
 interface ListingFormProps {
-  initialData?: Partial<ListingFormData>;
-  categories?: CategoryTree[];
-  onSubmit: (payload: ListingFormSubmitPayload) => Promise<void> | void;
-  isLoading?: boolean;
-  onCancel?: () => void;
+  initialData?: Partial<ListingFormData>
+  categories?: CategoryTree[]
+  onSubmit: (payload: ListingFormSubmitPayload) => Promise<void> | void
+  isLoading?: boolean
+  onCancel?: () => void
 }
 
 export function ListingForm({
@@ -53,8 +53,8 @@ export function ListingForm({
   isLoading = false,
   onCancel,
 }: ListingFormProps) {
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewImages, setPreviewImages] = useState<string[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
 
   const {
     register,
@@ -68,29 +68,29 @@ export function ListingForm({
       condition_grade: "GOOD",
       is_negotiable: false,
     },
-  });
+  })
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setSelectedFiles([...selectedFiles, ...files]);
+    const files = Array.from(e.target.files || [])
+    setSelectedFiles([...selectedFiles, ...files])
 
     files.forEach((file) => {
-      const reader = new FileReader();
+      const reader = new FileReader()
       reader.onload = (event) => {
-        setPreviewImages((prev) => [...prev, event.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
+        setPreviewImages((prev) => [...prev, event.target?.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
 
   const removeImage = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviewImages((prev) => prev.filter((_, i) => i !== index));
-  };
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
+    setPreviewImages((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const onFormSubmit = async (data: ListingFormData) => {
-    await onSubmit({ data, files: selectedFiles });
-  };
+    await onSubmit({ data, files: selectedFiles })
+  }
 
   return (
     <Box as="form" onSubmit={handleSubmit(onFormSubmit as any)}>
@@ -154,12 +154,7 @@ export function ListingForm({
           <InputGroup
             width="full"
             startElement={
-              <Box
-                color="gray.400"
-                display="flex"
-                alignItems="center"
-                ps={4}
-              ></Box>
+              <Box color="gray.400" display="flex" alignItems="center" ps={4} />
             }
           >
             <ChakraInput
@@ -379,5 +374,5 @@ export function ListingForm({
         </Flex>
       </Stack>
     </Box>
-  );
+  )
 }

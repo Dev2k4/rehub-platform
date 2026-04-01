@@ -1,25 +1,26 @@
-import { Box, Flex, Heading, Image, Text } from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
-import { FiStar, FiTag } from "react-icons/fi";
-import type { CategoryTree, ListingWithImages } from "@/client";
+import { Box, Flex, Heading, Image, Text } from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
+import { FiStar, FiTag } from "react-icons/fi"
+import { Tooltip } from "@/components/ui/tooltip"
+import type { CategoryTree, ListingWithImages } from "@/client"
 import {
   formatCurrencyVnd,
   formatPostedTime,
   getListingImageUrl,
-} from "@/features/home/utils/marketplace.utils";
+} from "@/features/home/utils/marketplace.utils"
 
 type ListingCardProps = {
-  listing: ListingWithImages;
-  categoryMap: Map<string, CategoryTree>;
-};
+  listing: ListingWithImages
+  categoryMap: Map<string, CategoryTree>
+}
 
 export function ListingCard({
   listing,
   categoryMap,
   seller,
 }: ListingCardProps & { seller?: import("@/client").UserPublicProfile }) {
-  const category = categoryMap.get(listing.category_id);
-  const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url);
+  const category = categoryMap.get(listing.category_id)
+  const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
 
   return (
     <Link
@@ -70,16 +71,17 @@ export function ListingCard({
         </Box>
 
         <Box p={3} display="flex" flexDir="column" gap={2}>
-          <Heading
-            as="h3"
-            fontSize="sm"
-            fontWeight="semibold"
-            color="gray.900"
-            lineClamp={2}
-            minH="40px"
-          >
-            {listing.title}
-          </Heading>
+          <Tooltip content={listing.title} showArrow>
+            <Heading
+              as="h3"
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+              lineClamp={1}
+            >
+              {listing.title}
+            </Heading>
+          </Tooltip>
 
           <Text
             fontSize="lg"
@@ -126,5 +128,5 @@ export function ListingCard({
         </Box>
       </Box>
     </Link>
-  );
+  )
 }
