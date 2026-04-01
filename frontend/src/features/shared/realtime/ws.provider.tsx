@@ -7,7 +7,10 @@ type WsContextValue = {
   onlineUserIds: string[]
 }
 
-const WsContext = createContext<WsContextValue>({ connected: false, onlineUserIds: [] })
+const WsContext = createContext<WsContextValue>({
+  connected: false,
+  onlineUserIds: [],
+})
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false)
@@ -28,7 +31,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     const offConnectedData = wsClient.on("ws:connected", (payload) => {
       const data = payload as { online_user_ids?: unknown }
       const ids = Array.isArray(data.online_user_ids)
-        ? data.online_user_ids.filter((value): value is string => typeof value === "string")
+        ? data.online_user_ids.filter(
+            (value): value is string => typeof value === "string",
+          )
         : []
       setOnlineUserIds(ids)
     })
@@ -40,7 +45,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       }
 
       setOnlineUserIds((prev) =>
-        prev.includes(data.user_id as string) ? prev : [...prev, data.user_id as string],
+        prev.includes(data.user_id as string)
+          ? prev
+          : [...prev, data.user_id as string],
       )
     })
 

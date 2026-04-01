@@ -1,5 +1,5 @@
-import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react"
 import type { EscrowRead } from "@/features/escrow/api/escrow.api"
 import type { WalletAccountRead } from "@/features/wallet/api/wallet.api"
 import { wsClient } from "./ws.client"
@@ -31,7 +31,10 @@ export function useRealtimeFinance(enabled: boolean) {
     const unsubscribeEscrow = wsClient.on("escrow:state_changed", (data) => {
       const payload = data as EscrowEventPayload
       if (payload.escrow) {
-        queryClient.setQueryData(["escrow", payload.escrow.order_id], payload.escrow)
+        queryClient.setQueryData(
+          ["escrow", payload.escrow.order_id],
+          payload.escrow,
+        )
       }
       queryClient.invalidateQueries({ queryKey: ["escrow"] })
       queryClient.invalidateQueries({ queryKey: ["orders"] })

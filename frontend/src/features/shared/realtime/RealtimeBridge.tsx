@@ -1,17 +1,17 @@
 import { Box, Text } from "@chakra-ui/react"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { useRealtimeNotifications } from "@/features/notifications/hooks/useRealtimeNotifications"
-import { useWebSocketStatus } from "./ws.provider"
 import { useRealtimeCommerce } from "./useRealtimeCommerce"
 import { useRealtimeFinance } from "./useRealtimeFinance"
 import { useRealtimeListings } from "./useRealtimeListings"
 import { useRealtimeProfiles } from "./useRealtimeProfiles"
+import { useWebSocketStatus } from "./ws.provider"
 
 export function RealtimeBridge() {
-  const { isAuthenticated } = useAuthUser()
+  const { user, isAuthenticated } = useAuthUser()
   const { connected } = useWebSocketStatus()
 
-  useRealtimeNotifications(isAuthenticated)
+  useRealtimeNotifications(isAuthenticated && !!user)
   useRealtimeCommerce(isAuthenticated)
   useRealtimeFinance(isAuthenticated)
   useRealtimeListings(isAuthenticated)

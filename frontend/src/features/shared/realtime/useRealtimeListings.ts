@@ -1,5 +1,5 @@
-import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react"
 import { toaster } from "@/components/ui/toaster"
 import { wsClient } from "./ws.client"
 
@@ -96,7 +96,10 @@ export function useRealtimeListings(enabled: boolean) {
     const unsubscribeHidden = wsClient.on("listing:hidden", onHidden)
     const unsubscribeApproved = wsClient.on("listing:approved", onApproved)
     const unsubscribeRejected = wsClient.on("listing:rejected", onRejected)
-    const unsubscribeStatus = wsClient.on("listing:status_updated", onStatusUpdated)
+    const unsubscribeStatus = wsClient.on(
+      "listing:status_updated",
+      onStatusUpdated,
+    )
 
     return () => {
       unsubscribeCreated()

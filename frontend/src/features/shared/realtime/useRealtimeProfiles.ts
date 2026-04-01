@@ -1,5 +1,5 @@
-import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react"
 import type { ReviewRead, UserMe, UserPublicProfile } from "@/client"
 import { wsClient } from "./ws.client"
 
@@ -33,20 +33,30 @@ export function useRealtimeProfiles(enabled: boolean) {
         return
       }
 
-      queryClient.setQueryData<ReviewRead[]>(["reviews", "order", incoming.order_id], (old) => {
-        const current = old ?? []
-        const dedup = current.filter((item) => item.id !== incoming.id)
-        return [incoming, ...dedup]
-      })
+      queryClient.setQueryData<ReviewRead[]>(
+        ["reviews", "order", incoming.order_id],
+        (old) => {
+          const current = old ?? []
+          const dedup = current.filter((item) => item.id !== incoming.id)
+          return [incoming, ...dedup]
+        },
+      )
 
-      queryClient.setQueryData<ReviewRead[]>(["reviews", "user", incoming.reviewee_id], (old) => {
-        const current = old ?? []
-        const dedup = current.filter((item) => item.id !== incoming.id)
-        return [incoming, ...dedup]
-      })
+      queryClient.setQueryData<ReviewRead[]>(
+        ["reviews", "user", incoming.reviewee_id],
+        (old) => {
+          const current = old ?? []
+          const dedup = current.filter((item) => item.id !== incoming.id)
+          return [incoming, ...dedup]
+        },
+      )
 
-      queryClient.invalidateQueries({ queryKey: ["reviews", "order", incoming.order_id] })
-      queryClient.invalidateQueries({ queryKey: ["reviews", "user", incoming.reviewee_id] })
+      queryClient.invalidateQueries({
+        queryKey: ["reviews", "order", incoming.order_id],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["reviews", "user", incoming.reviewee_id],
+      })
     })
 
     const unsubscribeRating = wsClient.on("user:rating_changed", (data) => {
@@ -56,26 +66,34 @@ export function useRealtimeProfiles(enabled: boolean) {
       }
 
       if (payload.profile) {
-        queryClient.setQueryData<UserPublicProfile>(["seller-profile", payload.user_id], payload.profile)
+        queryClient.setQueryData<UserPublicProfile>(
+          ["seller-profile", payload.user_id],
+          payload.profile,
+        )
       } else if (
         typeof payload.rating_avg === "number" &&
         typeof payload.rating_count === "number"
       ) {
         const nextAvg = payload.rating_avg
         const nextCount = payload.rating_count
-        queryClient.setQueryData<UserPublicProfile>(["seller-profile", payload.user_id], (old) => {
-          if (!old) {
-            return old
-          }
-          return {
-            ...old,
-            rating_avg: nextAvg,
-            rating_count: nextCount,
-          }
-        })
+        queryClient.setQueryData<UserPublicProfile>(
+          ["seller-profile", payload.user_id],
+          (old) => {
+            if (!old) {
+              return old
+            }
+            return {
+              ...old,
+              rating_avg: nextAvg,
+              rating_count: nextCount,
+            }
+          },
+        )
       }
 
-      queryClient.invalidateQueries({ queryKey: ["seller-profile", payload.user_id] })
+      queryClient.invalidateQueries({
+        queryKey: ["seller-profile", payload.user_id],
+      })
     })
 
     const unsubscribeProfile = wsClient.on("user:profile_updated", (data) => {
