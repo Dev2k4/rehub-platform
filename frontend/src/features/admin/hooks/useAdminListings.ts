@@ -19,8 +19,19 @@ export function useApproveListing() {
 
   return useMutation({
     mutationFn: (listingId: string) => approveListing(listingId),
-    onSuccess: () => {
+    onSuccess: (listing) => {
+      queryClient.setQueryData(["listings", listing.id], (old: any) => {
+        if (!old) {
+          return old
+        }
+        return {
+          ...old,
+          ...listing,
+        }
+      })
       queryClient.invalidateQueries({ queryKey: ["admin", "listings"] })
+      queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
+      queryClient.invalidateQueries({ queryKey: ["listings", "public"] })
     },
   })
 }
@@ -30,8 +41,19 @@ export function useRejectListing() {
 
   return useMutation({
     mutationFn: (listingId: string) => rejectListing(listingId),
-    onSuccess: () => {
+    onSuccess: (listing) => {
+      queryClient.setQueryData(["listings", listing.id], (old: any) => {
+        if (!old) {
+          return old
+        }
+        return {
+          ...old,
+          ...listing,
+        }
+      })
       queryClient.invalidateQueries({ queryKey: ["admin", "listings"] })
+      queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
+      queryClient.invalidateQueries({ queryKey: ["listings", "public"] })
     },
   })
 }
