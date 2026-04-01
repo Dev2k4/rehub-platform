@@ -519,27 +519,17 @@ export function ListingDetailPage() {
                         Thương lượng
                       </Button>
                     )}
-                    <Button
-                      w="full"
-                      variant="subtle"
-                      colorPalette="blue"
-                      size="lg"
-                      _hover={{ bg: "blue.100" }}
-                      borderRadius="lg"
-                    >
-                      <FiMessageCircle style={{ marginRight: "0.5rem" }} />
-                      Nhắn tin cho người bán
-                    </Button>
+                    
                     <HStack w="full" gap={3}>
                       <Button
                         flex={1}
                         variant="outline"
-                        borderColor="gray.300"
-                        color="gray.700"
-                        _hover={{ bg: "gray.50" }}
+                        borderColor="blue.300"
+                        color="blue.700"
+                        _hover={{ bg: "blue.100" }}
                       >
-                        <FiHeart style={{ marginRight: "0.5rem" }} />
-                        Yêu thích
+                        <FiMessageCircle style={{ marginRight: "0.5rem" }} />
+                      Nhắn tin cho người bán
                       </Button>
                       <Button
                         flex={1}

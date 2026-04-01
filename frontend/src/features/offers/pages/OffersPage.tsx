@@ -9,32 +9,32 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { FiArrowLeft, FiFilter } from "react-icons/fi";
-import type { OfferStatus } from "@/client";
+} from "@chakra-ui/react"
+import { useNavigate } from "@tanstack/react-router"
+import { useMemo, useState } from "react"
+import { FiArrowLeft, FiFilter } from "react-icons/fi"
+import type { OfferStatus } from "@/client"
 import {
   MenuContent,
   MenuItem,
   MenuRoot,
   MenuTrigger,
-} from "@/components/ui/menu";
+} from "@/components/ui/menu"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination";
-import { toaster } from "@/components/ui/toaster";
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
-import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils";
-import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal";
+} from "@/components/ui/pagination"
+import { toaster } from "@/components/ui/toaster"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
+import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
 import {
   useMyReceivedOffers,
   useMySentOffers,
-} from "@/features/offers/hooks/useOffers";
-import { useUpdateOfferMutation } from "@/features/offers/hooks/useUpdateOfferMutation";
+} from "@/features/offers/hooks/useOffers"
+import { useUpdateOfferMutation } from "@/features/offers/hooks/useUpdateOfferMutation"
 
 const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
   pending: { label: "Chờ xử lý", color: "yellow" },
@@ -42,7 +42,7 @@ const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
   rejected: { label: "Đã từ chối", color: "red" },
   countered: { label: "Đã counter", color: "blue" },
   expired: { label: "Hết hạn", color: "gray" },
-};
+}
 
 const FILTER_OPTIONS: Array<{ value: OfferStatus | "all"; label: string }> = [
   { value: "all", label: "Tất cả trạng thái" },
@@ -51,54 +51,54 @@ const FILTER_OPTIONS: Array<{ value: OfferStatus | "all"; label: string }> = [
   { value: "rejected", label: "Đã từ chối" },
   { value: "countered", label: "Đã counter" },
   { value: "expired", label: "Hết hạn" },
-];
+]
 
 export function OffersPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(
     undefined,
-  );
-  const [isOfferDetailOpen, setIsOfferDetailOpen] = useState(false);
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser();
-  const [receivedPage, setReceivedPage] = useState(1);
-  const [sentPage, setSentPage] = useState(1);
+  )
+  const [isOfferDetailOpen, setIsOfferDetailOpen] = useState(false)
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
+  const [receivedPage, setReceivedPage] = useState(1)
+  const [sentPage, setSentPage] = useState(1)
   const [receivedFilter, setReceivedFilter] = useState<OfferStatus | "all">(
     "all",
-  );
-  const [sentFilter, setSentFilter] = useState<OfferStatus | "all">("all");
+  )
+  const [sentFilter, setSentFilter] = useState<OfferStatus | "all">("all")
 
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 10
 
   const sentOffersQuery = useMySentOffers({
     limit: PAGE_SIZE,
     skip: (sentPage - 1) * PAGE_SIZE,
-  });
+  })
   const receivedOffersQuery = useMyReceivedOffers({
     limit: PAGE_SIZE,
     skip: (receivedPage - 1) * PAGE_SIZE,
-  });
-  const updateOfferMutation = useUpdateOfferMutation();
+  })
+  const updateOfferMutation = useUpdateOfferMutation()
 
   const openOfferDetail = (offerId: string) => {
-    setSelectedOfferId(offerId);
-    setIsOfferDetailOpen(true);
-  };
+    setSelectedOfferId(offerId)
+    setIsOfferDetailOpen(true)
+  }
 
   const filteredReceivedOffers = useMemo(() => {
-    if (!receivedOffersQuery.data) return [];
-    if (receivedFilter === "all") return receivedOffersQuery.data;
-    return receivedOffersQuery.data.filter((o) => o.status === receivedFilter);
-  }, [receivedOffersQuery.data, receivedFilter]);
+    if (!receivedOffersQuery.data) return []
+    if (receivedFilter === "all") return receivedOffersQuery.data
+    return receivedOffersQuery.data.filter((o) => o.status === receivedFilter)
+  }, [receivedOffersQuery.data, receivedFilter])
 
   const filteredSentOffers = useMemo(() => {
-    if (!sentOffersQuery.data) return [];
-    if (sentFilter === "all") return sentOffersQuery.data;
-    return sentOffersQuery.data.filter((o) => o.status === sentFilter);
-  }, [sentOffersQuery.data, sentFilter]);
+    if (!sentOffersQuery.data) return []
+    if (sentFilter === "all") return sentOffersQuery.data
+    return sentOffersQuery.data.filter((o) => o.status === sentFilter)
+  }, [sentOffersQuery.data, sentFilter])
 
   if (!authLoading && !isAuthenticated) {
-    navigate({ to: "/auth/login" });
-    return null;
+    navigate({ to: "/auth/login" })
+    return null
   }
 
   if (authLoading || !user) {
@@ -106,20 +106,20 @@ export function OffersPage() {
       <Flex minH="100vh" align="center" justify="center" bg="gray.50">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    );
+    )
   }
 
-  const [activeTab, setActiveTab] = useState<"received" | "sent">("received");
+  const [activeTab, setActiveTab] = useState<"received" | "sent">("received")
 
   // Logic to handle pagination count estimation since API doesn't return total
   const receivedDataCount =
     (receivedOffersQuery.data?.length ?? 0) === PAGE_SIZE
       ? (receivedPage + 1) * PAGE_SIZE
-      : receivedPage * PAGE_SIZE;
+      : receivedPage * PAGE_SIZE
   const sentDataCount =
     (sentOffersQuery.data?.length ?? 0) === PAGE_SIZE
       ? (sentPage + 1) * PAGE_SIZE
-      : sentPage * PAGE_SIZE;
+      : sentPage * PAGE_SIZE
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -218,8 +218,8 @@ export function OffersPage() {
                         key={opt.value}
                         value={opt.value}
                         onClick={() => {
-                          setReceivedFilter(opt.value);
-                          setReceivedPage(1);
+                          setReceivedFilter(opt.value)
+                          setReceivedPage(1)
                         }}
                         bg={
                           receivedFilter === opt.value
@@ -250,7 +250,7 @@ export function OffersPage() {
                     const status = OFFER_STATUS_META[offer.status] ?? {
                       label: offer.status,
                       color: "gray",
-                    };
+                    }
                     return (
                       <Box
                         key={offer.id}
@@ -408,7 +408,7 @@ export function OffersPage() {
                           </HStack>
                         </Flex>
                       </Box>
-                    );
+                    )
                   })}
 
                   <Flex justify="center" mt={8}>
@@ -460,8 +460,8 @@ export function OffersPage() {
                         key={opt.value}
                         value={opt.value}
                         onClick={() => {
-                          setSentFilter(opt.value);
-                          setSentPage(1);
+                          setSentFilter(opt.value)
+                          setSentPage(1)
                         }}
                         bg={
                           sentFilter === opt.value ? "blue.50" : "transparent"
@@ -490,7 +490,7 @@ export function OffersPage() {
                     const status = OFFER_STATUS_META[offer.status] ?? {
                       label: offer.status,
                       color: "gray",
-                    };
+                    }
                     return (
                       <Box
                         key={offer.id}
@@ -568,7 +568,7 @@ export function OffersPage() {
                           </Button>
                         </Flex>
                       </Box>
-                    );
+                    )
                   })}
 
                   <Flex justify="center" mt={8}>
@@ -604,5 +604,5 @@ export function OffersPage() {
         offerId={selectedOfferId}
       />
     </Box>
-  );
+  )
 }

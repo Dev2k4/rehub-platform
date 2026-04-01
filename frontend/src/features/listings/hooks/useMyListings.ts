@@ -31,35 +31,41 @@ export function useCreateListing() {
   return useMutation({
     mutationFn: (data: CreateListingInput) => createListing(data),
     onSuccess: (created) => {
-      queryClient.setQueryData<ListingWithImages>(["listings", created.id], (old) => {
-        if (old) {
-          return old
-        }
-        return {
-          ...(created as unknown as ListingWithImages),
-          images: [],
-        }
-      })
-      queryClient.setQueriesData<ListingPaginated>({ queryKey: ["listings", "my-listings"] }, (old) => {
-        if (!old) {
-          return old
-        }
-        const exists = old.items.some((item) => item.id === created.id)
-        if (exists) {
-          return old
-        }
-        return {
-          ...old,
-          total: old.total + 1,
-          items: [
-            {
-              ...(created as unknown as ListingWithImages),
-              images: [],
-            },
-            ...old.items,
-          ],
-        }
-      })
+      queryClient.setQueryData<ListingWithImages>(
+        ["listings", created.id],
+        (old) => {
+          if (old) {
+            return old
+          }
+          return {
+            ...(created as unknown as ListingWithImages),
+            images: [],
+          }
+        },
+      )
+      queryClient.setQueriesData<ListingPaginated>(
+        { queryKey: ["listings", "my-listings"] },
+        (old) => {
+          if (!old) {
+            return old
+          }
+          const exists = old.items.some((item) => item.id === created.id)
+          if (exists) {
+            return old
+          }
+          return {
+            ...old,
+            total: old.total + 1,
+            items: [
+              {
+                ...(created as unknown as ListingWithImages),
+                images: [],
+              },
+              ...old.items,
+            ],
+          }
+        },
+      )
       queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
     },
   })
@@ -77,31 +83,37 @@ export function useUpdateListing() {
       data: UpdateListingInput
     }) => updateListing(listingId, data),
     onSuccess: (updated) => {
-      queryClient.setQueryData<ListingWithImages>(["listings", updated.id], (old) => {
-        if (!old) {
-          return old
-        }
-        return {
-          ...old,
-          ...updated,
-        }
-      })
-      queryClient.setQueriesData<ListingPaginated>({ queryKey: ["listings", "my-listings"] }, (old) => {
-        if (!old) {
-          return old
-        }
-        return {
-          ...old,
-          items: old.items.map((item) =>
-            item.id === updated.id
-              ? {
-                  ...item,
-                  ...updated,
-                }
-              : item,
-          ),
-        }
-      })
+      queryClient.setQueryData<ListingWithImages>(
+        ["listings", updated.id],
+        (old) => {
+          if (!old) {
+            return old
+          }
+          return {
+            ...old,
+            ...updated,
+          }
+        },
+      )
+      queryClient.setQueriesData<ListingPaginated>(
+        { queryKey: ["listings", "my-listings"] },
+        (old) => {
+          if (!old) {
+            return old
+          }
+          return {
+            ...old,
+            items: old.items.map((item) =>
+              item.id === updated.id
+                ? {
+                    ...item,
+                    ...updated,
+                  }
+                : item,
+            ),
+          }
+        },
+      )
       queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
     },
   })
@@ -114,22 +126,25 @@ export function useDeleteListing() {
     mutationFn: (listingId: string) => deleteListing(listingId),
     onSuccess: (_, listingId) => {
       queryClient.removeQueries({ queryKey: ["listings", listingId] })
-      queryClient.setQueriesData<ListingPaginated>({ queryKey: ["listings", "my-listings"] }, (old) => {
-        if (!old) {
-          return old
-        }
+      queryClient.setQueriesData<ListingPaginated>(
+        { queryKey: ["listings", "my-listings"] },
+        (old) => {
+          if (!old) {
+            return old
+          }
 
-        const nextItems = old.items.filter((item) => item.id !== listingId)
-        if (nextItems.length === old.items.length) {
-          return old
-        }
+          const nextItems = old.items.filter((item) => item.id !== listingId)
+          if (nextItems.length === old.items.length) {
+            return old
+          }
 
-        return {
-          ...old,
-          total: Math.max(0, old.total - 1),
-          items: nextItems,
-        }
-      })
+          return {
+            ...old,
+            total: Math.max(0, old.total - 1),
+            items: nextItems,
+          }
+        },
+      )
       queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
     },
   })
@@ -157,8 +172,12 @@ export function useUploadListingImage() {
       isPrimary?: boolean
     }) => uploadListingImage(listingId, file, isPrimary),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["listings", variables.listingId] })
-      queryClient.invalidateQueries({ queryKey: ["listing", variables.listingId] })
+      queryClient.invalidateQueries({
+        queryKey: ["listings", variables.listingId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["listing", variables.listingId],
+      })
       queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
     },
   })
