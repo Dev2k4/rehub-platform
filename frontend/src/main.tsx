@@ -15,6 +15,8 @@ import {
   clearTokens,
   getAccessToken,
 } from "./features/auth/utils/auth.storage";
+import { RealtimeBridge } from "./features/shared/realtime/RealtimeBridge";
+import { WebSocketProvider } from "./features/shared/realtime/ws.provider";
 // Import custom system theme
 import { system } from "./theme";
 // Import the generated route tree
@@ -60,8 +62,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ChakraProvider value={system}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-        <Toaster />
+        <WebSocketProvider>
+          <RealtimeBridge />
+          <RouterProvider router={router} />
+          <Toaster />
+        </WebSocketProvider>
       </QueryClientProvider>
     </ChakraProvider>
   </StrictMode>,
