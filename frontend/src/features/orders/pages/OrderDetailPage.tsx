@@ -33,6 +33,7 @@ import {
 import { ReviewForm } from "@/features/reviews/components/ReviewForm"
 import { ReviewsList } from "@/features/reviews/components/ReviewsList"
 import { useOrderReviews } from "@/features/reviews/hooks/useReviews"
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
@@ -108,6 +109,8 @@ export function OrderDetailPage() {
   const status = statusMeta(order.status)
   const isBuyer = order.buyer_id === user.id
   const isSeller = order.seller_id === user.id
+  const counterpartyId = isBuyer ? order.seller_id : order.buyer_id
+  const isCounterpartyOnline = useIsUserOnline(counterpartyId)
   const escrow = escrowQuery.data
   const hasEscrow = !!escrow
   const canComplete = !hasEscrow && order.status === "pending" && isBuyer
@@ -251,6 +254,31 @@ export function OrderDetailPage() {
                 </Badge>
               </HStack>
               <Separator borderColor="gray.200" />
+                <HStack justify="space-between" py={3}>
+                  <Text color="gray.500" fontSize="sm">
+                    Đối tác giao dịch
+                  </Text>
+                  <HStack gap={2} maxW="60%" justify="end" flexWrap="wrap">
+                    <Text
+                      fontSize="xs"
+                      color="gray.700"
+                      fontFamily="mono"
+                      wordBreak="break-all"
+                      textAlign="right"
+                    >
+                      {counterpartyId}
+                    </Text>
+                    <Badge
+                      colorPalette={isCounterpartyOnline ? "green" : "gray"}
+                      variant="subtle"
+                      borderRadius="full"
+                      px={2}
+                    >
+                      {isCounterpartyOnline ? "Đang online" : "Đang offline"}
+                    </Badge>
+                  </HStack>
+                </HStack>
+                <Separator borderColor="gray.200" />
               <HStack justify="space-between" py={4} mt={1}>
                 <Text color="gray.800" fontWeight="bold" fontSize="md">
                   TỔNG GIÁ TRỊ
@@ -407,8 +435,22 @@ export function OrderDetailPage() {
                           type: "success",
                         })
                       } catch (e: any) {
+                        const message = String(e?.message || "")
+                        if (message.includes("Cannot confirm release in released state")) {
+                          await Promise.all([
+                            escrowQuery.refetch(),
+                            orderQuery.refetch(),
+                            walletQuery.refetch(),
+                          ])
+                          toaster.create({
+                            title: "Escrow đã được xác nhận trước đó",
+                            type: "info",
+                          })
+                          return
+                        }
+
                         toaster.create({
-                          title: e?.message || "Lỗi xác nhận",
+                          title: message || "Lỗi xác nhận",
                           type: "error",
                         })
                       }

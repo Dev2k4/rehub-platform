@@ -48,6 +48,7 @@ import { createOffer } from "@/features/offers/api/offers.api"
 import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
 import { useOffersForListing } from "@/features/offers/hooks/useOffers"
 import { createOrder } from "@/features/orders/api/orders.api"
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 import { getUserPublicProfile } from "@/features/users/api/users.api"
 
 const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
@@ -130,6 +131,7 @@ export function ListingDetailPage() {
     queryFn: () => getUserPublicProfile(sellerId),
     enabled: !!sellerId,
   })
+  const isSellerOnline = useIsUserOnline(sellerId)
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
@@ -622,6 +624,17 @@ export function ListingDetailPage() {
                       >
                         {sellerProfileQuery.data?.full_name || "Người bán"}
                       </Text>
+                      <Badge
+                        mt={1}
+                        colorPalette={isSellerOnline ? "green" : "gray"}
+                        variant="subtle"
+                        borderRadius="full"
+                        px={2}
+                        py={0.5}
+                        fontSize="10px"
+                      >
+                        {isSellerOnline ? "Đang online" : "Đang offline"}
+                      </Badge>
                       <HStack gap={3} mt={1} flexWrap="wrap">
                         <Text fontSize="xs" color="gray.600">
                           Đã bán:{" "}

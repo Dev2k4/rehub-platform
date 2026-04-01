@@ -21,6 +21,7 @@ import {
   useCompleteOrder,
   useMyOrders,
 } from "@/features/orders/hooks/useOrders"
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 
 type OrderTab = "buying" | "selling"
 
@@ -201,6 +202,8 @@ export function OrdersPage() {
             {filteredOrders.map((order) => {
               const status = statusMeta(order.status)
               const isBuyer = order.buyer_id === user.id
+              const counterpartyId = isBuyer ? order.seller_id : order.buyer_id
+              const isCounterpartyOnline = useIsUserOnline(counterpartyId)
               const canAct = order.status === "pending"
               return (
                 <Box
@@ -257,6 +260,20 @@ export function OrdersPage() {
                             {order.id}
                           </Text>
                         </Text>
+                      </HStack>
+                      <HStack mt={2} fontSize="xs" color="gray.500" gap={2} flexWrap="wrap">
+                        <Text>Đối tác:</Text>
+                        <Text fontFamily="mono" color="gray.600">
+                          {counterpartyId}
+                        </Text>
+                        <Badge
+                          colorPalette={isCounterpartyOnline ? "green" : "gray"}
+                          variant="subtle"
+                          borderRadius="full"
+                          px={2}
+                        >
+                          {isCounterpartyOnline ? "Online" : "Offline"}
+                        </Badge>
                       </HStack>
                     </Box>
                     <HStack gap={3}>

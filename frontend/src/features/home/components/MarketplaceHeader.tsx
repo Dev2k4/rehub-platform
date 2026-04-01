@@ -131,7 +131,6 @@ export function MarketplaceHeader({
     queryKey: ["notifications", "unread-count"],
     queryFn: () => getUnreadNotificationsCount(),
     enabled: isAuthenticated,
-    refetchInterval: 30_000,
   });
 
   const markNotificationMutation = useMutation({
@@ -161,6 +160,8 @@ export function MarketplaceHeader({
       console.error("Logout error:", error);
     } finally {
       clearTokens();
+      queryClient.setQueryData(["auth", "user"], null);
+      queryClient.removeQueries({ queryKey: ["auth", "user"] });
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       toaster.create({ title: "Đã đăng xuất thành công", type: "info" });
       navigate({ to: "/" });
