@@ -13,7 +13,8 @@ export function useEscrow(orderId: string) {
     queryKey: ["escrow", orderId],
     queryFn: () => getEscrow(orderId),
     enabled: !!orderId,
-    retry: false,
+    retry: 3,
+    retryDelay: 500,
   })
 }
 

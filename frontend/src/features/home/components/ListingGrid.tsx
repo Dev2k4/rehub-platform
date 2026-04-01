@@ -1,23 +1,32 @@
-import { Badge, Box, Flex, Heading, Image, SimpleGrid, Text } from "@chakra-ui/react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { FiStar, FiTag, FiUser } from "react-icons/fi";
+import {
+  Badge,
+  Box,
+  Flex,
+  Heading,
+  Image,
+  SimpleGrid,
+  Text,
+} from "@chakra-ui/react"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { FiStar, FiTag, FiUser } from "react-icons/fi"
+import { Tooltip } from "@/components/ui/tooltip"
 import type {
   CategoryTree,
   ListingWithImages,
   UserPublicProfile,
-} from "@/client";
-import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
+} from "@/client"
 import {
   formatCurrencyVnd,
   formatPostedTime,
   getListingImageUrl,
-} from "@/features/home/utils/marketplace.utils";
+} from "@/features/home/utils/marketplace.utils"
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 
 type ListingGridProps = {
-  listings: ListingWithImages[];
-  categoryMap: Map<string, CategoryTree>;
-  sellerMap: Map<string, UserPublicProfile>;
-};
+  listings: ListingWithImages[]
+  categoryMap: Map<string, CategoryTree>
+  sellerMap: Map<string, UserPublicProfile>
+}
 
 export function ListingGrid({
   listings,
@@ -38,7 +47,7 @@ export function ListingGrid({
       >
         Không có sản phẩm phù hợp với bộ lọc hiện tại.
       </Box>
-    );
+    )
   }
 
   return (
@@ -52,19 +61,19 @@ export function ListingGrid({
         />
       ))}
     </SimpleGrid>
-  );
+  )
 }
 
 type ListingGridItemProps = {
-  listing: ListingWithImages;
-  category?: CategoryTree;
-  seller?: UserPublicProfile;
-};
+  listing: ListingWithImages
+  category?: CategoryTree
+  seller?: UserPublicProfile
+}
 
 function ListingGridItem({ listing, category, seller }: ListingGridItemProps) {
-  const navigate = useNavigate();
-  const isSellerOnline = useIsUserOnline(listing.seller_id);
-  const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url);
+  const navigate = useNavigate()
+  const isSellerOnline = useIsUserOnline(listing.seller_id)
+  const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
 
   return (
     <Box
@@ -73,8 +82,8 @@ function ListingGridItem({ listing, category, seller }: ListingGridItemProps) {
       }
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          navigate({ to: "/listings/$id", params: { id: listing.id } });
+          event.preventDefault()
+          navigate({ to: "/listings/$id", params: { id: listing.id } })
         }
       }}
       role="link"
@@ -123,16 +132,17 @@ function ListingGridItem({ listing, category, seller }: ListingGridItemProps) {
         </Box>
 
         <Box p={3} display="flex" flexDir="column" gap={2}>
-          <Heading
-            as="h3"
-            fontSize="sm"
-            fontWeight="semibold"
-            color="gray.900"
-            lineClamp={2}
-            minH="40px"
-          >
-            {listing.title}
-          </Heading>
+          <Tooltip content={listing.title} showArrow>
+            <Heading
+              as="h3"
+              fontSize="sm"
+              fontWeight="semibold"
+              color="gray.900"
+              lineClamp={1}
+            >
+              {listing.title}
+            </Heading>
+          </Tooltip>
 
           <Flex align="center" gap={1} fontSize="xs" color="gray.600">
             <Box as={FiUser} w="3.5" h="3.5" />
@@ -140,7 +150,7 @@ function ListingGridItem({ listing, category, seller }: ListingGridItemProps) {
               to="/sellers/$id"
               params={{ id: listing.seller_id }}
               onClick={(event) => {
-                event.stopPropagation();
+                event.stopPropagation()
               }}
               style={{ textDecoration: "none" }}
             >
@@ -194,15 +204,22 @@ function ListingGridItem({ listing, category, seller }: ListingGridItemProps) {
 
           <Flex align="center" gap={1} fontSize="xs" color="gray.500">
             <Box as={FiTag} w="3.5" h="3.5" />
-            <Text lineClamp={1}>{category?.name ?? "Danh mục chưa xác định"}</Text>
+            <Text lineClamp={1}>
+              {category?.name ?? "Danh mục chưa xác định"}
+            </Text>
           </Flex>
 
-          <Flex align="center" justify="space-between" fontSize="xs" color="gray.500">
+          <Flex
+            align="center"
+            justify="space-between"
+            fontSize="xs"
+            color="gray.500"
+          >
             <Text>{listing.condition_grade.replace(/_/g, " ")}</Text>
             <Text>{formatPostedTime(listing.created_at)}</Text>
           </Flex>
         </Box>
       </Box>
     </Box>
-  );
+  )
 }

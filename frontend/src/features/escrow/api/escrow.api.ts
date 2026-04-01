@@ -119,20 +119,26 @@ export async function fundEscrow(orderId: string): Promise<EscrowRead> {
 export async function requestEscrowRelease(
   orderId: string,
 ): Promise<EscrowRead> {
-  const response = await fetchWithAuthRetry(`/escrows/${orderId}/release-request`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  })
+  const response = await fetchWithAuthRetry(
+    `/escrows/${orderId}/release-request`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }
 
 export async function confirmEscrowRelease(
   orderId: string,
 ): Promise<EscrowRead> {
-  const response = await fetchWithAuthRetry(`/escrows/${orderId}/confirm-release`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  })
+  const response = await fetchWithAuthRetry(
+    `/escrows/${orderId}/confirm-release`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }
 
@@ -140,11 +146,14 @@ export async function openEscrowDispute(
   orderId: string,
   payload: EscrowDisputeRequest,
 ): Promise<EscrowRead> {
-  const response = await fetchWithAuthRetry(`/escrows/${orderId}/open-dispute`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  })
+  const response = await fetchWithAuthRetry(
+    `/escrows/${orderId}/open-dispute`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }
 
@@ -152,10 +161,13 @@ export async function resolveEscrowAsAdmin(
   orderId: string,
   payload: EscrowAdminResolveRequest,
 ): Promise<EscrowRead> {
-  const response = await fetchWithAuthRetry(`/escrows/${orderId}/admin-resolve`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  })
+  const response = await fetchWithAuthRetry(
+    `/escrows/${orderId}/admin-resolve`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    },
+  )
   return parseResponse<EscrowRead>(response)
 }

@@ -6,8 +6,8 @@ import {
   Portal,
   Separator,
   Text,
-} from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
+} from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
 import {
   FiCreditCard,
   FiList,
@@ -15,12 +15,12 @@ import {
   FiShield,
   FiShoppingBag,
   FiUser,
-} from "react-icons/fi";
-import type { UserMe } from "@/client";
+} from "react-icons/fi"
+import type { UserMe } from "@/client"
 
 interface UserDropdownMenuProps {
-  user: UserMe;
-  onLogout: () => void;
+  user: UserMe
+  onLogout: () => void
 }
 
 export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
@@ -194,5 +194,5 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
         </Menu.Positioner>
       </Portal>
     </Menu.Root>
-  );
+  )
 }

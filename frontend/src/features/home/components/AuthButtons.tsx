@@ -1,5 +1,5 @@
-import { Button, Link as ChakraLink, HStack } from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
+import { Button, Link as ChakraLink, HStack } from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
 
 export function AuthButtons() {
   return (
@@ -45,5 +45,5 @@ export function AuthButtons() {
         </Link>
       </ChakraLink>
     </HStack>
-  );
+  )
 }
