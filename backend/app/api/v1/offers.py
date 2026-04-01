@@ -10,7 +10,7 @@ from app.models.user import User
 from app.models.listing import Listing
 from app.models.enums import OfferStatus, NotificationType
 from app.schemas.offer import OfferCreate, OfferRead, OfferStatusUpdate
-from app.crud import crud_notification, crud_offer
+from app.crud import crud_escrow, crud_notification, crud_offer
 from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/offers", tags=["offers"])
@@ -153,6 +153,7 @@ async def update_offer_status(
             offer, order, listing = await crud_offer.accept_offer_with_order(
                 db, offer_id, current_user.id
             )
+            await crud_escrow.create_escrow_for_order(db, order)
 
             # Gửi notification
             is_seller = listing.seller_id == current_user.id
@@ -170,6 +171,15 @@ async def update_offer_status(
                 title="Offer accepted",
                 message=message,
                 data={"offer_id": str(offer.id), "listing_id": str(listing.id), "order_id": str(order.id)},
+            )
+
+            await crud_notification.create_notification(
+                db=db,
+                user_id=offer.buyer_id,
+                type=NotificationType.ORDER_CREATED,
+                title="Escrow pending funding",
+                message="Order created with escrow. Please fund your demo wallet escrow to continue.",
+                data={"order_id": str(order.id), "listing_id": str(listing.id), "action": "fund_escrow"},
             )
 
             await _broadcast_offer_event(offer, listing.seller_id, "offer:status_changed")

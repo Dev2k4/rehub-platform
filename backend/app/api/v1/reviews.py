@@ -81,6 +81,9 @@ async def create_review(
 	# Determine reviewee: if current user is buyer, reviewee is seller, else buyer
 	reviewee_id = order.seller_id if current_user.id == order.buyer_id else order.buyer_id
 
+	if reviewee_id == current_user.id:
+		raise HTTPException(status_code=400, detail="Cannot review yourself")
+
 	try:
 		review = await crud_review.create_review(
 			db,
