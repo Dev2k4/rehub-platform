@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.crud import crud_offer
 from app.db.init_db import init_db
 from app.db.session import AsyncSessionLocal
+from app.services.websocket_manager import connection_manager
 
 logger = logging.getLogger(__name__)
 offer_expiry_task: asyncio.Task | None = None
@@ -54,9 +55,27 @@ async def on_startup() -> None:
         while True:
             try:
                 async with AsyncSessionLocal() as session:
-                    expired_count = await crud_offer.expire_stale_offers(session)
-                    if expired_count:
-                        logger.info("Expired %s stale offers", expired_count)
+                    expired_offers = await crud_offer.expire_stale_offers(session)
+                    if expired_offers:
+                        logger.info("Expired %s stale offers", len(expired_offers))
+                        for item in expired_offers:
+                            event = {
+                                "type": "offer:expired",
+                                "data": {
+                                    "offer_id": str(item["offer_id"]),
+                                    "listing_id": str(item["listing_id"]),
+                                    "status": "expired",
+                                },
+                            }
+                            try:
+                                await connection_manager.send_to_user(item["buyer_id"], event)
+                                if item["seller_id"] != item["buyer_id"]:
+                                    await connection_manager.send_to_user(item["seller_id"], event)
+                            except Exception:
+                                logger.exception(
+                                    "Failed to broadcast offer:expired for offer %s",
+                                    item["offer_id"],
+                                )
             except Exception:
                 logger.exception("Offer expiry worker failed")
 
