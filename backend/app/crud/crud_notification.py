@@ -1,9 +1,14 @@
 import uuid
+import logging
 from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.enums import NotificationType
 from app.models.notification import Notification
+from app.schemas.notification import NotificationRead
+from app.services.websocket_manager import connection_manager
+
+logger = logging.getLogger(__name__)
 
 
 async def get_user_notifications(db: AsyncSession, user_id: uuid.UUID) -> list[Notification]:
@@ -36,6 +41,18 @@ async def create_notification(
 	db.add(notification)
 	await db.commit()
 	await db.refresh(notification)
+
+	try:
+		payload = NotificationRead.model_validate(notification).model_dump(mode="json")
+		await connection_manager.send_to_user(
+			user_id,
+			{
+				"type": "notification:created",
+				"data": {"notification": payload},
+			},
+		)
+	except Exception:
+		logger.exception("Failed to push notification:created for user %s", user_id)
 	return notification
 
 
@@ -68,6 +85,21 @@ async def mark_notification_as_read(
 	db.add(notification)
 	await db.commit()
 	await db.refresh(notification)
+
+	try:
+		unread_count = await get_unread_count(db, user_id)
+		await connection_manager.send_to_user(
+			user_id,
+			{
+				"type": "notification:read",
+				"data": {
+					"notification_id": str(notification.id),
+					"unread_count": unread_count,
+				},
+			},
+		)
+	except Exception:
+		logger.exception("Failed to push notification:read for user %s", user_id)
 	return notification
 
 
@@ -78,4 +110,20 @@ async def mark_all_notifications_as_read(db: AsyncSession, user_id: uuid.UUID) -
 		.values(is_read=True)
 	)
 	await db.commit()
-	return int(result.rowcount or 0)
+	updated_count = int(result.rowcount or 0)
+	if updated_count > 0:
+		try:
+			await connection_manager.send_to_user(
+				user_id,
+				{
+					"type": "notification:read-all",
+					"data": {
+						"updated_count": updated_count,
+						"unread_count": 0,
+					},
+				},
+			)
+		except Exception:
+			logger.exception("Failed to push notification:read-all for user %s", user_id)
+
+	return updated_count

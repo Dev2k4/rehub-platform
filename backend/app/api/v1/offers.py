@@ -1,5 +1,6 @@
 from typing import Annotated, List
 import uuid
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -10,8 +11,31 @@ from app.models.listing import Listing
 from app.models.enums import OfferStatus, NotificationType
 from app.schemas.offer import OfferCreate, OfferRead, OfferStatusUpdate
 from app.crud import crud_notification, crud_offer
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/offers", tags=["offers"])
+logger = logging.getLogger(__name__)
+
+
+async def _broadcast_offer_event(
+    offer: OfferRead,
+    seller_id: uuid.UUID,
+    event_type: str,
+) -> None:
+    try:
+        payload = OfferRead.model_validate(offer).model_dump(mode="json")
+        event = {
+            "type": event_type,
+            "data": {
+                "offer": payload,
+                "seller_id": str(seller_id),
+            },
+        }
+        await connection_manager.send_to_user(offer.buyer_id, event)
+        if seller_id != offer.buyer_id:
+            await connection_manager.send_to_user(seller_id, event)
+    except Exception:
+        logger.exception("Failed to broadcast offer event: %s", event_type)
 
 
 @router.post("/", response_model=OfferRead, status_code=status.HTTP_201_CREATED)
@@ -43,6 +67,7 @@ async def create_offer(
                 message=f"You received a new offer for listing '{listing.title}'.",
                 data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
             )
+            await _broadcast_offer_event(offer, listing.seller_id, "offer:status_changed")
         return offer
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -147,6 +172,8 @@ async def update_offer_status(
                 data={"offer_id": str(offer.id), "listing_id": str(listing.id), "order_id": str(order.id)},
             )
 
+            await _broadcast_offer_event(offer, listing.seller_id, "offer:status_changed")
+
             return offer
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -232,6 +259,8 @@ async def update_offer_status(
             message=message,
             data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
         )
+
+    await _broadcast_offer_event(updated_offer, listing.seller_id, "offer:status_changed")
 
     return updated_offer
 

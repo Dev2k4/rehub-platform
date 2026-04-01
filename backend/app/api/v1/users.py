@@ -2,13 +2,32 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 import uuid
+import logging
 
 from app.api.dependencies import get_db, get_current_user
 from app.schemas.user import UserUpdate, UserMe, UserPublicProfile
 from app.crud.crud_user import update_user, get_user_by_id
 from app.models.user import User
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/users", tags=["Users"])
+logger = logging.getLogger(__name__)
+
+
+async def _broadcast_profile_updated(user: UserMe) -> None:
+    try:
+        payload = UserMe.model_validate(user).model_dump(mode="json")
+        await connection_manager.send_to_user(
+            user.id,
+            {
+                "type": "user:profile_updated",
+                "data": {
+                    "user": payload,
+                },
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast user:profile_updated for user %s", user.id)
 
 
 @router.get("/me", response_model=UserMe)
@@ -27,6 +46,7 @@ async def update_my_profile(
 ):
     """Update the authenticated user's profile info."""
     updated_user = await update_user(db, user_id=current_user.id, data=data)
+    await _broadcast_profile_updated(updated_user)
     return updated_user
 
 

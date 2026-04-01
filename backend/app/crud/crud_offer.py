@@ -16,22 +16,41 @@ def _utc_now_naive() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-async def expire_stale_offers(db: AsyncSession) -> int:
+async def expire_stale_offers(db: AsyncSession) -> list[dict[str, uuid.UUID]]:
     """
     Expire PENDING/COUNTERED offers older than configured TTL.
     Nên được gọi từ background job, không phải inline trong mỗi request.
     """
     cutoff = _utc_now_naive() - timedelta(hours=settings.OFFER_EXPIRE_HOURS)
-    result = await db.execute(
-        update(Offer)
+    candidates = await db.execute(
+        select(Offer.id, Offer.buyer_id, Offer.listing_id, Listing.seller_id)
+        .join(Listing, Listing.id == Offer.listing_id)
         .where(
             Offer.created_at <= cutoff,
             Offer.status.in_([OfferStatus.PENDING, OfferStatus.COUNTERED]),
         )
+    )
+    rows = list(candidates.all())
+    if not rows:
+        return []
+
+    offer_ids = [row.id for row in rows]
+
+    await db.execute(
+        update(Offer)
+        .where(Offer.id.in_(offer_ids))
         .values(status=OfferStatus.EXPIRED, updated_at=_utc_now_naive())
     )
     await db.commit()
-    return int(result.rowcount or 0)
+    return [
+        {
+            "offer_id": row.id,
+            "buyer_id": row.buyer_id,
+            "seller_id": row.seller_id,
+            "listing_id": row.listing_id,
+        }
+        for row in rows
+    ]
 
 
 async def check_existing_pending_offer(

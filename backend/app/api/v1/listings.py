@@ -1,5 +1,6 @@
 import uuid
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,12 +17,40 @@ from app.schemas.listing import (
 )
 from app.crud import crud_listing
 from app.services.storage_service import upload_listing_image as upload_to_object_storage, delete_listing_image as delete_from_object_storage
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
+logger = logging.getLogger(__name__)
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+async def _broadcast_listing_event(listing: ListingRead, event_type: str) -> None:
+    try:
+        payload = ListingRead.model_validate(listing).model_dump(mode="json")
+        await connection_manager.send_to_user(
+            listing.seller_id,
+            {
+                "type": event_type,
+                "data": {
+                    "listing": payload,
+                },
+            },
+        )
+
+        await connection_manager.broadcast(
+            {
+                "type": "listing:status_updated",
+                "data": {
+                    "listing_id": str(listing.id),
+                    "status": listing.status.value,
+                },
+            }
+        )
+    except Exception:
+        logger.exception("Failed to broadcast listing event: %s", event_type)
 
 @router.get("", response_model=ListingPaginated, include_in_schema=False)
 @router.get("/", response_model=ListingPaginated)
@@ -163,6 +192,7 @@ async def create_listing(
 ):
     """Requires JWT: Create a new listing. Status default to PENDING."""
     new_listing = await crud_listing.create_listing(db, data, str(current_user.id))
+    await _broadcast_listing_event(new_listing, "listing:created")
     return new_listing
 
 @router.patch("/{listing_id}", response_model=ListingRead)
@@ -188,6 +218,8 @@ async def update_listing(
             raise HTTPException(status_code=403, detail="Only admins can approve/alter statuses besides hiding.")
             
     updated_listing = await crud_listing.update_listing(db, str(listing_id), data)
+    if updated_listing is not None:
+        await _broadcast_listing_event(updated_listing, "listing:updated")
     return updated_listing
 
 @router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -208,6 +240,9 @@ async def delete_listing(
         raise HTTPException(status_code=400, detail="Cannot delete sold listing")
         
     await crud_listing.soft_delete_listing(db, str(listing_id))
+    hidden_listing = await crud_listing.get_listing(db, str(listing_id))
+    if hidden_listing is not None:
+        await _broadcast_listing_event(hidden_listing, "listing:hidden")
     return None
 
 @router.post("/{listing_id}/images", response_model=ListingImageRead)

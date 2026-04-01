@@ -7,6 +7,7 @@ from app.api.dependencies import get_current_user, get_db
 from app.crud import crud_wallet
 from app.models.user import User
 from app.schemas.wallet import WalletAccountRead, WalletDemoTopupRequest, WalletTransactionRead
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
@@ -26,7 +27,18 @@ async def topup_demo_wallet(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await crud_wallet.topup_demo(db, current_user.id, payload.amount)
+        wallet = await crud_wallet.topup_demo(db, current_user.id, payload.amount)
+        wallet_payload = WalletAccountRead.model_validate(wallet).model_dump(mode="json")
+        await connection_manager.send_to_user(
+            current_user.id,
+            {
+                "type": "wallet:balance_updated",
+                "data": {
+                    "wallet": wallet_payload,
+                },
+            },
+        )
+        return wallet
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

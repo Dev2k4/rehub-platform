@@ -1,4 +1,5 @@
 import uuid
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,8 +11,26 @@ from app.models.enums import EscrowStatus, OrderStatus, NotificationType
 from app.models.user import User
 from app.schemas.order import OrderDirectCreate, OrderRead
 from app.services.email_service import send_order_created_email, send_order_completed_email
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
+logger = logging.getLogger(__name__)
+
+
+async def _broadcast_order_event(order: OrderRead, event_type: str) -> None:
+	try:
+		payload = OrderRead.model_validate(order).model_dump(mode="json")
+		event = {
+			"type": event_type,
+			"data": {
+				"order": payload,
+			},
+		}
+		await connection_manager.send_to_user(order.buyer_id, event)
+		if order.seller_id != order.buyer_id:
+			await connection_manager.send_to_user(order.seller_id, event)
+	except Exception:
+		logger.exception("Failed to broadcast order event: %s", event_type)
 
 
 @router.post("", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
@@ -42,6 +61,7 @@ async def create_direct_order(
 
 	if not listing:
 		# Order đã tạo thành công, chỉ là không gửi được notification
+		await _broadcast_order_event(order, "order:status_changed")
 		return order
 
 	buyer = await crud_user.get_user_by_id(db, current_user.id)
@@ -56,6 +76,7 @@ async def create_direct_order(
 		message=f"A buyer placed an order for your listing '{listing.title}'.",
 		data={"order_id": str(order.id), "listing_id": str(listing.id)},
 	)
+	await _broadcast_order_event(order, "order:status_changed")
 	return order
 
 
@@ -121,6 +142,7 @@ async def complete_order(
 		message="Buyer marked the order as completed.",
 		data={"order_id": str(order.id), "listing_id": str(order.listing_id)},
 	)
+	await _broadcast_order_event(updated_order, "order:status_changed")
 	return updated_order
 
 
@@ -157,4 +179,5 @@ async def cancel_order(
 		message="The order was cancelled by the counterparty.",
 		data={"order_id": str(order.id), "listing_id": str(order.listing_id)},
 	)
+	await _broadcast_order_event(updated_order, "order:status_changed")
 	return updated_order
