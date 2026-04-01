@@ -6,10 +6,10 @@ import {
   Heading,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
-import { FiPackage } from "react-icons/fi";
-import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm";
+} from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
+import { FiPackage } from "react-icons/fi"
+import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm"
 
 export function VerifyEmailPage() {
   return (
@@ -69,5 +69,5 @@ export function VerifyEmailPage() {
         </VStack>
       </Container>
     </Box>
-  );
+  )
 }

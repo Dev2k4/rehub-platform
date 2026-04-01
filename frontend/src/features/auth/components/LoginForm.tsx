@@ -4,36 +4,36 @@ import {
   Link as ChakraLink,
   Stack,
   Text,
-} from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field } from "@/components/ui/field";
-import { InputGroup } from "@/components/ui/input-group";
-import { toaster } from "@/components/ui/toaster";
-import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation";
-import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation";
-import { AuthErrorCode } from "@/features/auth/types/auth.types";
+} from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Link, useSearch } from "@tanstack/react-router"
+import { useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
+import { toaster } from "@/components/ui/toaster"
+import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation"
+import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation"
+import { AuthErrorCode } from "@/features/auth/types/auth.types"
 import {
   type LoginInput,
   loginSchema,
-} from "@/features/auth/utils/auth.schemas";
+} from "@/features/auth/utils/auth.schemas"
 
 interface LoginFormProps {
-  onError?: (error: string) => void;
+  onError?: (error: string) => void
 }
 
 export function LoginForm({ onError }: LoginFormProps) {
-  const loginMutation = useLoginMutation();
-  const resetPasswordMutation = useResetPasswordMutation();
-  const search = useSearch({ from: "/auth/login" });
-  const resetToken = (search as any)?.reset_token as string | undefined;
-  const [newPassword, setNewPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const loginMutation = useLoginMutation()
+  const resetPasswordMutation = useResetPasswordMutation()
+  const search = useSearch({ from: "/auth/login" })
+  const resetToken = (search as any)?.reset_token as string | undefined
+  const [newPassword, setNewPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const {
     register,
     handleSubmit,
@@ -47,36 +47,36 @@ export function LoginForm({ onError }: LoginFormProps) {
       password: "",
       rememberMe: false,
     },
-  });
+  })
 
   function onSubmit(data: LoginInput) {
     loginMutation.mutate(data, {
       onSuccess: () => {
-        toaster.create({ title: "Đăng nhập thành công!", type: "success" });
+        toaster.create({ title: "Đăng nhập thành công!", type: "success" })
       },
       onError: (error: any) => {
-        toaster.create({ title: getErrorMessage(error), type: "error" });
+        toaster.create({ title: getErrorMessage(error), type: "error" })
         if (
           error?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED ||
           error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED
         ) {
           if (onError) {
-            onError(error.message);
+            onError(error.message)
           }
         }
       },
-    });
+    })
   }
 
   const getErrorMessage = (error?: any) => {
     if (error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
-      return "Email của bạn chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản.";
+      return "Email của bạn chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản."
     }
     if (error?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED) {
-      return "Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút.";
+      return "Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút."
     }
-    return error?.message || "Đã xảy ra lỗi. Vui lòng thử lại.";
-  };
+    return error?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+  }
 
   return (
     <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
@@ -214,9 +214,9 @@ export function LoginForm({ onError }: LoginFormProps) {
               onClick={() => {
                 if (!newPassword.trim()) {
                   if (onError) {
-                    onError("Vui lòng nhập mật khẩu mới");
+                    onError("Vui lòng nhập mật khẩu mới")
                   }
-                  return;
+                  return
                 }
                 resetPasswordMutation.mutate(
                   { token: resetToken, newPassword: newPassword.trim() },
@@ -225,17 +225,17 @@ export function LoginForm({ onError }: LoginFormProps) {
                       toaster.create({
                         title: "Đặt lại mật khẩu thành công!",
                         type: "success",
-                      });
-                      setNewPassword("");
+                      })
+                      setNewPassword("")
                     },
                     onError: (err: any) => {
                       toaster.create({
                         title: err?.message || "Không thể đặt lại mật khẩu.",
                         type: "error",
-                      });
+                      })
                     },
                   },
-                );
+                )
               }}
             >
               Cập nhật mật khẩu
@@ -245,11 +245,16 @@ export function LoginForm({ onError }: LoginFormProps) {
 
         {/* Forgot Password Link */}
         <Box textAlign="center">
-          <ChakraLink asChild fontSize="sm" color="blue.600" _hover={{ color: "blue.700" }}>
+          <ChakraLink
+            asChild
+            fontSize="sm"
+            color="blue.600"
+            _hover={{ color: "blue.700" }}
+          >
             <Link to="/auth/forgot-password">Quên mật khẩu?</Link>
           </ChakraLink>
         </Box>
       </Stack>
     </Box>
-  );
+  )
 }

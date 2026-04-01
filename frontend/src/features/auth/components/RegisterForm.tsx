@@ -4,32 +4,32 @@ import {
   Stack,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field } from "@/components/ui/field";
-import { InputGroup } from "@/components/ui/input-group";
-import { toaster } from "@/components/ui/toaster";
-import { useRegisterMutation } from "@/features/auth/hooks/useRegisterMutation";
-import { AuthErrorCode } from "@/features/auth/types/auth.types";
+} from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
+import { toaster } from "@/components/ui/toaster"
+import { useRegisterMutation } from "@/features/auth/hooks/useRegisterMutation"
+import { AuthErrorCode } from "@/features/auth/types/auth.types"
 import {
   type RegisterInput,
   registerSchema,
-} from "@/features/auth/utils/auth.schemas";
+} from "@/features/auth/utils/auth.schemas"
 
 interface RegisterFormProps {
-  onError?: (error: string) => void;
+  onError?: (error: string) => void
 }
 
 export function RegisterForm({ onError }: RegisterFormProps) {
-  const registerMutation = useRegisterMutation();
-  const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+  const registerMutation = useRegisterMutation()
+  const navigate = useNavigate()
+  const [showPassword, setShowPassword] = useState(false)
   const {
     register,
     handleSubmit,
@@ -45,30 +45,30 @@ export function RegisterForm({ onError }: RegisterFormProps) {
       fullName: "",
       rememberMe: false,
     },
-  });
+  })
 
-  const password = watch("password");
+  const password = watch("password")
 
   function onSubmit(data: RegisterInput) {
     registerMutation.mutate(data, {
       onSuccess: () => {
-        toaster.create({ title: "Đăng ký thành công!", type: "success" });
+        toaster.create({ title: "Đăng ký thành công!", type: "success" })
       },
       onError: (error: any) => {
-        const errorMsg = error?.message || "Đã xảy ra lỗi. Vui lòng thử lại.";
-        toaster.create({ title: errorMsg, type: "error" });
+        const errorMsg = error?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+        toaster.create({ title: errorMsg, type: "error" })
         if (error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
           navigate({
             to: "/auth/verify-email",
             search: { email: data.email } as any,
-          });
-          return;
+          })
+          return
         }
         if (error?.code === AuthErrorCode.EMAIL_ALREADY_EXISTS && onError) {
-          onError(error.message);
+          onError(error.message)
         }
       },
-    });
+    })
   }
 
   return (
@@ -217,5 +217,5 @@ export function RegisterForm({ onError }: RegisterFormProps) {
         </Button>
       </Stack>
     </Box>
-  );
+  )
 }

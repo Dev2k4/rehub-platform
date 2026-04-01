@@ -1,13 +1,13 @@
 import {
   Box,
+  Link as ChakraLink,
   Flex,
   Heading,
-  Link as ChakraLink,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+} from "@chakra-ui/react"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { useEffect } from "react"
 import {
   FiArrowRight,
   FiRefreshCw,
@@ -16,9 +16,9 @@ import {
   FiStar,
   FiTrendingUp,
   FiUsers,
-} from "react-icons/fi";
-import { LoginForm } from "@/features/auth/components/LoginForm";
-import { getAccessToken } from "@/features/auth/utils/auth.storage";
+} from "react-icons/fi"
+import { LoginForm } from "@/features/auth/components/LoginForm"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 const FEATURES = [
   { icon: FiShoppingBag, label: "Mua bán dễ dàng" },
@@ -27,16 +27,16 @@ const FEATURES = [
   { icon: FiTrendingUp, label: "Thương lượng linh hoạt" },
   { icon: FiUsers, label: "Cộng đồng lớn mạnh" },
   { icon: FiRefreshCw, label: "Tái sử dụng bền vững" },
-];
+]
 
 export function LoginPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (getAccessToken()) {
-      navigate({ to: "/" });
+      navigate({ to: "/" })
     }
-  }, [navigate]);
+  }, [navigate])
 
   return (
     <Flex minH="100vh">
@@ -81,7 +81,7 @@ export function LoginPage() {
             { top: "62%", right: "8%" },
             { bottom: "20%", left: "8%" },
             { bottom: "12%", right: "6%" },
-          ];
+          ]
           return (
             <Box
               key={f.label}
@@ -103,7 +103,7 @@ export function LoginPage() {
                 {f.label}
               </Text>
             </Box>
-          );
+          )
         })}
 
         {/* Center branding */}
@@ -244,5 +244,5 @@ export function LoginPage() {
         </Text>
       </Flex>
     </Flex>
-  );
+  )
 }

@@ -1,8 +1,8 @@
 import {
   Box,
+  Link as ChakraLink,
   Container,
   Heading,
-  Link as ChakraLink,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -91,7 +91,10 @@ export function ResetPasswordPage() {
                   invalid={!!errors.newPassword}
                   errorText={errors.newPassword?.message}
                 >
-                  <InputGroup width="full" startElement={<FiLock color="#9CA3AF" />}>
+                  <InputGroup
+                    width="full"
+                    startElement={<FiLock color="#9CA3AF" />}
+                  >
                     <input
                       {...register("newPassword")}
                       type="password"
@@ -120,7 +123,9 @@ export function ResetPasswordPage() {
 
             <ChakraLink asChild color="blue.600" _hover={{ color: "blue.700" }}>
               <Link to="/auth/login">
-                <FiArrowLeft style={{ display: "inline", marginRight: "0.25rem" }} />
+                <FiArrowLeft
+                  style={{ display: "inline", marginRight: "0.25rem" }}
+                />
                 Quay lại đăng nhập
               </Link>
             </ChakraLink>

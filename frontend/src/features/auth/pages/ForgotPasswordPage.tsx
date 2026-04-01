@@ -1,8 +1,8 @@
 import {
   Box,
+  Link as ChakraLink,
   Container,
   Heading,
-  Link as ChakraLink,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -75,7 +75,10 @@ export function ForgotPasswordPage() {
                   invalid={!!errors.email}
                   errorText={errors.email?.message}
                 >
-                  <InputGroup width="full" startElement={<FiMail color="#9CA3AF" />}>
+                  <InputGroup
+                    width="full"
+                    startElement={<FiMail color="#9CA3AF" />}
+                  >
                     <input
                       {...register("email")}
                       type="email"
@@ -104,7 +107,9 @@ export function ForgotPasswordPage() {
 
             <ChakraLink asChild color="blue.600" _hover={{ color: "blue.700" }}>
               <Link to="/auth/login">
-                <FiArrowLeft style={{ display: "inline", marginRight: "0.25rem" }} />
+                <FiArrowLeft
+                  style={{ display: "inline", marginRight: "0.25rem" }}
+                />
                 Quay lại đăng nhập
               </Link>
             </ChakraLink>
