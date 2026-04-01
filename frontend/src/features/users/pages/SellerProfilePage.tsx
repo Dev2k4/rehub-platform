@@ -30,6 +30,7 @@ import { getCategoriesTree } from "@/features/home/api/marketplace.api"
 import { flattenCategories } from "@/features/home/utils/marketplace.utils"
 import { ReviewsList } from "@/features/reviews/components/ReviewsList"
 import { useUserReviews } from "@/features/reviews/hooks/useReviews"
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 import {
   getSellerListings,
   getUserPublicProfile,
@@ -169,6 +170,7 @@ export function SellerProfilePage() {
   }
 
   const profile = profileQuery.data
+  const isSellerOnline = useIsUserOnline(profile.id)
   const listings = listingsQuery.data?.items ?? []
 
   const locationParts = [profile.district, profile.province].filter(Boolean)
@@ -238,6 +240,15 @@ export function SellerProfilePage() {
                   <Heading as="h1" size="lg" color="gray.900">
                     {profile.full_name}
                   </Heading>
+                  <Badge
+                    colorPalette={isSellerOnline ? "green" : "gray"}
+                    variant="subtle"
+                    px={2}
+                    py={0.5}
+                    borderRadius="full"
+                  >
+                    {isSellerOnline ? "Đang online" : "Đang offline"}
+                  </Badge>
                   <TrustScoreBadge score={profile.trust_score} />
                 </HStack>
                 {location && (

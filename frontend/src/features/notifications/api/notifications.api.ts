@@ -8,7 +8,8 @@ export async function getMyNotifications(): Promise<NotificationRead[]> {
 export async function getUnreadNotificationsCount(): Promise<number> {
   const result =
     await NotificationsService.getUnreadNotificationsCountApiV1NotificationsUnreadCountGet()
-  return (result as { count: number }).count ?? 0
+  const normalized = result as { count?: number; unread_count?: number }
+  return normalized.unread_count ?? normalized.count ?? 0
 }
 
 export async function markNotificationAsRead(

@@ -26,7 +26,14 @@ export function useCompleteOrder() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (orderId: string) => completeOrder(orderId),
-    onSuccess: (_, orderId) => {
+    onSuccess: (updatedOrder, orderId) => {
+      queryClient.setQueryData<OrderRead>(["orders", orderId], updatedOrder)
+      queryClient.setQueryData<OrderRead[]>(["orders", "me"], (old) => {
+        if (!old) {
+          return old
+        }
+        return old.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+      })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
     },
@@ -37,7 +44,14 @@ export function useCancelOrder() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (orderId: string) => cancelOrder(orderId),
-    onSuccess: (_, orderId) => {
+    onSuccess: (updatedOrder, orderId) => {
+      queryClient.setQueryData<OrderRead>(["orders", orderId], updatedOrder)
+      queryClient.setQueryData<OrderRead[]>(["orders", "me"], (old) => {
+        if (!old) {
+          return old
+        }
+        return old.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+      })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
     },
