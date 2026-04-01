@@ -1,21 +1,21 @@
-import { Box, Container, Flex, Heading, Text } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
-import { toaster } from "@/components/ui/toaster";
-import { CategoryOverlay } from "@/features/home/components/CategoryOverlay";
-import { CategorySidebar } from "@/features/home/components/CategorySidebar";
-import { ListingGrid } from "@/features/home/components/ListingGrid";
-import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader";
-import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData";
-import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
-import { ListingModal } from "@/features/listings/components/ListingModal";
+import { Box, Container, Flex, Heading, Text } from "@chakra-ui/react"
+import { useMemo, useState } from "react"
+import { toaster } from "@/components/ui/toaster"
+import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
+import { CategorySidebar } from "@/features/home/components/CategorySidebar"
+import { ListingGrid } from "@/features/home/components/ListingGrid"
+import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
+import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData"
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm"
+import { ListingModal } from "@/features/listings/components/ListingModal"
 import {
   useCreateListing,
   useUploadListingImage,
-} from "@/features/listings/hooks/useMyListings";
+} from "@/features/listings/hooks/useMyListings"
 
 export function HomeMarketplacePage() {
-  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false);
-  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
+  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false)
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false)
   const {
     selectedCategoryId,
     setSelectedCategoryId,
@@ -26,46 +26,46 @@ export function HomeMarketplacePage() {
     categoryMap,
     sellerMap,
     flatCategories,
-  } = useMarketplaceData();
+  } = useMarketplaceData()
 
-  const createMutation = useCreateListing();
-  const uploadImageMutation = useUploadListingImage();
+  const createMutation = useCreateListing()
+  const uploadImageMutation = useUploadListingImage()
 
   const selectedCategoryName = useMemo(() => {
     if (!selectedCategoryId) {
-      return "Tất cả sản phẩm";
+      return "Tất cả sản phẩm"
     }
 
-    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục";
-  }, [selectedCategoryId, categoryMap]);
+    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục"
+  }, [selectedCategoryId, categoryMap])
 
   const handleCreateListing = async ({
     data,
     files,
   }: ListingFormSubmitPayload) => {
     try {
-      const created = await createMutation.mutateAsync(data);
+      const created = await createMutation.mutateAsync(data)
 
       for (const [index, file] of files.entries()) {
         await uploadImageMutation.mutateAsync({
           listingId: created.id,
           file,
           isPrimary: index === 0,
-        });
+        })
       }
 
-      setIsListingModalOpen(false);
+      setIsListingModalOpen(false)
       toaster.create({
         title: "Đăng tin thành công! Sản phẩm đang chờ duyệt.",
         type: "success",
-      });
+      })
     } catch (error: any) {
       toaster.create({
         title: error?.message || "Không thể đăng tin. Vui lòng thử lại sau.",
         type: "error",
-      });
+      })
     }
-  };
+  }
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -82,8 +82,8 @@ export function HomeMarketplacePage() {
         selectedCategoryId={selectedCategoryId}
         onClose={() => setCategoryOverlayOpen(false)}
         onSelectCategory={(id) => {
-          setSelectedCategoryId(id);
-          setCategoryOverlayOpen(false);
+          setSelectedCategoryId(id)
+          setCategoryOverlayOpen(false)
         }}
       />
 
@@ -198,5 +198,5 @@ export function HomeMarketplacePage() {
         isLoading={createMutation.isPending || uploadImageMutation.isPending}
       />
     </Box>
-  );
+  )
 }

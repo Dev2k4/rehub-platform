@@ -10,48 +10,48 @@ import {
   Separator,
   Spinner,
   Text,
-} from "@chakra-ui/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+} from "@chakra-ui/react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Link, useNavigate } from "@tanstack/react-router"
 import {
   FiBell,
   FiMenu,
   FiPackage,
   FiPlusCircle,
   FiSearch,
-} from "react-icons/fi";
-import type { NotificationRead } from "@/client";
-import { InputGroup } from "@/components/ui/input-group";
-import { toaster } from "@/components/ui/toaster";
-import { logoutUser } from "@/features/auth/api/auth.api";
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
-import { clearTokens } from "@/features/auth/utils/auth.storage";
+} from "react-icons/fi"
+import type { NotificationRead } from "@/client"
+import { InputGroup } from "@/components/ui/input-group"
+import { toaster } from "@/components/ui/toaster"
+import { logoutUser } from "@/features/auth/api/auth.api"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { clearTokens } from "@/features/auth/utils/auth.storage"
 import {
   getMyNotifications,
   getUnreadNotificationsCount,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-} from "@/features/notifications/api/notifications.api";
-import { AuthButtons } from "./AuthButtons";
-import { UserDropdownMenu } from "./UserDropdownMenu";
+} from "@/features/notifications/api/notifications.api"
+import { AuthButtons } from "./AuthButtons"
+import { UserDropdownMenu } from "./UserDropdownMenu"
 
 function getDataField(
   data: NotificationRead["data"],
   field: string,
 ): string | null {
   if (!data || typeof data !== "object") {
-    return null;
+    return null
   }
 
-  const value = (data as Record<string, unknown>)[field];
-  return typeof value === "string" && value.trim() ? value : null;
+  const value = (data as Record<string, unknown>)[field]
+  return typeof value === "string" && value.trim() ? value : null
 }
 
 function getNotificationDestination(notification: NotificationRead):
   | {
-      to: "/listings/$id";
-      params: { id: string };
-      search?: { offerId?: string };
+      to: "/listings/$id"
+      params: { id: string }
+      search?: { offerId?: string }
     }
   | { to: "/orders/$id"; params: { id: string } }
   | { to: "/sellers/$id"; params: { id: string } }
@@ -59,141 +59,141 @@ function getNotificationDestination(notification: NotificationRead):
   | { to: "/orders" }
   | { to: "/profile" }
   | { to: "/" } {
-  const orderId = getDataField(notification.data, "order_id");
-  const listingId = getDataField(notification.data, "listing_id");
-  const offerId = getDataField(notification.data, "offer_id");
-  const sellerId = getDataField(notification.data, "seller_id");
+  const orderId = getDataField(notification.data, "order_id")
+  const listingId = getDataField(notification.data, "listing_id")
+  const offerId = getDataField(notification.data, "offer_id")
+  const sellerId = getDataField(notification.data, "seller_id")
 
   if (
     orderId &&
     (notification.type.startsWith("order_") ||
       notification.type.startsWith("escrow_"))
   ) {
-    return { to: "/orders/$id", params: { id: orderId } };
+    return { to: "/orders/$id", params: { id: orderId } }
   }
 
   if (listingId) {
     const destination = {
       to: "/listings/$id" as const,
       params: { id: listingId },
-    };
-    if (offerId && notification.type.startsWith("offer_")) {
-      return { ...destination, search: { offerId } };
     }
-    return destination;
+    if (offerId && notification.type.startsWith("offer_")) {
+      return { ...destination, search: { offerId } }
+    }
+    return destination
   }
 
   if (sellerId) {
-    return { to: "/sellers/$id", params: { id: sellerId } };
+    return { to: "/sellers/$id", params: { id: sellerId } }
   }
 
   if (notification.type.startsWith("offer_")) {
-    return { to: "/my-listings" };
+    return { to: "/my-listings" }
   }
 
   if (notification.type.startsWith("order_")) {
-    return { to: "/orders" };
+    return { to: "/orders" }
   }
 
   if (notification.type.startsWith("escrow_")) {
-    return { to: "/orders" };
+    return { to: "/orders" }
   }
 
   if (notification.type.startsWith("review_")) {
-    return { to: "/profile" };
+    return { to: "/profile" }
   }
 
-  return { to: "/" };
+  return { to: "/" }
 }
 
 type MarketplaceHeaderProps = {
-  keyword: string;
-  onKeywordChange: (value: string) => void;
-  onOpenCategoryMenu: () => void;
-  onOpenListingModal?: () => void;
-};
+  keyword?: string
+  onKeywordChange?: (value: string) => void
+  onOpenCategoryMenu?: () => void
+  onOpenListingModal?: () => void
+}
 
 export function MarketplaceHeader({
-  keyword,
+  keyword = "",
   onKeywordChange,
   onOpenCategoryMenu,
   onOpenListingModal,
 }: MarketplaceHeaderProps) {
-  const { user, isAuthenticated, isLoading } = useAuthUser();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading } = useAuthUser()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const notificationsQuery = useQuery({
     queryKey: ["notifications"],
     queryFn: () => getMyNotifications(),
     enabled: isAuthenticated,
-  });
+  })
   const unreadCountQuery = useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: () => getUnreadNotificationsCount(),
     enabled: isAuthenticated,
-  });
+  })
 
   const markNotificationMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] })
       queryClient.invalidateQueries({
         queryKey: ["notifications", "unread-count"],
-      });
+      })
     },
-  });
+  })
 
   const markAllNotificationsMutation = useMutation({
     mutationFn: markAllNotificationsAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] })
       queryClient.invalidateQueries({
         queryKey: ["notifications", "unread-count"],
-      });
+      })
     },
-  });
+  })
 
   const handleLogout = async () => {
     try {
-      await logoutUser();
+      await logoutUser()
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Logout error:", error)
     } finally {
-      clearTokens();
-      queryClient.setQueryData(["auth", "user"], null);
-      queryClient.removeQueries({ queryKey: ["auth", "user"] });
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
-      toaster.create({ title: "Đã đăng xuất thành công", type: "info" });
-      navigate({ to: "/" });
+      clearTokens()
+      queryClient.setQueryData(["auth", "user"], null)
+      queryClient.removeQueries({ queryKey: ["auth", "user"] })
+      queryClient.invalidateQueries({ queryKey: ["auth"] })
+      toaster.create({ title: "Đã đăng xuất thành công", type: "info" })
+      navigate({ to: "/" })
     }
-  };
+  }
 
-  const unreadCount = unreadCountQuery.data ?? 0;
+  const unreadCount = unreadCountQuery.data ?? 0
 
   const handleNotificationClick = async (notification: NotificationRead) => {
     if (!notification.is_read && !markNotificationMutation.isPending) {
       try {
-        await markNotificationMutation.mutateAsync(notification.id);
+        await markNotificationMutation.mutateAsync(notification.id)
       } catch (error) {
-        console.error("Failed to mark notification as read:", error);
+        console.error("Failed to mark notification as read:", error)
       }
     }
 
-    const destination = getNotificationDestination(notification);
-    navigate(destination as never);
-  };
+    const destination = getNotificationDestination(notification)
+    navigate(destination as never)
+  }
 
   const handleMarkAllAsRead = async () => {
     if (unreadCount === 0 || markAllNotificationsMutation.isPending) {
-      return;
+      return
     }
 
     try {
-      await markAllNotificationsMutation.mutateAsync();
+      await markAllNotificationsMutation.mutateAsync()
     } catch (error) {
-      console.error("Failed to mark all notifications as read:", error);
+      console.error("Failed to mark all notifications as read:", error)
     }
-  };
+  }
 
   return (
     <Box
@@ -225,7 +225,7 @@ export function MarketplaceHeader({
         >
           <Flex align="center" gap={{ base: 3, md: 4 }}>
             <IconButton
-              display={{ base: "inline-flex", lg: "none" }}
+              display={{ base: onOpenCategoryMenu ? "inline-flex" : "none", lg: "none" }}
               aria-label="Open category menu"
               onClick={onOpenCategoryMenu}
               h={10}
@@ -264,7 +264,13 @@ export function MarketplaceHeader({
           <Flex display={{ base: "flex", sm: "none" }} align="center" gap={2}>
             <IconButton
               aria-label="Post listing"
-              onClick={onOpenListingModal}
+              onClick={() => {
+                if (onOpenListingModal) {
+                  onOpenListingModal()
+                  return
+                }
+                navigate({ to: "/" })
+              }}
               borderRadius="full"
               bg="blue.600"
               color="white"
@@ -289,12 +295,12 @@ export function MarketplaceHeader({
           >
             <Input
               value={keyword}
-              onChange={(event) => onKeywordChange(event.target.value)}
+              onChange={(event) => onKeywordChange?.(event.target.value)}
               placeholder="Tìm kiếm sản phẩm, danh mục, hoặc người bán..."
               w="full"
               borderRadius="full"
               border="1px solid"
-              borderColor="whiteAlpha.400"
+              borderColor="gray.400"
               bg="whiteAlpha.600"
               backdropFilter="blur(8px)"
               py={3}
@@ -486,8 +492,10 @@ export function MarketplaceHeader({
             <Link to="/">
               <Button
                 onClick={(e) => {
-                  e.preventDefault();
-                  onOpenListingModal?.();
+                  if (onOpenListingModal) {
+                    e.preventDefault()
+                    onOpenListingModal()
+                  }
                 }}
                 borderRadius="full"
                 bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
@@ -529,5 +537,5 @@ export function MarketplaceHeader({
         </Flex>
       </Flex>
     </Box>
-  );
+  )
 }
