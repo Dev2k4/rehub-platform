@@ -12,9 +12,10 @@ export async function getUserReviews(userId: string): Promise<ReviewRead[]> {
 }
 
 export async function getOrderReviews(orderId: string): Promise<ReviewRead[]> {
-  const response = await ReviewsService.getReviewsForOrderApiV1ReviewsOrderIdGet({
-    orderId,
-  })
+  const response =
+    await ReviewsService.getReviewsForOrderApiV1ReviewsOrderIdGet({
+      orderId,
+    })
 
   // Some generated clients typed this endpoint as a single ReviewRead while backend returns a list.
   if (Array.isArray(response)) {

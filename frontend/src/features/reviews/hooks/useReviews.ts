@@ -30,27 +30,35 @@ export function useCreateReview() {
   return useMutation({
     mutationFn: (data: ReviewCreate) => createReview(data),
     onSuccess: (createdReview) => {
-      queryClient.setQueryData(["reviews", "order", createdReview.order_id], (old: any) => {
-        if (!Array.isArray(old)) {
-          return old
-        }
-        const dedup = old.filter((item: any) => item.id !== createdReview.id)
-        return [createdReview, ...dedup]
-      })
-      queryClient.setQueryData(["reviews", "user", createdReview.reviewee_id], (old: any) => {
-        if (!Array.isArray(old)) {
-          return old
-        }
-        const dedup = old.filter((item: any) => item.id !== createdReview.id)
-        return [createdReview, ...dedup]
-      })
+      queryClient.setQueryData(
+        ["reviews", "order", createdReview.order_id],
+        (old: any) => {
+          if (!Array.isArray(old)) {
+            return old
+          }
+          const dedup = old.filter((item: any) => item.id !== createdReview.id)
+          return [createdReview, ...dedup]
+        },
+      )
+      queryClient.setQueryData(
+        ["reviews", "user", createdReview.reviewee_id],
+        (old: any) => {
+          if (!Array.isArray(old)) {
+            return old
+          }
+          const dedup = old.filter((item: any) => item.id !== createdReview.id)
+          return [createdReview, ...dedup]
+        },
+      )
       queryClient.invalidateQueries({
         queryKey: ["reviews", "order", createdReview.order_id],
       })
       queryClient.invalidateQueries({
         queryKey: ["reviews", "user", createdReview.reviewee_id],
       })
-      queryClient.invalidateQueries({ queryKey: ["seller-profile", createdReview.reviewee_id] })
+      queryClient.invalidateQueries({
+        queryKey: ["seller-profile", createdReview.reviewee_id],
+      })
       queryClient.invalidateQueries({
         queryKey: ["orders", createdReview.order_id],
       })
