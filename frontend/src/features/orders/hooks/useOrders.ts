@@ -32,7 +32,9 @@ export function useCompleteOrder() {
         if (!old) {
           return old
         }
-        return old.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+        return old.map((item) =>
+          item.id === updatedOrder.id ? updatedOrder : item,
+        )
       })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
@@ -50,7 +52,9 @@ export function useCancelOrder() {
         if (!old) {
           return old
         }
-        return old.map((item) => (item.id === updatedOrder.id ? updatedOrder : item))
+        return old.map((item) =>
+          item.id === updatedOrder.id ? updatedOrder : item,
+        )
       })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })

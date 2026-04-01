@@ -11,10 +11,12 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FiArrowLeft } from "react-icons/fi"
+import type { OrderRead } from "@/client"
 import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { useEscrow } from "@/features/escrow/hooks/useEscrow"
 import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
 import {
   useCancelOrder,
@@ -38,6 +40,155 @@ function statusMeta(status: string): { label: string; color: string } {
   }
 }
 
+type OrderListItemProps = {
+  order: OrderRead
+  userId: string
+  navigate: ReturnType<typeof useNavigate>
+  completePending: boolean
+  cancelPending: boolean
+  onComplete: (orderId: string) => Promise<void>
+  onCancel: (orderId: string) => Promise<void>
+}
+
+function OrderListItem({
+  order,
+  userId,
+  navigate,
+  completePending,
+  cancelPending,
+  onComplete,
+  onCancel,
+}: OrderListItemProps) {
+  const status = statusMeta(order.status)
+  const isBuyer = order.buyer_id === userId
+  const counterpartyId = isBuyer ? order.seller_id : order.buyer_id
+  const isCounterpartyOnline = useIsUserOnline(counterpartyId)
+  const escrowQuery = useEscrow(order.id)
+  const escrow = escrowQuery.data
+
+  const canComplete = order.status === "pending" && isBuyer && !escrow
+  const canCancel =
+    order.status === "pending" &&
+    (!escrow || escrow.status === "awaiting_funding")
+
+  return (
+    <Box
+      key={order.id}
+      bg="whiteAlpha.800"
+      backdropFilter="blur(20px)"
+      borderRadius="2xl"
+      p={8}
+      boxShadow="0 4px 25px rgba(0,0,0,0.03)"
+      border="1px"
+      borderColor="whiteAlpha.500"
+      _hover={{
+        boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
+        borderColor: "blue.200",
+        transform: "translateY(-3px)",
+      }}
+      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+    >
+      <Flex
+        justify="space-between"
+        align={{ base: "start", md: "center" }}
+        direction={{ base: "column", md: "row" }}
+        gap={6}
+      >
+        <Box>
+          <Flex align="center" gap={3} mb={2}>
+            <Text
+              fontWeight="bold"
+              fontSize="2xl"
+              color="blue.600"
+              letterSpacing="tight"
+            >
+              {formatCurrencyVnd(order.final_price)}
+            </Text>
+            <Badge
+              colorPalette={status.color as any}
+              variant="surface"
+              size="lg"
+              borderRadius="full"
+              px={4}
+            >
+              {status.label}
+            </Badge>
+          </Flex>
+          <HStack fontSize="sm" color="gray.500" gap={4}>
+            <Text>
+              Mã định danh:{" "}
+              <Text as="span" fontFamily="mono" color="gray.400" fontSize="xs">
+                {order.id}
+              </Text>
+            </Text>
+          </HStack>
+          <HStack mt={2} fontSize="xs" color="gray.500" gap={2} flexWrap="wrap">
+            <Text>Đối tác:</Text>
+            <Text fontFamily="mono" color="gray.600">
+              {counterpartyId}
+            </Text>
+            <Badge
+              colorPalette={isCounterpartyOnline ? "green" : "gray"}
+              variant="subtle"
+              borderRadius="full"
+              px={2}
+            >
+              {isCounterpartyOnline ? "Online" : "Offline"}
+            </Badge>
+          </HStack>
+          {order.status === "pending" &&
+            escrow &&
+            escrow.status !== "awaiting_funding" && (
+              <Text mt={2} fontSize="xs" color="orange.600">
+                Đơn dùng escrow sau khi đã fund. Vui lòng vào chi tiết đơn để xử
+                lý release/dispute.
+              </Text>
+            )}
+        </Box>
+        <HStack gap={3}>
+          <Button
+            variant="surface"
+            colorPalette="blue"
+            borderRadius="xl"
+            px={6}
+            onClick={() =>
+              navigate({
+                to: "/orders/$id",
+                params: { id: order.id },
+              })
+            }
+          >
+            Chi tiết đơn
+          </Button>
+          {canComplete && (
+            <Button
+              colorPalette="green"
+              borderRadius="xl"
+              px={6}
+              onClick={() => onComplete(order.id)}
+              loading={completePending}
+            >
+              Hoàn thành đơn
+            </Button>
+          )}
+          {canCancel && (
+            <Button
+              colorPalette="red"
+              variant="outline"
+              borderRadius="xl"
+              px={6}
+              onClick={() => onCancel(order.id)}
+              loading={cancelPending}
+            >
+              Hủy đơn
+            </Button>
+          )}
+        </HStack>
+      </Flex>
+    </Box>
+  )
+}
+
 export function OrdersPage() {
   const navigate = useNavigate()
   const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
@@ -47,8 +198,13 @@ export function OrdersPage() {
   const completeMutation = useCompleteOrder()
   const cancelMutation = useCancelOrder()
 
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate({ to: "/auth/login" })
+    }
+  }, [authLoading, isAuthenticated, navigate])
+
   if (!authLoading && !isAuthenticated) {
-    navigate({ to: "/auth/login" })
     return null
   }
 
@@ -200,123 +356,17 @@ export function OrdersPage() {
         ) : (
           <VStack align="stretch" gap={5}>
             {filteredOrders.map((order) => {
-              const status = statusMeta(order.status)
-              const isBuyer = order.buyer_id === user.id
-              const counterpartyId = isBuyer ? order.seller_id : order.buyer_id
-              const isCounterpartyOnline = useIsUserOnline(counterpartyId)
-              const canAct = order.status === "pending"
               return (
-                <Box
+                <OrderListItem
                   key={order.id}
-                  bg="whiteAlpha.800"
-                  backdropFilter="blur(20px)"
-                  borderRadius="2xl"
-                  p={8}
-                  boxShadow="0 4px 25px rgba(0,0,0,0.03)"
-                  border="1px"
-                  borderColor="whiteAlpha.500"
-                  _hover={{
-                    boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
-                    borderColor: "blue.200",
-                    transform: "translateY(-3px)",
-                  }}
-                  transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-                >
-                  <Flex
-                    justify="space-between"
-                    align={{ base: "start", md: "center" }}
-                    direction={{ base: "column", md: "row" }}
-                    gap={6}
-                  >
-                    <Box>
-                      <Flex align="center" gap={3} mb={2}>
-                        <Text
-                          fontWeight="bold"
-                          fontSize="2xl"
-                          color="blue.600"
-                          letterSpacing="tight"
-                        >
-                          {formatCurrencyVnd(order.final_price)}
-                        </Text>
-                        <Badge
-                          colorPalette={status.color as any}
-                          variant="surface"
-                          size="lg"
-                          borderRadius="full"
-                          px={4}
-                        >
-                          {status.label}
-                        </Badge>
-                      </Flex>
-                      <HStack fontSize="sm" color="gray.500" gap={4}>
-                        <Text>
-                          Mã định danh:{" "}
-                          <Text
-                            as="span"
-                            fontFamily="mono"
-                            color="gray.400"
-                            fontSize="xs"
-                          >
-                            {order.id}
-                          </Text>
-                        </Text>
-                      </HStack>
-                      <HStack mt={2} fontSize="xs" color="gray.500" gap={2} flexWrap="wrap">
-                        <Text>Đối tác:</Text>
-                        <Text fontFamily="mono" color="gray.600">
-                          {counterpartyId}
-                        </Text>
-                        <Badge
-                          colorPalette={isCounterpartyOnline ? "green" : "gray"}
-                          variant="subtle"
-                          borderRadius="full"
-                          px={2}
-                        >
-                          {isCounterpartyOnline ? "Online" : "Offline"}
-                        </Badge>
-                      </HStack>
-                    </Box>
-                    <HStack gap={3}>
-                      <Button
-                        variant="surface"
-                        colorPalette="blue"
-                        borderRadius="xl"
-                        px={6}
-                        onClick={() =>
-                          navigate({
-                            to: "/orders/$id",
-                            params: { id: order.id },
-                          })
-                        }
-                      >
-                        Chi tiết đơn
-                      </Button>
-                      {canAct && isBuyer && (
-                        <Button
-                          colorPalette="green"
-                          borderRadius="xl"
-                          px={6}
-                          onClick={() => handleComplete(order.id)}
-                          loading={completeMutation.isPending}
-                        >
-                          Hoàn thành đơn
-                        </Button>
-                      )}
-                      {canAct && (
-                        <Button
-                          colorPalette="red"
-                          variant="outline"
-                          borderRadius="xl"
-                          px={6}
-                          onClick={() => handleCancel(order.id)}
-                          loading={cancelMutation.isPending}
-                        >
-                          Hủy đơn
-                        </Button>
-                      )}
-                    </HStack>
-                  </Flex>
-                </Box>
+                  order={order}
+                  userId={user.id}
+                  navigate={navigate}
+                  completePending={completeMutation.isPending}
+                  cancelPending={cancelMutation.isPending}
+                  onComplete={handleComplete}
+                  onCancel={handleCancel}
+                />
               )
             })}
           </VStack>

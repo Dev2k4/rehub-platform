@@ -10,6 +10,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate, useParams } from "@tanstack/react-router"
 import { FiArrowLeft, FiCreditCard, FiShield } from "react-icons/fi"
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,7 @@ import { ReviewForm } from "@/features/reviews/components/ReviewForm"
 import { ReviewsList } from "@/features/reviews/components/ReviewsList"
 import { useOrderReviews } from "@/features/reviews/hooks/useReviews"
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
+import { getUserPublicProfile } from "@/features/users/api/users.api"
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
@@ -83,6 +85,24 @@ export function OrderDetailPage() {
   const releaseRequestMutation = useRequestEscrowRelease()
   const confirmReleaseMutation = useConfirmEscrowRelease()
   const disputeMutation = useOpenEscrowDispute()
+  const counterpartyId =
+    orderQuery.data && user
+      ? orderQuery.data.buyer_id === user.id
+        ? orderQuery.data.seller_id
+        : orderQuery.data.buyer_id
+      : ""
+  const counterpartyProfileQuery = useQuery({
+    queryKey: ["seller-profile", counterpartyId],
+    queryFn: () => getUserPublicProfile(counterpartyId),
+    enabled: !!counterpartyId,
+  })
+  const isCounterpartyOnline = useIsUserOnline(
+    orderQuery.data
+      ? orderQuery.data.buyer_id === user?.id
+        ? orderQuery.data.seller_id
+        : orderQuery.data.buyer_id
+      : null,
+  )
 
   if (!authLoading && !isAuthenticated) {
     navigate({ to: "/auth/login" })
@@ -109,8 +129,8 @@ export function OrderDetailPage() {
   const status = statusMeta(order.status)
   const isBuyer = order.buyer_id === user.id
   const isSeller = order.seller_id === user.id
-  const counterpartyId = isBuyer ? order.seller_id : order.buyer_id
-  const isCounterpartyOnline = useIsUserOnline(counterpartyId)
+  const counterpartyName =
+    counterpartyProfileQuery.data?.full_name?.trim() || counterpartyId
   const escrow = escrowQuery.data
   const hasEscrow = !!escrow
   const canComplete = !hasEscrow && order.status === "pending" && isBuyer
@@ -134,8 +154,40 @@ export function OrderDetailPage() {
   const alreadyReviewed = (orderReviewsQuery.data ?? []).some(
     (review) => review.reviewer_id === user.id,
   )
+  const hasCounterparty = counterpartyId !== user.id
   const canReview =
-    order.status === "completed" && (isBuyer || isSeller) && !alreadyReviewed
+    order.status === "completed" &&
+    hasCounterparty &&
+    isBuyer &&
+    !alreadyReviewed
+  const paymentModeLabel = hasEscrow
+    ? "Escrow bảo chứng"
+    : "Thanh toán trực tiếp"
+  const buyerActionHint = (() => {
+    if (!isBuyer) {
+      return null
+    }
+
+    if (hasEscrow && escrow?.status === "awaiting_funding") {
+      return "Bạn cần nạp tiền vào escrow để người bán có thể bắt đầu giao hàng."
+    }
+    if (hasEscrow && escrow?.status === "held") {
+      return "Người bán đang xử lý đơn. Chờ bên bán đánh dấu đã giao."
+    }
+    if (hasEscrow && escrow?.status === "release_pending") {
+      return "Hãy xác nhận nhận hàng để giải ngân tiền cho người bán."
+    }
+    if (order.status === "pending") {
+      return "Đơn hàng đang xử lý. Bạn có thể theo dõi tiến độ theo thời gian thực."
+    }
+    if (order.status === "completed") {
+      return "Đơn hàng đã hoàn tất. Bạn có thể để lại đánh giá cho người bán."
+    }
+    if (order.status === "cancelled") {
+      return "Đơn hàng đã bị hủy. Bạn có thể quay lại marketplace để chọn sản phẩm khác."
+    }
+    return "Theo dõi cập nhật trạng thái để biết bước tiếp theo của giao dịch."
+  })()
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -254,31 +306,38 @@ export function OrderDetailPage() {
                 </Badge>
               </HStack>
               <Separator borderColor="gray.200" />
-                <HStack justify="space-between" py={3}>
-                  <Text color="gray.500" fontSize="sm">
-                    Đối tác giao dịch
+              <HStack justify="space-between" py={3}>
+                <Text color="gray.500" fontSize="sm">
+                  Đối tác giao dịch
+                </Text>
+                <HStack gap={2} maxW="60%" justify="end" flexWrap="wrap">
+                  <Text
+                    fontSize="sm"
+                    color="blue.600"
+                  
+                    cursor="pointer"
+                    wordBreak="break-all"
+                    textAlign="right"
+                    onClick={() =>
+                      navigate({
+                        to: "/sellers/$id",
+                        params: { id: counterpartyId },
+                      })
+                    }
+                  >
+                    {counterpartyName}
                   </Text>
-                  <HStack gap={2} maxW="60%" justify="end" flexWrap="wrap">
-                    <Text
-                      fontSize="xs"
-                      color="gray.700"
-                      fontFamily="mono"
-                      wordBreak="break-all"
-                      textAlign="right"
-                    >
-                      {counterpartyId}
-                    </Text>
-                    <Badge
-                      colorPalette={isCounterpartyOnline ? "green" : "gray"}
-                      variant="subtle"
-                      borderRadius="full"
-                      px={2}
-                    >
-                      {isCounterpartyOnline ? "Đang online" : "Đang offline"}
-                    </Badge>
-                  </HStack>
+                  <Badge
+                    colorPalette={isCounterpartyOnline ? "green" : "gray"}
+                    variant="subtle"
+                    borderRadius="full"
+                    px={2}
+                  >
+                    {isCounterpartyOnline ? "Đang online" : "Đang offline"}
+                  </Badge>
                 </HStack>
-                <Separator borderColor="gray.200" />
+              </HStack>
+              <Separator borderColor="gray.200" />
               <HStack justify="space-between" py={4} mt={1}>
                 <Text color="gray.800" fontWeight="bold" fontSize="md">
                   TỔNG GIÁ TRỊ
@@ -289,6 +348,37 @@ export function OrderDetailPage() {
               </HStack>
             </VStack>
           </Box>
+
+          {isBuyer && buyerActionHint && (
+            <Box
+              mt={6}
+              p={5}
+              borderRadius="xl"
+              border="1px"
+              borderColor="blue.100"
+              bg="blue.100"
+            >
+              <Heading size="sm" color="blue.900" mb={2}>
+                Trạng thái giao dịch
+              </Heading>
+              <Text fontSize="sm" color="blue.800" mb={3}>
+                {buyerActionHint}
+              </Text>
+              <HStack gap={2} flexWrap="wrap">
+                <Badge colorPalette="blue" variant="subtle" borderRadius="full" px={3}>
+                  {paymentModeLabel}
+                </Badge>
+                <Badge
+                  colorPalette={status.color as any}
+                  variant="subtle"
+                  borderRadius="full"
+                  px={3}
+                >
+                  {status.label}
+                </Badge>
+              </HStack>
+            </Box>
+          )}
 
           {/* Escrow Section */}
           {hasEscrow && (
@@ -436,7 +526,11 @@ export function OrderDetailPage() {
                         })
                       } catch (e: any) {
                         const message = String(e?.message || "")
-                        if (message.includes("Cannot confirm release in released state")) {
+                        if (
+                          message.includes(
+                            "Cannot confirm release in released state",
+                          )
+                        ) {
                           await Promise.all([
                             escrowQuery.refetch(),
                             orderQuery.refetch(),
@@ -553,22 +647,31 @@ export function OrderDetailPage() {
           )}
 
           {/* Reviews Section */}
-          <Box mt={6} pt={6} borderTop="1px" borderColor="gray.200">
-            <Heading size="md" mb={4} color="gray.900">
-              Đánh giá giao dịch
-            </Heading>
+          <Box
+            mt={6}
+            p={6}
+            borderRadius="xl"
+            border="1px"
+            borderColor="gray.100"
+            bg="gray.200"
+            boxShadow="0 4px 20px rgba(0,0,0,0.03)"
+          >
+            {isBuyer && (
+              <Box mb={4}>
+                <Heading size="sm" color="gray.900" mb={1}>
+                  Đánh giá người bán
+                </Heading>
+                <Text fontSize="sm" color="gray.500">
+                  Đánh giá sẽ giúp người mua khác có thêm thông tin trước khi giao dịch.
+                </Text>
+              </Box>
+            )}
 
             {canReview ? (
               <Box mb={6}>
                 <ReviewForm orderId={order.id} />
               </Box>
-            ) : (
-              <Text fontSize="sm" color="gray.500" mb={4}>
-                {order.status !== "completed"
-                  ? "Bạn có thể đánh giá sau khi giao dịch hoàn tất."
-                  : "Bạn đã chia sẻ đánh giá cho giao dịch này."}
-              </Text>
-            )}
+            ) : null}
 
             <ReviewsList
               reviews={orderReviewsQuery.data ?? []}
