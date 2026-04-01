@@ -1,16 +1,53 @@
 import uuid
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_admin, get_current_user, get_db
-from app.crud import crud_escrow, crud_notification, crud_order
+from app.crud import crud_escrow, crud_notification, crud_order, crud_wallet
 from app.models.enums import NotificationType
 from app.models.user import User
 from app.schemas.escrow import EscrowAdminResolveRequest, EscrowDisputeRequest, EscrowRead
+from app.schemas.wallet import WalletAccountRead
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/escrows", tags=["Escrows"])
+logger = logging.getLogger(__name__)
+
+
+async def _broadcast_escrow_event(escrow: EscrowRead, event_type: str) -> None:
+    try:
+        payload = EscrowRead.model_validate(escrow).model_dump(mode="json")
+        event = {
+            "type": event_type,
+            "data": {
+                "escrow": payload,
+            },
+        }
+        await connection_manager.send_to_user(escrow.buyer_id, event)
+        if escrow.seller_id != escrow.buyer_id:
+            await connection_manager.send_to_user(escrow.seller_id, event)
+    except Exception:
+        logger.exception("Failed to broadcast escrow event: %s", event_type)
+
+
+async def _broadcast_wallet_balance(db: AsyncSession, user_id: uuid.UUID) -> None:
+    try:
+        wallet = await crud_wallet.get_or_create_wallet(db, user_id)
+        payload = WalletAccountRead.model_validate(wallet).model_dump(mode="json")
+        await connection_manager.send_to_user(
+            user_id,
+            {
+                "type": "wallet:balance_updated",
+                "data": {
+                    "wallet": payload,
+                },
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast wallet balance for user %s", user_id)
 
 
 @router.get("/disputed", response_model=list[EscrowRead])
@@ -64,6 +101,9 @@ async def fund_escrow(
             message="Buyer funded escrow. You can proceed to delivery.",
             data={"order_id": str(order.id)},
         )
+        await _broadcast_escrow_event(escrow, "escrow:state_changed")
+        await _broadcast_wallet_balance(db, order.buyer_id)
+        await _broadcast_wallet_balance(db, order.seller_id)
         return escrow
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -89,6 +129,7 @@ async def request_release(
             message="Seller marked this order as delivered. Please confirm receipt.",
             data={"order_id": str(order.id)},
         )
+        await _broadcast_escrow_event(escrow, "escrow:state_changed")
         return escrow
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -114,6 +155,9 @@ async def confirm_release(
             message="Buyer confirmed delivery. Funds were released to your demo wallet.",
             data={"order_id": str(order.id)},
         )
+        await _broadcast_escrow_event(escrow, "escrow:state_changed")
+        await _broadcast_wallet_balance(db, order.buyer_id)
+        await _broadcast_wallet_balance(db, order.seller_id)
         return escrow
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -141,6 +185,7 @@ async def open_dispute(
             message="A dispute has been opened for this order.",
             data={"order_id": str(order.id)},
         )
+        await _broadcast_escrow_event(escrow, "escrow:state_changed")
         return escrow
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -173,6 +218,9 @@ async def admin_resolve_escrow(
             message=f"Admin resolved escrow with result: {payload.result}.",
             data={"order_id": str(order.id), "result": payload.result},
         )
+        await _broadcast_escrow_event(escrow, "escrow:state_changed")
+        await _broadcast_wallet_balance(db, order.buyer_id)
+        await _broadcast_wallet_balance(db, order.seller_id)
         return escrow
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
