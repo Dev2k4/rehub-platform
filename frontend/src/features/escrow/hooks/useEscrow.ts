@@ -28,7 +28,8 @@ export function useDemoTopupWallet() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (amount: number) => demoTopupWallet(amount),
-    onSuccess: () => {
+    onSuccess: (wallet) => {
+      queryClient.setQueryData(["wallet", "me"], wallet)
       queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
     },
   })
@@ -38,7 +39,8 @@ export function useFundEscrow() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (orderId: string) => fundEscrow(orderId),
-    onSuccess: (_, orderId) => {
+    onSuccess: (escrow, orderId) => {
+      queryClient.setQueryData(["escrow", orderId], escrow)
       queryClient.invalidateQueries({ queryKey: ["escrow", orderId] })
       queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
@@ -51,7 +53,8 @@ export function useRequestEscrowRelease() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (orderId: string) => requestEscrowRelease(orderId),
-    onSuccess: (_, orderId) => {
+    onSuccess: (escrow, orderId) => {
+      queryClient.setQueryData(["escrow", orderId], escrow)
       queryClient.invalidateQueries({ queryKey: ["escrow", orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
@@ -63,7 +66,8 @@ export function useConfirmEscrowRelease() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (orderId: string) => confirmEscrowRelease(orderId),
-    onSuccess: (_, orderId) => {
+    onSuccess: (escrow, orderId) => {
+      queryClient.setQueryData(["escrow", orderId], escrow)
       queryClient.invalidateQueries({ queryKey: ["escrow", orderId] })
       queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
@@ -77,8 +81,10 @@ export function useOpenEscrowDispute() {
   return useMutation({
     mutationFn: (params: { orderId: string; note?: string }) =>
       openEscrowDispute(params.orderId, { note: params.note }),
-    onSuccess: (_, params) => {
+    onSuccess: (escrow, params) => {
+      queryClient.setQueryData(["escrow", params.orderId], escrow)
       queryClient.invalidateQueries({ queryKey: ["escrow", params.orderId] })
+      queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", params.orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
     },

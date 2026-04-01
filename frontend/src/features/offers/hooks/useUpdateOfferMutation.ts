@@ -14,6 +14,13 @@ export function useUpdateOfferMutation() {
       data: OfferStatusUpdate
     }) => updateOfferStatus(offerId, data),
     onSuccess: (offer) => {
+      queryClient.setQueryData(["offer", offer.id], offer)
+      queryClient.setQueriesData({ queryKey: ["offers"] }, (old: any) => {
+        if (!Array.isArray(old)) {
+          return old
+        }
+        return old.map((item: any) => (item.id === offer.id ? offer : item))
+      })
       queryClient.invalidateQueries({ queryKey: ["offer", offer.id] })
       queryClient.invalidateQueries({ queryKey: ["offers", "me", "sent"] })
       queryClient.invalidateQueries({ queryKey: ["offers", "me", "received"] })
