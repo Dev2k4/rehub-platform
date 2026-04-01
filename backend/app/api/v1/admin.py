@@ -1,4 +1,5 @@
 import uuid
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +14,39 @@ from app.models.user import User
 from app.schemas.listing import ListingRead
 from app.schemas.order import OrderRead
 from app.schemas.user import UserMe, UserStatusUpdate
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+logger = logging.getLogger(__name__)
+
+
+async def _broadcast_listing_status_event(listing: ListingRead, event_type: str) -> None:
+    try:
+        payload = ListingRead.model_validate(listing).model_dump(mode="json")
+
+        # Push full listing payload to seller for immediate dashboard updates.
+        await connection_manager.send_to_user(
+            listing.seller_id,
+            {
+                "type": event_type,
+                "data": {
+                    "listing": payload,
+                },
+            },
+        )
+
+        # Push compact status update to all connected clients for public listing views.
+        await connection_manager.broadcast(
+            {
+                "type": "listing:status_updated",
+                "data": {
+                    "listing_id": str(listing.id),
+                    "status": listing.status.value,
+                },
+            }
+        )
+    except Exception:
+        logger.exception("Failed to broadcast listing event: %s", event_type)
 
 
 @router.get("/users", response_model=list[UserMe])
@@ -105,6 +137,7 @@ async def approve_listing(
         message=f"Your listing '{listing.title}' has been approved.",
         data={"listing_id": str(listing.id)},
     )
+    await _broadcast_listing_status_event(listing, "listing:approved")
     return listing
 
 @router.post("/listings/{listing_id}/reject", response_model=ListingRead)
@@ -137,4 +170,5 @@ async def reject_listing_route(
         message=f"Your listing '{listing.title}' has been rejected.",
         data={"listing_id": str(listing.id)},
     )
+    await _broadcast_listing_status_event(listing, "listing:rejected")
     return listing
