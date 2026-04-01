@@ -4,8 +4,8 @@ import {
   type CreateCategoryInput,
   createCategory,
   deleteCategory,
-  getCategoryById,
   getCategories,
+  getCategoryById,
   type UpdateCategoryInput,
   updateCategory,
 } from "../api/admin.categories.api"

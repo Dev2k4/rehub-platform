@@ -25,7 +25,11 @@ function statusMeta(status: string): { label: string; color: string } {
 }
 
 export function AdminOrdersPage() {
-  const { data: orders = [], isLoading, isError } = useAdminOrders({ limit: 200 })
+  const {
+    data: orders = [],
+    isLoading,
+    isError,
+  } = useAdminOrders({ limit: 200 })
 
   return (
     <Container maxW="7xl" px={0}>
@@ -94,11 +98,18 @@ export function AdminOrdersPage() {
                           {order.seller_id}
                         </Text>
                       </Table.Cell>
-                      <Table.Cell px={4} textAlign="right" fontWeight="semibold">
+                      <Table.Cell
+                        px={4}
+                        textAlign="right"
+                        fontWeight="semibold"
+                      >
                         {formatCurrencyVnd(order.final_price)}
                       </Table.Cell>
                       <Table.Cell px={4}>
-                        <Badge colorPalette={status.color as any} variant="subtle">
+                        <Badge
+                          colorPalette={status.color as any}
+                          variant="subtle"
+                        >
                           {status.label}
                         </Badge>
                       </Table.Cell>

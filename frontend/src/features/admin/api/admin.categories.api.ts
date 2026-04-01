@@ -23,7 +23,9 @@ export async function getCategories(
   return CategoriesService.getCategoriesApiV1CategoriesGet({ asTree })
 }
 
-export async function getCategoryById(categoryId: string): Promise<CategoryRead> {
+export async function getCategoryById(
+  categoryId: string,
+): Promise<CategoryRead> {
   return CategoriesService.getCategoryApiV1CategoriesCategoryIdGet({
     categoryId,
   })
