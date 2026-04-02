@@ -438,7 +438,7 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 - ✅ Image deletion
 - ✅ Fallback to local uploads folder
 
-### ✅ Frontend Features (80% Complete)
+### ✅ Frontend Features (82% Complete)
 
 #### Authentication Pages
 - ✅ Login page
@@ -453,6 +453,7 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 - ✅ Category sidebar (desktop) + overlay (mobile)
 - ✅ Keyword search
 - ✅ Category filter
+- ✅ Pagination on home listings
 - ✅ Listing cards with seller info
 - ✅ Online status indicator
 - ✅ Create listing modal from header
@@ -552,6 +553,13 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 
 ## 1.4 Tính năng Còn Thiếu
 
+### ✅ Cập nhật đối chiếu codebase (2026-04-02)
+
+- Notifications UI đã có ở header: bell dropdown, unread count, mark-as-read, mark-all-as-read, realtime cập nhật.
+- Đã thi công phân trang trang chủ (home listings) để tránh tải một trang cố định `skip=0`.
+- Các khối backend critical vẫn chưa có module triển khai thật trong `backend/app` (Redis cache, payment gateway, SMS OTP, shipping, chat).
+- DevOps production vẫn ở mức planning: chưa có Traefik, Redis service, CI/CD workflow, backup automation.
+
 ### ❌ Backend Missing Features
 
 #### Critical (Must Have)
@@ -590,14 +598,14 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 ### ❌ Frontend Missing Features
 
 #### Critical (Must Have)
-1. **Notifications UI** - Bell icon + dropdown + notifications page
+1. **Notifications Page (full history)** - Bell dropdown đã có, còn thiếu trang riêng lịch sử + filter
 2. **Messaging/Chat UI** - Real-time chat interface
 3. **Advanced Search Page** - Filters (price, condition, location, sort)
 4. **Favorites/Wishlist** - Save listings, favorites page
 
 #### High Priority (Should Have)
 5. **User Settings** - Change password, email preferences, privacy
-6. **Pagination** - On home listings, orders, my listings
+6. **Pagination đồng bộ toàn bộ** - Home + offers đã có; cần rà soát/chuẩn hóa thêm cho my listings và orders khi dữ liệu lớn
 7. **Image Management** - Delete/reorder uploaded images UI
 8. **Analytics Dashboard** - For sellers (views, offers, sales)
 9. **Testing** - Unit tests (Vitest) + E2E tests (Playwright/Cypress)

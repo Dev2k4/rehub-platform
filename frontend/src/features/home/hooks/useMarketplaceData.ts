@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { CategoryTree, UserPublicProfile } from "@/client"
 import {
   getCategoriesTree,
@@ -13,6 +13,7 @@ const DEFAULT_LIMIT = 24
 export function useMarketplaceData() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("")
   const [keyword, setKeyword] = useState("")
+  const [page, setPage] = useState(1)
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
@@ -20,15 +21,19 @@ export function useMarketplaceData() {
   })
 
   const listingsQuery = useQuery({
-    queryKey: ["listings", "public", selectedCategoryId, keyword],
+    queryKey: ["listings", "public", selectedCategoryId, keyword, page],
     queryFn: () =>
       getListings({
         categoryId: selectedCategoryId || undefined,
         keyword: keyword || undefined,
         limit: DEFAULT_LIMIT,
-        skip: 0,
+        skip: (page - 1) * DEFAULT_LIMIT,
       }),
   })
+
+  useEffect(() => {
+    setPage(1)
+  }, [selectedCategoryId, keyword])
 
   const sellerIds = useMemo(() => {
     const ids = listingsQuery.data?.items.map((item) => item.seller_id) ?? []
@@ -76,6 +81,9 @@ export function useMarketplaceData() {
     setSelectedCategoryId,
     keyword,
     setKeyword,
+    page,
+    setPage,
+    pageSize: DEFAULT_LIMIT,
     categoriesQuery,
     listingsQuery,
     categoryMap,

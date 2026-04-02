@@ -1,4 +1,4 @@
-import { Box, Container, Flex, Heading, Text } from "@chakra-ui/react"
+import { Box, Button, Container, Flex, Heading, Text } from "@chakra-ui/react"
 import { useMemo, useState } from "react"
 import { toaster } from "@/components/ui/toaster"
 import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
@@ -21,12 +21,18 @@ export function HomeMarketplacePage() {
     setSelectedCategoryId,
     keyword,
     setKeyword,
+    page,
+    setPage,
+    pageSize,
     categoriesQuery,
     listingsQuery,
     categoryMap,
     sellerMap,
     flatCategories,
   } = useMarketplaceData()
+
+  const total = listingsQuery.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const createMutation = useCreateListing()
   const uploadImageMutation = useUploadListingImage()
@@ -180,11 +186,37 @@ export function HomeMarketplacePage() {
             !listingsQuery.isLoading &&
             !categoriesQuery.isError &&
             !listingsQuery.isError ? (
-              <ListingGrid
-                listings={listingsQuery.data?.items ?? []}
-                categoryMap={categoryMap}
-                sellerMap={sellerMap}
-              />
+              <>
+                <ListingGrid
+                  listings={listingsQuery.data?.items ?? []}
+                  categoryMap={categoryMap}
+                  sellerMap={sellerMap}
+                />
+
+                {total > 0 && (
+                  <Flex mt={6} align="center" justify="center" gap={3}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      disabled={page <= 1}
+                    >
+                      Trang trước
+                    </Button>
+                    <Text fontSize="sm" color="gray.600" minW="92px" textAlign="center">
+                      Trang {page}/{totalPages}
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                      disabled={page >= totalPages}
+                    >
+                      Trang sau
+                    </Button>
+                  </Flex>
+                )}
+              </>
             ) : null}
           </Box>
         </Flex>
