@@ -34,5 +34,6 @@ class ListingImage(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     listing_id: uuid.UUID = Field(foreign_key="listings.id", ondelete="CASCADE")
     image_url: str
+    thumbnail_url: Optional[str] = None
     is_primary: bool = Field(default=False)
     created_at: datetime = Field(default_factory=_utc_now)

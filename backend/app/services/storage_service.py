@@ -1,8 +1,10 @@
 import logging
 import uuid
+from io import BytesIO
 from pathlib import PurePosixPath
 from urllib.parse import urlparse
 
+from PIL import Image, ImageOps
 from minio import Minio
 from minio.error import S3Error
 
@@ -47,8 +49,8 @@ def _minio_client() -> Minio:
     )
 
 
-def _listing_object_name(user_id: str, listing_id: str, ext: str) -> str:
-    return f"{user_id}/{listing_id}/{uuid.uuid4().hex}.{ext}"
+def _listing_object_name(user_id: str, listing_id: str, ext: str, suffix: str = "") -> str:
+    return f"{user_id}/{listing_id}/{uuid.uuid4().hex}{suffix}.{ext}"
 
 
 def _object_name_from_image_url(image_url: str) -> str | None:
@@ -65,51 +67,102 @@ def _object_name_from_image_url(image_url: str) -> str | None:
     return object_name
 
 
+def _optimize_listing_image(
+    file_bytes: bytes,
+    original_ext: str,
+    original_content_type: str,
+) -> tuple[bytes, bytes | None, str, str]:
+    try:
+        with Image.open(BytesIO(file_bytes)) as source_image:
+            image = ImageOps.exif_transpose(source_image)
+            if image.mode not in {"RGB", "RGBA"}:
+                image = image.convert("RGB")
+            elif image.mode == "RGBA":
+                background = Image.new("RGB", image.size, (255, 255, 255))
+                background.paste(image, mask=image.split()[-1])
+                image = background
+
+            main_image = image.copy()
+            main_image.thumbnail((1600, 1600))
+
+            thumbnail_image = image.copy()
+            thumbnail_image.thumbnail((480, 480))
+
+            main_buffer = BytesIO()
+            main_image.save(main_buffer, format="WEBP", quality=85, method=6)
+
+            thumbnail_buffer = BytesIO()
+            thumbnail_image.save(thumbnail_buffer, format="WEBP", quality=78, method=6)
+
+            return main_buffer.getvalue(), thumbnail_buffer.getvalue(), "webp", "image/webp"
+    except Exception:
+        logger.exception("Falling back to original image bytes because optimization failed")
+        return file_bytes, None, original_ext, original_content_type
+
+
 def upload_listing_image(
     file_bytes: bytes,
     ext: str,
     content_type: str,
     user_id: str,
     listing_id: str,
-) -> str:
+) -> tuple[str, str | None]:
     if settings.STORAGE_BACKEND.lower() != "minio":
         raise RuntimeError("Storage backend is not set to minio")
 
     client = _minio_client()
     bucket = settings.MINIO_BUCKET_NAME
-    object_name = _listing_object_name(user_id, listing_id, ext)
+    optimized_bytes, thumbnail_bytes, optimized_ext, optimized_content_type = _optimize_listing_image(
+        file_bytes,
+        ext,
+        content_type,
+    )
+    object_name = _listing_object_name(user_id, listing_id, optimized_ext)
+    thumbnail_object_name = _listing_object_name(user_id, listing_id, optimized_ext, suffix="_thumb")
 
     try:
         if not client.bucket_exists(bucket):
             client.make_bucket(bucket)
-        from io import BytesIO
         client.put_object(
             bucket,
             object_name,
-            BytesIO(file_bytes),
-            length=len(file_bytes),
-            content_type=content_type,
+            BytesIO(optimized_bytes),
+            length=len(optimized_bytes),
+            content_type=optimized_content_type,
         )
+        thumbnail_url: str | None = None
+        if thumbnail_bytes is not None:
+            client.put_object(
+                bucket,
+                thumbnail_object_name,
+                BytesIO(thumbnail_bytes),
+                length=len(thumbnail_bytes),
+                content_type="image/webp",
+            )
+            thumbnail_url = f"{_public_base_url()}/{bucket}/{thumbnail_object_name}"
     except S3Error as exc:
         logger.exception("Failed to upload listing image to MinIO")
         raise RuntimeError("Failed to upload image to MinIO") from exc
 
-    return f"{_public_base_url()}/{bucket}/{object_name}"
+    return f"{_public_base_url()}/{bucket}/{object_name}", thumbnail_url
 
 
-def delete_listing_image(image_url: str) -> None:
+def delete_listing_image(image_url: str, thumbnail_url: str | None = None) -> None:
     if settings.STORAGE_BACKEND.lower() != "minio":
-        return
-
-    object_name = _object_name_from_image_url(image_url)
-    if not object_name:
-        logger.warning("Skip MinIO delete: unable to derive object key from URL '%s'", image_url)
         return
 
     client = _minio_client()
     bucket = settings.MINIO_BUCKET_NAME
 
+    object_names = [
+        _object_name_from_image_url(image_url),
+        _object_name_from_image_url(thumbnail_url) if thumbnail_url else None,
+    ]
+
     try:
-        client.remove_object(bucket, object_name)
+        for object_name in object_names:
+            if not object_name:
+                continue
+            client.remove_object(bucket, object_name)
     except S3Error:
-        logger.exception("Failed to delete MinIO object '%s'", object_name)
+        logger.exception("Failed to delete one or more MinIO objects for listing image")

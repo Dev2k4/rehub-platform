@@ -53,6 +53,22 @@ async def get_wallet_with_lock(db: AsyncSession, user_id: uuid.UUID) -> WalletAc
 
 
 async def topup_demo(db: AsyncSession, user_id: uuid.UUID, amount: Decimal) -> WalletAccount:
+    return await topup_wallet(
+        db,
+        user_id=user_id,
+        amount=amount,
+        tx_type=WalletTransactionType.TOPUP_DEMO,
+        metadata={"source": "demo_topup"},
+    )
+
+
+async def topup_wallet(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    amount: Decimal,
+    tx_type: WalletTransactionType,
+    metadata: dict | None = None,
+) -> WalletAccount:
     if amount <= Decimal("0"):
         raise ValueError("Topup amount must be greater than 0")
 
@@ -62,11 +78,11 @@ async def topup_demo(db: AsyncSession, user_id: uuid.UUID, amount: Decimal) -> W
 
     tx = WalletTransaction(
         user_id=user_id,
-        type=WalletTransactionType.TOPUP_DEMO,
+        type=tx_type,
         direction=WalletTransactionDirection.CREDIT,
         amount=amount,
         balance_after=wallet.available_balance,
-        metadata_json={"source": "demo_topup"},
+        metadata_json=metadata or {},
     )
     db.add(tx)
     await db.commit()

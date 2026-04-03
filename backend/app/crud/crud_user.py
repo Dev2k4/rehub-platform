@@ -75,6 +75,10 @@ async def update_user(db: AsyncSession, user_id, data) -> User:
         result = await db.execute(select(User).where(User.id == uuid.UUID(str(user_id))))
         return result.scalar_one()
 
+    current_user = await get_user_by_id(db, user_id)
+    if current_user and "phone" in update_data and update_data["phone"] != current_user.phone:
+        update_data["is_phone_verified"] = False
+
     update_data["updated_at"] = _utc_now_naive()
 
     await db.execute(

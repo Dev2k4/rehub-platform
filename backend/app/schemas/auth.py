@@ -79,3 +79,16 @@ class ResetPasswordRequest(BaseModel):
 
 class RegisterResponse(BaseModel):
     message: str
+
+
+class SendPhoneOtpRequest(BaseModel):
+    phone: Optional[str] = None
+
+
+class VerifyPhoneOtpRequest(BaseModel):
+    otp_code: str = Field(min_length=6, max_length=6)
+
+
+class PhoneOtpResponse(BaseModel):
+    message: str
+    debug_otp: Optional[str] = None

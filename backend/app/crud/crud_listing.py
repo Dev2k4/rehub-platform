@@ -39,7 +39,13 @@ async def get_listing_images(db: AsyncSession, listing_id: str) -> list[ListingI
     result = await db.execute(select(ListingImage).where(ListingImage.listing_id == _to_uuid(listing_id)))
     return list(result.scalars().all())
 
-async def add_listing_image(db: AsyncSession, listing_id: str, image_url: str, is_primary: bool = False) -> ListingImage:
+async def add_listing_image(
+    db: AsyncSession,
+    listing_id: str,
+    image_url: str,
+    thumbnail_url: str | None = None,
+    is_primary: bool = False,
+) -> ListingImage:
     # If this is the primary image, unfollow others
     if is_primary:
         await db.execute(
@@ -51,6 +57,7 @@ async def add_listing_image(db: AsyncSession, listing_id: str, image_url: str, i
     db_img = ListingImage(
         listing_id=uuid.UUID(listing_id),
         image_url=image_url,
+        thumbnail_url=thumbnail_url,
         is_primary=is_primary
     )
     db.add(db_img)
