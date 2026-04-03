@@ -8,6 +8,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.api.v1 import api_router
 from app.core.config import settings
+from app.core.cache import cache
 from app.crud import crud_offer
 from app.db.init_db import init_db
 from app.db.session import AsyncSessionLocal
@@ -49,6 +50,7 @@ app.include_router(utils_router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 async def on_startup() -> None:
+    await cache.connect()
     await init_db()
 
     async def _offer_expiry_worker() -> None:
@@ -94,6 +96,8 @@ async def on_shutdown() -> None:
             await offer_expiry_task
         except asyncio.CancelledError:
             pass
+
+    await cache.disconnect()
 
 @app.get("/")
 def root():

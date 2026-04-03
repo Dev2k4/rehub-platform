@@ -6,7 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_user, get_db
 from app.crud import crud_wallet
 from app.models.user import User
-from app.schemas.wallet import WalletAccountRead, WalletDemoTopupRequest, WalletTransactionRead
+from app.schemas.wallet import (
+    WalletAccountRead,
+    WalletDemoTopupRequest,
+    WalletTransactionRead,
+)
 from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/wallet", tags=["Wallet"])

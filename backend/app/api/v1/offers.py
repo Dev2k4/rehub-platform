@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.dependencies import get_current_user, get_db
+from app.core.rate_limit import RateLimitError, enforce_rate_limit
 from app.models.user import User
 from app.models.listing import Listing
 from app.models.enums import OfferStatus, NotificationType
@@ -53,6 +54,11 @@ async def create_offer(
     - Listing phải có is_negotiable = True
     - Buyer không được có offer PENDING/COUNTERED trên listing này
     """
+    try:
+        await enforce_rate_limit("offers:create", str(current_user.id), limit=12, window_seconds=60)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
     try:
         offer = await crud_offer.create_offer(db, offer_in, current_user.id)
 

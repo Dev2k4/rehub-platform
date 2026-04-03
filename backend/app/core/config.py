@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    # Redis / cache
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_CACHE_TTL_SECONDS: int = 300
+
     # Uploads
     UPLOAD_DIR: str = "uploads"
     STORAGE_BACKEND: str = "local"
@@ -43,6 +47,9 @@ class Settings(BaseSettings):
 
     # Frontend host for generated links (email verification, password reset, ...)
     FRONTEND_HOST: str = "http://localhost:5173"
+
+    # SMS / OTP
+    SMS_DEBUG_MODE: bool = True
 
     # Email / SMTP
     SMTP_HOST: str = "smtp.gmail.com"

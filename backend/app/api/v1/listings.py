@@ -1,4 +1,6 @@
 import uuid
+import hashlib
+import json
 from typing import Optional
 import logging
 from typing import Literal
@@ -6,6 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_user, get_current_user_optional
+from app.core.cache import cache
+from app.core.config import settings
+from app.core.rate_limit import RateLimitError, enforce_rate_limit
 from app.models.user import User
 from app.models.enums import ConditionGrade, ListingStatus, UserRole
 from app.schemas.listing import (
@@ -26,6 +31,16 @@ logger = logging.getLogger(__name__)
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def _public_listing_cache_key(**params: object) -> str:
+    normalized = json.dumps(params, sort_keys=True, default=str)
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return f"listings:public:{digest}"
+
+
+async def _invalidate_public_listing_cache() -> None:
+    await cache.delete_pattern("listings:public:*")
 
 
 async def _broadcast_listing_event(listing: ListingRead, event_type: str) -> None:
@@ -70,6 +85,23 @@ async def list_listings(
     db: AsyncSession = Depends(get_db)
 ):
     """Public Route: Get active filtered and paginated listings ONLY."""
+    cache_key = _public_listing_cache_key(
+        keyword=keyword,
+        category_id=str(category_id) if category_id else None,
+        seller_id=str(seller_id) if seller_id else None,
+        condition_grade=condition_grade.value if condition_grade else None,
+        province=province,
+        district=district,
+        min_price=min_price,
+        max_price=max_price,
+        sort_by=sort_by,
+        skip=skip,
+        limit=limit,
+    )
+    cached = await cache.get_json(cache_key)
+    if cached is not None:
+        return ListingPaginated.model_validate(cached)
+
     cat_id_str = str(category_id) if category_id else None
     items, total = await crud_listing.search_listings(
         db, 
@@ -150,9 +182,10 @@ async def delete_listing_image_route(
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to delete this image")
 
-    delete_from_object_storage(image.image_url)
+    delete_from_object_storage(image.image_url, image.thumbnail_url)
         
     await crud_listing.delete_listing_image(db, str(image_id))
+    await _invalidate_public_listing_cache()
     return None
 
 @router.get("/{listing_id}", response_model=ListingWithImages)
@@ -200,8 +233,14 @@ async def create_listing(
     db: AsyncSession = Depends(get_db)
 ):
     """Requires JWT: Create a new listing. Status default to PENDING."""
+    try:
+        await enforce_rate_limit("listings:create", str(current_user.id), limit=10, window_seconds=60)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
     new_listing = await crud_listing.create_listing(db, data, str(current_user.id))
     await _broadcast_listing_event(new_listing, "listing:created")
+    await _invalidate_public_listing_cache()
     return new_listing
 
 @router.patch("/{listing_id}", response_model=ListingRead)
@@ -229,6 +268,7 @@ async def update_listing(
     updated_listing = await crud_listing.update_listing(db, str(listing_id), data)
     if updated_listing is not None:
         await _broadcast_listing_event(updated_listing, "listing:updated")
+        await _invalidate_public_listing_cache()
     return updated_listing
 
 @router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -252,6 +292,7 @@ async def delete_listing(
     hidden_listing = await crud_listing.get_listing(db, str(listing_id))
     if hidden_listing is not None:
         await _broadcast_listing_event(hidden_listing, "listing:hidden")
+    await _invalidate_public_listing_cache()
     return None
 
 @router.post("/{listing_id}/images", response_model=ListingImageRead)
@@ -285,7 +326,7 @@ async def upload_listing_image(
         raise HTTPException(status_code=400, detail="File too large")
 
     try:
-        image_url = upload_to_object_storage(
+        image_url, thumbnail_url = upload_to_object_storage(
             file_bytes=file_bytes,
             ext=ext,
             content_type=file.content_type,
@@ -295,6 +336,13 @@ async def upload_listing_image(
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    new_image = await crud_listing.add_listing_image(db, str(listing_id), image_url, is_primary)
+    new_image = await crud_listing.add_listing_image(
+        db,
+        str(listing_id),
+        image_url,
+        thumbnail_url,
+        is_primary,
+    )
+    await _invalidate_public_listing_cache()
     return new_image
 

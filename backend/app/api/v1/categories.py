@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_admin
+from app.core.cache import cache
+from app.core.config import settings
 from app.models.user import User
 from app.models.category import Category
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryRead, CategoryTree
@@ -11,6 +13,10 @@ from app.crud import crud_category
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 admin_categories_router = APIRouter(prefix="/admin/categories", tags=["Admin Categories"])
+
+
+async def _invalidate_category_cache() -> None:
+    await cache.delete_pattern("categories:list:*")
 
 def build_category_tree(categories: List[Category]) -> List[dict]:
     """Helper function to build a tree from a flat list of categories."""
@@ -33,10 +39,19 @@ async def get_categories(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all categories. Pass as_tree=true to get a hierarchical tree."""
+    cache_key = f"categories:list:{'tree' if as_tree else 'flat'}"
+    cached = await cache.get_json(cache_key)
+    if cached is not None:
+        return cached
+
     categories = await crud_category.get_all_categories(db)
     if as_tree:
-        return build_category_tree(categories)
-    return categories
+        result = build_category_tree(categories)
+    else:
+        result = [CategoryRead.model_validate(category).model_dump(mode="json") for category in categories]
+
+    await cache.set_json(cache_key, result, ttl=settings.REDIS_CACHE_TTL_SECONDS)
+    return result
 
 @router.get("/{category_id}", response_model=CategoryRead)
 async def get_category(
@@ -71,6 +86,7 @@ async def create_category(
     # Check name uniqueness (optional, but slug covers it mostly, generation might collide)
     try:
         new_category = await crud_category.create_category(db, data)
+        await _invalidate_category_cache()
         return new_category
     except Exception as e: # Catch IntegrityError for slug collision logic
         raise HTTPException(status_code=409, detail="Could not create category. Duplicate slug or name.")
@@ -105,6 +121,7 @@ async def update_category(
 
     try:
         updated_category = await crud_category.update_category(db, str(category_id), data)
+        await _invalidate_category_cache()
         return updated_category
     except Exception as e:
         raise HTTPException(status_code=409, detail="Could not update category. Potential conflict.")
@@ -134,6 +151,7 @@ async def delete_category(
         )
 
     await crud_category.delete_category(db, str(category_id))
+    await _invalidate_category_cache()
     return None
 
 
@@ -155,7 +173,9 @@ async def admin_create_category(
             raise HTTPException(status_code=409, detail="Category with this slug already exists")
 
     try:
-        return await crud_category.create_category(db, data)
+        created_category = await crud_category.create_category(db, data)
+        await _invalidate_category_cache()
+        return created_category
     except Exception:
         raise HTTPException(status_code=409, detail="Could not create category. Duplicate slug or name.")
 
@@ -188,7 +208,9 @@ async def admin_update_category(
             )
 
     try:
-        return await crud_category.update_category(db, str(category_id), data)
+        updated_category = await crud_category.update_category(db, str(category_id), data)
+        await _invalidate_category_cache()
+        return updated_category
     except Exception:
         raise HTTPException(status_code=409, detail="Could not update category. Potential conflict.")
 
@@ -217,5 +239,6 @@ async def admin_delete_category(
         )
 
     await crud_category.delete_category(db, str(category_id))
+    await _invalidate_category_cache()
     return None
 

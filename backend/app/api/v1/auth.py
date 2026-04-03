@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import update
 from typing import Annotated
+import uuid
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.api.dependencies import get_db, get_current_user
+from app.core.cache import cache
+from app.core.rate_limit import RateLimitError, enforce_rate_limit
 from app.schemas.auth import (
     RegisterRequest,
     RegisterResponse,
@@ -16,6 +20,9 @@ from app.schemas.auth import (
     ResendVerificationRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    SendPhoneOtpRequest,
+    VerifyPhoneOtpRequest,
+    PhoneOtpResponse,
 )
 from app.crud.crud_user import (
     get_user_by_email,
@@ -38,13 +45,50 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.services.email_service import send_verify_email, send_welcome_email, send_password_reset_email
+from app.services.sms_service import generate_otp_code, send_phone_otp
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 limiter = Limiter(key_func=get_remote_address)
+_phone_otp_memory: dict[str, dict[str, str]] = {}
+_verified_phone_memory: set[str] = set()
 
 
 def _role_claim(role: object) -> str:
     return role.value if hasattr(role, "value") else str(role)
+
+
+def _phone_otp_key(user_id: uuid.UUID) -> str:
+    return f"phone-otp:{user_id}"
+
+
+def _phone_verified_key(user_id: uuid.UUID) -> str:
+    return f"phone-verified:{user_id}"
+
+
+async def _store_phone_otp(user_id: uuid.UUID, payload: dict[str, str]) -> None:
+    if cache.is_connected:
+        await cache.set_json(_phone_otp_key(user_id), payload, ttl=10 * 60)
+        return
+    _phone_otp_memory[str(user_id)] = payload
+
+
+async def _load_phone_otp(user_id: uuid.UUID) -> dict[str, str] | None:
+    if cache.is_connected:
+        return await cache.get_json(_phone_otp_key(user_id))
+    return _phone_otp_memory.get(str(user_id))
+
+
+async def _mark_phone_verified(user_id: uuid.UUID) -> None:
+    if cache.is_connected:
+        await cache.set(_phone_verified_key(user_id), "1", ttl=24 * 60 * 60)
+        return
+    _verified_phone_memory.add(str(user_id))
+
+
+async def _is_phone_verified_marked(user_id: uuid.UUID) -> bool:
+    if cache.is_connected:
+        return bool(await cache.get(_phone_verified_key(user_id)))
+    return str(user_id) in _verified_phone_memory
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=RegisterResponse)
 async def register(
@@ -124,6 +168,65 @@ async def login(
         refresh_token=refresh_token,
         user=user
     )
+
+
+@router.post("/send-phone-otp", response_model=PhoneOtpResponse)
+async def send_phone_otp_route(
+    data: SendPhoneOtpRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        await enforce_rate_limit("phone-otp:send", str(current_user.id), limit=3, window_seconds=300)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
+    phone = (data.phone or current_user.phone or "").strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+
+    otp_code = generate_otp_code()
+    await _store_phone_otp(current_user.id, {"phone": phone, "otp_code": otp_code})
+    send_phone_otp(phone, otp_code)
+
+    debug_otp = otp_code if settings.SMS_DEBUG_MODE else None
+    return PhoneOtpResponse(message="OTP da duoc gui toi so dien thoai cua ban", debug_otp=debug_otp)
+
+
+@router.post("/verify-phone-otp", response_model=PhoneOtpResponse)
+async def verify_phone_otp_route(
+    data: VerifyPhoneOtpRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        await enforce_rate_limit("phone-otp:verify", str(current_user.id), limit=8, window_seconds=300)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
+    pending = await _load_phone_otp(current_user.id)
+    if not pending:
+        raise HTTPException(status_code=404, detail="OTP expired or not found")
+
+    if pending.get("otp_code") != data.otp_code.strip():
+        raise HTTPException(status_code=400, detail="OTP khong hop le")
+
+    if current_user.phone and pending.get("phone") != current_user.phone:
+        raise HTTPException(status_code=400, detail="Phone number has changed. Please resend OTP.")
+
+    await db.execute(
+        update(User)
+        .where(User.id == current_user.id)
+        .values(is_phone_verified=True)
+    )
+    await db.commit()
+    await _mark_phone_verified(current_user.id)
+    if cache.is_connected:
+        await cache.delete(_phone_otp_key(current_user.id))
+    else:
+        _phone_otp_memory.pop(str(current_user.id), None)
+
+    return PhoneOtpResponse(message="So dien thoai da duoc xac thuc")
 
 
 @router.post("/refresh", response_model=TokenResponse)
