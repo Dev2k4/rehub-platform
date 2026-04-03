@@ -1,6 +1,8 @@
 import { ApiError, AuthService, OpenAPI } from "@/client"
 import type { AuthError, AuthResponse } from "@/features/auth/types/auth.types"
 import { AuthErrorCode } from "@/features/auth/types/auth.types"
+import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 import type { RegisterInput } from "../utils/auth.schemas"
 
 export async function registerUser(
@@ -10,6 +12,7 @@ export async function registerUser(
     const response = await AuthService.registerApiV1AuthRegisterPost({
       requestBody: {
         email: data.email,
+        phone: data.phone || undefined,
         password: data.password,
         full_name: data.fullName,
       },
@@ -102,6 +105,25 @@ export async function logoutUser(): Promise<void> {
     // Even if logout fails on server, clear local tokens
     throw mapAuthError(error)
   }
+}
+
+export async function sendPhoneOtp(phone?: string): Promise<{
+  message: string
+  debug_otp?: string | null
+}> {
+  return await postAuthJson<{ message: string; debug_otp?: string | null }>(
+    "/api/v1/auth/send-phone-otp",
+    { phone },
+  )
+}
+
+export async function verifyPhoneOtp(otpCode: string): Promise<{
+  message: string
+}> {
+  return await postAuthJson<{ message: string }>(
+    "/api/v1/auth/verify-phone-otp",
+    { otp_code: otpCode },
+  )
 }
 
 export async function refreshAccessToken(
@@ -232,13 +254,30 @@ async function postAuthJson<T>(
   path: string,
   body: Record<string, unknown>,
 ): Promise<T> {
-  const response = await fetch(`${OpenAPI.BASE}${path}`, {
-    method: "POST",
-    headers: {
+  const getHeaders = (tokenOverride?: string | null): HeadersInit => {
+    const token = tokenOverride ?? getAccessToken()
+    return {
       "Content-Type": "application/json",
-    },
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
+  }
+
+  let response = await fetch(`${OpenAPI.BASE}${path}`, {
+    method: "POST",
+    headers: getHeaders(),
     body: JSON.stringify(body),
   })
+
+  if (response.status === 401) {
+    const refreshedToken = await refreshAccessTokenIfPossible()
+    if (refreshedToken) {
+      response = await fetch(`${OpenAPI.BASE}${path}`, {
+        method: "POST",
+        headers: getHeaders(refreshedToken),
+        body: JSON.stringify(body),
+      })
+    }
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))

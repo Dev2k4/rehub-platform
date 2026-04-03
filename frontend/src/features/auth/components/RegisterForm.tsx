@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi"
+import { FiEye, FiEyeOff, FiLock, FiMail, FiPhone, FiUser } from "react-icons/fi"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
@@ -41,6 +41,7 @@ export function RegisterForm({ onError }: RegisterFormProps) {
     mode: "onBlur",
     defaultValues: {
       email: "",
+      phone: "",
       password: "",
       fullName: "",
       rememberMe: false,
@@ -113,6 +114,30 @@ export function RegisterForm({ onError }: RegisterFormProps) {
               {...register("fullName")}
               type="text"
               placeholder="Nguyễn Văn A"
+              ps="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+        </Field>
+
+        {/* Phone */}
+        <Field
+          label="Số điện thoại"
+          invalid={!!errors.phone}
+          errorText={errors.phone?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiPhone color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
+          >
+            <ChakraInput
+              {...register("phone")}
+              type="tel"
+              placeholder="0912345678"
               ps="12"
               bg="gray.50"
               borderColor="gray.200"

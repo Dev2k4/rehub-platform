@@ -6,11 +6,13 @@ import {
   Flex,
   Heading,
   HStack,
+  Input,
   Separator,
   Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { useMutation } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import {
@@ -25,6 +27,8 @@ import {
   FiUser,
 } from "react-icons/fi"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { sendPhoneOtp, verifyPhoneOtp } from "@/features/auth/api/auth.api"
+import { toaster } from "@/components/ui/toaster"
 import { ProfileForm } from "@/features/users/components/ProfileForm"
 import { useUpdateProfile } from "@/features/users/hooks/useUpdateProfile"
 
@@ -78,6 +82,38 @@ export function ProfilePage() {
   const updateMutation = useUpdateProfile()
 
   const [isEditMode, setIsEditMode] = useState(false)
+  const [otpCode, setOtpCode] = useState("")
+
+  const sendOtpMutation = useMutation({
+    mutationFn: async () => sendPhoneOtp((user as any)?.phone),
+    onSuccess: (result) => {
+      toaster.create({
+        title: result.message,
+        description: result.debug_otp ? `OTP demo: ${result.debug_otp}` : undefined,
+        type: "success",
+      })
+    },
+    onError: (error: any) => {
+      toaster.create({
+        title: error?.message || "Không thể gửi OTP",
+        type: "error",
+      })
+    },
+  })
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (code: string) => verifyPhoneOtp(code),
+    onSuccess: (result) => {
+      toaster.create({ title: result.message, type: "success" })
+      window.location.reload()
+    },
+    onError: (error: any) => {
+      toaster.create({
+        title: error?.message || "Không thể xác thực OTP",
+        type: "error",
+      })
+    },
+  })
 
   // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
@@ -325,6 +361,39 @@ export function ProfilePage() {
                       />
                     )}
                   </HStack>
+
+                  {(user as any).phone && !(user as any).is_phone_verified && (
+                    <Box pt={2}>
+                      <HStack gap={2} mb={2}>
+                        <Input
+                          value={otpCode}
+                          onChange={(event) => setOtpCode(event.target.value)}
+                          placeholder="Nhập OTP 6 số"
+                          maxLength={6}
+                          w="180px"
+                        />
+                        <Button
+                          colorPalette="blue"
+                          variant="outline"
+                          onClick={() => sendOtpMutation.mutate()}
+                          loading={sendOtpMutation.isPending}
+                        >
+                          Gửi OTP
+                        </Button>
+                        <Button
+                          colorPalette="green"
+                          onClick={() => verifyOtpMutation.mutate(otpCode)}
+                          loading={verifyOtpMutation.isPending}
+                          disabled={otpCode.trim().length !== 6}
+                        >
+                          Xác thực
+                        </Button>
+                      </HStack>
+                      <Text fontSize="xs" color="gray.500">
+                        Nếu bạn vừa đổi số điện thoại, hãy lưu hồ sơ trước rồi gửi OTP ở đây.
+                      </Text>
+                    </Box>
+                  )}
                 </VStack>
               </Box>
 
