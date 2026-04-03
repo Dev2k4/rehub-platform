@@ -1,12 +1,13 @@
 import uuid
 from typing import Optional
 import logging
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_user, get_current_user_optional
 from app.models.user import User
-from app.models.enums import ListingStatus, UserRole
+from app.models.enums import ConditionGrade, ListingStatus, UserRole
 from app.schemas.listing import (
     ListingRead,
     ListingCreate,
@@ -58,8 +59,12 @@ async def list_listings(
     keyword: Optional[str] = None,
     category_id: Optional[uuid.UUID] = None,
     seller_id: Optional[uuid.UUID] = None,
+    condition_grade: Optional[ConditionGrade] = None,
+    province: Optional[str] = Query(None, max_length=100),
+    district: Optional[str] = Query(None, max_length=100),
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
+    sort_by: Literal["newest", "price_asc", "price_desc"] = Query("newest"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db)
@@ -71,8 +76,12 @@ async def list_listings(
         keyword=keyword, 
         category_id=cat_id_str, 
         seller_id=str(seller_id) if seller_id else None,
+        condition_grade=condition_grade,
+        province=province,
+        district=district,
         min_price=min_price, 
         max_price=max_price, 
+        sort_by=sort_by,
         status=ListingStatus.ACTIVE, 
         skip=skip, 
         limit=limit

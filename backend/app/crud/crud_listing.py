@@ -1,12 +1,13 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, func, update
+from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.enums import ListingStatus
+from app.models.enums import ConditionGrade, ListingStatus
 from app.models.listing import Listing, ListingImage
+from app.models.user import User
 from app.schemas.listing import ListingCreate, ListingUpdate
 
 
@@ -85,9 +86,13 @@ async def search_listings(
     keyword: str | None = None,
     category_id: str | None = None,
     seller_id: str | None = None,
+    condition_grade: ConditionGrade | None = None,
+    province: str | None = None,
+    district: str | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
-    status: ListingStatus = ListingStatus.ACTIVE,
+    status: ListingStatus | None = ListingStatus.ACTIVE,
+    sort_by: str = "newest",
     skip: int = 0,
     limit: int = 100
 ) -> tuple[list[Listing], int]:
@@ -100,27 +105,54 @@ async def search_listings(
     if status:
         conditions.append(Listing.status == status)
     if keyword:
-        conditions.append(Listing.title.ilike(f"%{keyword}%"))
+        # Keyword is matched on both title and description to improve recall.
+        keyword_like = f"%{keyword.strip()}%"
+        conditions.append(
+            or_(
+                Listing.title.ilike(keyword_like),
+                Listing.description.ilike(keyword_like),
+            )
+        )
     if category_id:
         conditions.append(Listing.category_id == _to_uuid(category_id))
     if seller_id:
         conditions.append(Listing.seller_id == _to_uuid(seller_id))
+    if condition_grade:
+        conditions.append(Listing.condition_grade == condition_grade)
     if min_price is not None:
         conditions.append(Listing.price >= min_price)
     if max_price is not None:
         conditions.append(Listing.price <= max_price)
 
+    if province:
+        query = query.join(User, User.id == Listing.seller_id)
+        count_query = count_query.join(User, User.id == Listing.seller_id)
+        conditions.append(func.lower(User.province) == province.strip().lower())
+
+    if district:
+        if not province:
+            query = query.join(User, User.id == Listing.seller_id)
+            count_query = count_query.join(User, User.id == Listing.seller_id)
+        conditions.append(func.lower(User.district) == district.strip().lower())
+
     if conditions:
-        for condition in conditions:
-            query = query.where(condition)
-            count_query = count_query.where(condition)
+        where_clause = and_(*conditions)
+        query = query.where(where_clause)
+        count_query = count_query.where(where_clause)
 
     # Execute count
     count_result = await db.execute(count_query)
     total = count_result.scalar_one()
 
     # Execute query
-    query = query.order_by(Listing.created_at.desc()).offset(skip).limit(limit)
+    if sort_by == "price_asc":
+        query = query.order_by(Listing.price.asc(), Listing.created_at.desc())
+    elif sort_by == "price_desc":
+        query = query.order_by(Listing.price.desc(), Listing.created_at.desc())
+    else:
+        query = query.order_by(Listing.created_at.desc())
+
+    query = query.offset(skip).limit(limit)
     result = await db.execute(query)
     items = list(result.scalars().all())
 
