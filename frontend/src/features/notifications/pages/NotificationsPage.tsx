@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { FiArrowLeft, FiFilter } from "react-icons/fi"
 import type { NotificationRead } from "@/client"
 import {
@@ -24,7 +24,7 @@ import {
 import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import {
-  getMyNotifications,
+  getMyNotificationsHistory,
   getUnreadNotificationsCount,
   markAllNotificationsAsRead,
   markNotificationAsRead,
@@ -35,20 +35,13 @@ type ReadFilter = "all" | "unread" | "read"
 type TypeFilter = "all" | "offer" | "order" | "escrow" | "listing" | "review"
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilter; label: string }> = [
-  { value: "all", label: "Tất cả loại" },
+  { value: "all", label: "Tat ca loai" },
   { value: "offer", label: "Offer" },
   { value: "order", label: "Order" },
   { value: "escrow", label: "Escrow" },
   { value: "listing", label: "Listing" },
   { value: "review", label: "Review" },
 ]
-
-function matchTypeFilter(notification: NotificationRead, filter: TypeFilter): boolean {
-  if (filter === "all") {
-    return true
-  }
-  return notification.type.startsWith(`${filter}_`)
-}
 
 function getTypeBadge(type: NotificationRead["type"]): string {
   if (type.startsWith("offer_")) return "offer"
@@ -66,10 +59,22 @@ export function NotificationsPage() {
 
   const [readFilter, setReadFilter] = useState<ReadFilter>("all")
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
+  const [page, setPage] = useState(1)
+  const pageSize = 20
+
+  useEffect(() => {
+    setPage(1)
+  }, [readFilter, typeFilter])
 
   const notificationsQuery = useQuery({
-    queryKey: ["notifications"],
-    queryFn: () => getMyNotifications(),
+    queryKey: ["notifications", "history", readFilter, typeFilter, page, pageSize],
+    queryFn: () =>
+      getMyNotificationsHistory({
+        readFilter,
+        typeFilter,
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
+      }),
     enabled: isAuthenticated,
   })
 
@@ -82,7 +87,7 @@ export function NotificationsPage() {
   const markOneMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications", "history"] })
       queryClient.invalidateQueries({
         queryKey: ["notifications", "unread-count"],
       })
@@ -92,33 +97,13 @@ export function NotificationsPage() {
   const markAllMutation = useMutation({
     mutationFn: markAllNotificationsAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications", "history"] })
       queryClient.invalidateQueries({
         queryKey: ["notifications", "unread-count"],
       })
-      toaster.create({ title: "Đã đánh dấu tất cả là đã đọc", type: "success" })
+      toaster.create({ title: "Da danh dau tat ca la da doc", type: "success" })
     },
   })
-
-  const filteredNotifications = useMemo(() => {
-    const items = notificationsQuery.data ?? []
-
-    const filtered = items.filter((notification) => {
-      if (readFilter === "read" && !notification.is_read) {
-        return false
-      }
-
-      if (readFilter === "unread" && notification.is_read) {
-        return false
-      }
-
-      return matchTypeFilter(notification, typeFilter)
-    })
-
-    return filtered.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )
-  }, [notificationsQuery.data, readFilter, typeFilter])
 
   if (!authLoading && !isAuthenticated) {
     navigate({ to: "/auth/login" })
@@ -133,6 +118,9 @@ export function NotificationsPage() {
     )
   }
 
+  const historyItems = notificationsQuery.data?.items ?? []
+  const total = notificationsQuery.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const unreadCount = unreadCountQuery.data ?? 0
 
   const handleMarkRead = async (notificationId: string) => {
@@ -143,7 +131,7 @@ export function NotificationsPage() {
     try {
       await markOneMutation.mutateAsync(notificationId)
     } catch {
-      toaster.create({ title: "Không thể cập nhật thông báo", type: "error" })
+      toaster.create({ title: "Khong the cap nhat thong bao", type: "error" })
     }
   }
 
@@ -164,7 +152,7 @@ export function NotificationsPage() {
     try {
       await markAllMutation.mutateAsync()
     } catch {
-      toaster.create({ title: "Không thể đánh dấu tất cả", type: "error" })
+      toaster.create({ title: "Khong the danh dau tat ca", type: "error" })
     }
   }
 
@@ -180,16 +168,16 @@ export function NotificationsPage() {
             _hover={{ bg: "blue.50" }}
           >
             <FiArrowLeft style={{ marginRight: "0.5rem" }} />
-            Quay lại
+            Quay lai
           </Button>
         </Flex>
 
         <Box mb={8}>
           <Heading size="3xl" mb={3} color="gray.900" fontWeight="extrabold">
-            Thông báo
+            Thong bao
           </Heading>
           <Text color="gray.500" fontSize="lg">
-            Lịch sử thông báo theo thời gian thực, có lọc và đánh dấu đã đọc.
+            Lich su thong bao theo thoi gian thuc, co loc va phan trang.
           </Text>
         </Box>
 
@@ -217,7 +205,7 @@ export function NotificationsPage() {
               borderRadius="xl"
               size="sm"
             >
-              Tất cả
+              Tat ca
             </Button>
             <Button
               onClick={() => setReadFilter("unread")}
@@ -226,7 +214,7 @@ export function NotificationsPage() {
               borderRadius="xl"
               size="sm"
             >
-              Chưa đọc ({unreadCount})
+              Chua doc ({unreadCount})
             </Button>
             <Button
               onClick={() => setReadFilter("read")}
@@ -235,7 +223,7 @@ export function NotificationsPage() {
               borderRadius="xl"
               size="sm"
             >
-              Đã đọc
+              Da doc
             </Button>
           </HStack>
 
@@ -272,7 +260,7 @@ export function NotificationsPage() {
               loading={markAllMutation.isPending}
               disabled={unreadCount === 0}
             >
-              Đánh dấu tất cả
+              Danh dau tat ca
             </Button>
           </HStack>
         </Flex>
@@ -290,15 +278,15 @@ export function NotificationsPage() {
             <Flex justify="center" py={12}>
               <Spinner size="lg" color="blue.500" />
             </Flex>
-          ) : filteredNotifications.length === 0 ? (
+          ) : historyItems.length === 0 ? (
             <Box py={12} textAlign="center">
               <Text fontSize="md" color="gray.500">
-                Không có thông báo phù hợp bộ lọc hiện tại.
+                Khong co thong bao phu hop bo loc hien tai.
               </Text>
             </Box>
           ) : (
             <VStack align="stretch" gap={4}>
-              {filteredNotifications.map((notification) => {
+              {historyItems.map((notification) => {
                 const typeLabel = getTypeBadge(notification.type)
 
                 return (
@@ -324,7 +312,7 @@ export function NotificationsPage() {
                             variant="subtle"
                             borderRadius="full"
                           >
-                            {notification.is_read ? "Đã đọc" : "Mới"}
+                            {notification.is_read ? "Da doc" : "Moi"}
                           </Badge>
                           <Badge colorPalette="purple" variant="subtle" borderRadius="full">
                             {typeLabel}
@@ -351,7 +339,7 @@ export function NotificationsPage() {
                             onClick={() => handleMarkRead(notification.id)}
                             loading={markOneMutation.isPending}
                           >
-                            Đánh dấu đã đọc
+                            Danh dau da doc
                           </Button>
                         )}
                         <Button
@@ -360,13 +348,35 @@ export function NotificationsPage() {
                           borderRadius="lg"
                           onClick={() => handleOpenNotification(notification)}
                         >
-                          Mở
+                          Mo
                         </Button>
                       </HStack>
                     </Flex>
                   </Box>
                 )
               })}
+
+              <Flex mt={2} align="center" justify="center" gap={3}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1}
+                >
+                  Trang truoc
+                </Button>
+                <Text fontSize="sm" color="gray.600" minW="120px" textAlign="center">
+                  Trang {page}/{totalPages}
+                </Text>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  disabled={page >= totalPages}
+                >
+                  Trang sau
+                </Button>
+              </Flex>
             </VStack>
           )}
         </Box>
