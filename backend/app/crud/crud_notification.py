@@ -20,6 +20,38 @@ async def get_user_notifications(db: AsyncSession, user_id: uuid.UUID) -> list[N
 	return list(result.scalars().all())
 
 
+async def get_user_notifications_history(
+	db: AsyncSession,
+	user_id: uuid.UUID,
+	read_filter: str = "all",
+	type_filter: str = "all",
+	skip: int = 0,
+	limit: int = 20,
+) -> tuple[list[Notification], int]:
+	query = select(Notification).where(Notification.user_id == user_id)
+	count_query = select(func.count()).select_from(Notification).where(Notification.user_id == user_id)
+
+	if read_filter == "read":
+		query = query.where(Notification.is_read.is_(True))
+		count_query = count_query.where(Notification.is_read.is_(True))
+	elif read_filter == "unread":
+		query = query.where(Notification.is_read.is_(False))
+		count_query = count_query.where(Notification.is_read.is_(False))
+
+	if type_filter != "all":
+		query = query.where(Notification.type.ilike(f"{type_filter}_%"))
+		count_query = count_query.where(Notification.type.ilike(f"{type_filter}_%"))
+
+	count_result = await db.execute(count_query)
+	total = int(count_result.scalar_one())
+
+	result = await db.execute(
+		query.order_by(Notification.created_at.desc()).offset(skip).limit(limit)
+	)
+	items = list(result.scalars().all())
+	return items, total
+
+
 async def create_notification(
 	db: AsyncSession,
 	user_id: uuid.UUID,

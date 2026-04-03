@@ -1,12 +1,13 @@
 import uuid
 from typing import Annotated
-from fastapi import APIRouter, Depends
+from typing import Literal
+from fastapi import APIRouter, Depends, Query
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_user
 from app.models.user import User
-from app.schemas.notification import NotificationRead
+from app.schemas.notification import NotificationHistoryRead, NotificationRead
 from app.crud import crud_notification
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -18,6 +19,32 @@ async def get_my_notifications(
 	db: AsyncSession = Depends(get_db),
 ):
 	return await crud_notification.get_user_notifications(db, current_user.id)
+
+
+@router.get("/history", response_model=NotificationHistoryRead)
+async def get_my_notifications_history(
+	current_user: Annotated[User, Depends(get_current_user)],
+	read_filter: Literal["all", "unread", "read"] = Query("all"),
+	type_filter: Literal["all", "offer", "order", "escrow", "listing", "review"] = Query("all"),
+	skip: int = Query(0, ge=0),
+	limit: int = Query(20, ge=1, le=100),
+	db: AsyncSession = Depends(get_db),
+):
+	items, total = await crud_notification.get_user_notifications_history(
+		db,
+		current_user.id,
+		read_filter=read_filter,
+		type_filter=type_filter,
+		skip=skip,
+		limit=limit,
+	)
+
+	return NotificationHistoryRead(
+		items=items,
+		total=total,
+		page=(skip // limit) + 1,
+		size=limit,
+	)
 
 
 @router.get("/unread-count")

@@ -19,3 +19,10 @@ class NotificationRead(NotificationCreate):
 	created_at: datetime
 
 	model_config = {"from_attributes": True}
+
+
+class NotificationHistoryRead(BaseModel):
+	items: list[NotificationRead]
+	total: int
+	page: int
+	size: int
