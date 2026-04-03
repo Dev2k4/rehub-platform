@@ -17,7 +17,6 @@
 
 ### PHẦN 2: BACKEND - HOÀN THIỆN & BỔ SUNG
 - [2.1 Tích hợp Redis (Cache Layer)](#21-tích-hợp-redis-cache-layer)
-- [2.2 Real Payment Integration (VNPay/MoMo)](#22-real-payment-integration-vnpaymomo)
 - [2.3 Phone Verification (SMS OTP)](#23-phone-verification-sms-otp)
 - [2.4 Shipping & Logistics Integration](#24-shipping--logistics-integration)
 - [2.5 Search Enhancement (Elasticsearch)](#25-search-enhancement-elasticsearch)
@@ -33,7 +32,6 @@
 - [3.1 Notifications UI](#31-notifications-ui)
 - [3.2 Messaging/Chat UI](#32-messagingchat-ui)
 - [3.3 Advanced Search & Filters](#33-advanced-search--filters)
-- [3.4 Favorites/Wishlist](#34-favoriteswishlist)
 - [3.5 User Settings & Preferences](#35-user-settings--preferences)
 - [3.6 Analytics Dashboard](#36-analytics-dashboard)
 - [3.7 Image Management UI](#37-image-management-ui)
@@ -472,7 +470,6 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 - ✅ "Buy Now" button
 - ✅ "Make Offer" button
 - ✅ "Message Seller" button (UI only)
-- ✅ "Add to Favorites" button (UI only)
 
 #### Offers
 - ✅ Create offer modal
@@ -557,14 +554,13 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 
 - Notifications UI đã có ở header: bell dropdown, unread count, mark-as-read, mark-all-as-read, realtime cập nhật.
 - Đã thi công phân trang trang chủ (home listings) để tránh tải một trang cố định `skip=0`.
-- Các khối backend critical vẫn chưa có module triển khai thật trong `backend/app` (Redis cache, payment gateway, SMS OTP, shipping, chat).
+- Các khối backend critical vẫn chưa có module triển khai thật trong `backend/app` (Redis cache, SMS OTP, shipping, chat).
 - DevOps production vẫn ở mức planning: chưa có Traefik, Redis service, CI/CD workflow, backup automation.
 
 ### ❌ Backend Missing Features
 
 #### Critical (Must Have)
 1. **Redis Integration** - Cache layer for performance
-2. **Real Payment Gateway** - VNPay/MoMo/PayPal integration
 3. **Phone Verification** - SMS OTP (Twilio/AWS SNS)
 4. **Shipping Integration** - GHN/GHTK/J&T Express
 5. **Search Enhancement** - Elasticsearch or PostgreSQL Full-Text Search
@@ -601,7 +597,6 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 1. **Notifications Page (full history)** - Bell dropdown đã có, còn thiếu trang riêng lịch sử + filter
 2. **Messaging/Chat UI** - Real-time chat interface
 3. **Advanced Search Page** - Filters (price, condition, location, sort)
-4. **Favorites/Wishlist** - Save listings, favorites page
 
 #### High Priority (Should Have)
 5. **User Settings** - Change password, email preferences, privacy
@@ -622,6 +617,75 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 18. **Skeleton Loading** - Better loading states
 19. **Infinite Scroll** - Alternative to pagination
 20. **Mobile App** - React Native or PWA
+
+### 🚀 Kế hoạch thực thi ưu tiên (Must Have, chỉ BE + FE)
+
+#### Phạm vi áp dụng
+- Chỉ làm các hạng mục **Must Have** của Backend và Frontend.
+- **Tạm hoãn toàn bộ DevOps** cho tới giai đoạn triển khai production.
+- Chỉ đánh dấu hoàn thành khi đã pass test/QA theo tiêu chí bên dưới.
+
+#### Danh sách Must Have sẽ triển khai
+
+**Backend (8 mục):**
+1. Redis Integration
+2. Phone Verification (SMS OTP)
+3. Shipping Integration (ưu tiên GHN)
+4. Search Enhancement (ưu tiên PostgreSQL Full-Text Search, Elasticsearch để phase sau nếu cần scale)
+5. Image Processing (thumbnail + compression)
+6. Chat/Messaging System
+7. Advanced Rate Limiting (per-endpoint, per-user)
+
+**Frontend (4 mục):**
+1. Notifications Page (full history + filter)
+2. Messaging/Chat UI (real-time)
+3. Advanced Search Page (price/condition/location/sort)
+
+#### Thứ tự thực thi đề xuất (phụ thuộc kỹ thuật)
+
+**Wave 1 - Nền tảng BE (tuần 1):**
+- BE-01 Redis Integration
+- BE-08 Advanced Rate Limiting
+- BE-05 Search Enhancement (PostgreSQL FTS)
+- BE-06 Image Processing
+
+**Wave 2 - Nghiệp vụ BE (tuần 2-3):**
+- BE-03 Phone Verification (SMS OTP)
+- BE-04 Shipping (GHN)
+- BE-07 Chat/Messaging API + WebSocket events
+
+**Wave 3 - Must Have FE (tuần 3-4, chạy song song phần cuối Wave 2):**
+- FE-01 Notifications Page (history/filter)
+- FE-02 Messaging/Chat UI
+- FE-03 Advanced Search Page
+
+#### Tiêu chí hoàn thành (Definition of Done)
+- Có API/spec/schema đầy đủ cho feature.
+- Có migration (nếu cần) và dữ liệu chạy local được.
+- Có test tối thiểu: happy path + error path chính.
+- FE tích hợp xong với API thật, có loading/error state.
+- QA checklist pass ở local/staging nội bộ.
+- Cập nhật trạng thái vào bảng tiến độ bên dưới ngay khi hoàn thành.
+
+#### Bảng cập nhật tiến độ trực tiếp
+
+| ID | Hạng mục | Khối | Trạng thái | Owner | Bắt đầu | Hoàn thành | Ghi chú |
+|----|----------|------|------------|-------|---------|------------|---------|
+| BE-01 | Redis Integration | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them Redis cache wrapper + cache cho categories/listings va invalidate khi mutate |
+| BE-03 | Phone Verification (SMS OTP) | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them send/verify OTP cho so dien thoai, co debug OTP local va UI ho tro tren trang ho so |
+| BE-04 | Shipping Integration (GHN) | Backend | TODO | - | - | - | Fee calc + create + tracking |
+| BE-05 | Search Enhancement (PostgreSQL FTS) | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them filter nang cao (condition/location/price/sort), keyword tren title+description; test backend bi block boi login test fixture cu |
+| BE-06 | Image Processing | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them pipeline nen + thumbnail WebP khi upload anh tin dang |
+| BE-07 | Chat/Messaging System | Backend | IN_PROGRESS | Copilot | 2026-04-03 | - | Da bat dau BE chat: luu encrypted message blob tren MinIO + message index trong DB |
+| BE-08 | Advanced Rate Limiting | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them Redis-backed rate limit cho create listing va create offer theo user |
+| FE-01 | Notifications Page (history/filter) | Frontend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da bo sung BE endpoint /notifications/history (filter+pagination) va FE page su dung server-side filter |
+| FE-02 | Messaging/Chat UI | Frontend | IN_PROGRESS | Copilot | 2026-04-03 | - | Da them route /chat, UI nhan tin co ban, ket noi API chat backend va su kien realtime |
+| FE-03 | Advanced Search Page | Frontend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them UI tim kiem nang cao tren marketplace (price/condition/location/sort), compile frontend pass |
+
+#### Quy ước cập nhật trạng thái
+- Dùng 4 trạng thái: `TODO` -> `IN_PROGRESS` -> `REVIEW` -> `DONE`.
+- Khi chuyển `DONE`: bắt buộc điền ngày hoàn thành và ghi chú ngắn (API/test/UI).
+- Chưa mở phần DevOps cho tới khi toàn bộ BE-xx và FE-xx ở trạng thái `DONE`.
 
 ### ❌ DevOps Missing Features
 
@@ -1242,570 +1306,8 @@ async def test_cache_json():
 
 ---
 
-## 2.2 Real Payment Integration (VNPay/MoMo)
-
-### Payment Gateway Options for Vietnam
-
-| Gateway | Pros | Cons | Setup Time |
-|---------|------|------|------------|
-| **VNPay** | ✅ Most popular in VN<br/>✅ Supports all Vietnamese banks<br/>✅ Good documentation | ⚠️ Requires business license<br/>⚠️ Manual approval process | 7-14 days |
-| **MoMo** | ✅ E-wallet integration<br/>✅ Fast checkout<br/>✅ Young user base | ⚠️ Limited to MoMo users<br/>⚠️ Higher fees | 5-7 days |
-| **ZaloPay** | ✅ Zalo ecosystem integration<br/>✅ Large user base | ⚠️ Limited bank support | 5-7 days |
-| **PayOS** | ✅ Easy integration<br/>✅ Multi-gateway support | ⚠️ Less popular<br/>⚠️ Limited features | 1-3 days |
-| **Stripe** | ✅ International support<br/>✅ Excellent API | ❌ Not popular in Vietnam<br/>⚠️ Higher fees for VND | 1 day |
-
-**Recommendation**: Start with **VNPay** for card payments + **MoMo** for e-wallet users.
-
-### VNPay Integration
-
-#### Step 1: Register for VNPay Merchant Account
-
-1. Visit https://vnpay.vn/dang-ky-merchant
-2. Submit business documents (business license, bank account)
-3. Wait for approval (7-14 days)
-4. Receive:
-   - `TMN_CODE`: Terminal/Merchant code
-   - `HASH_SECRET`: Secret key for signature
-   - Sandbox credentials for testing
-
-#### Step 2: Install VNPay SDK
-
-```bash
-# backend/pyproject.toml
-[project]
-dependencies = [
-    # ... existing
-    "hashlib",  # Standard library
-]
-```
-
-#### Step 3: VNPay Configuration
-
-```python
-# backend/app/core/config.py
-class Settings(BaseSettings):
-    # ... existing
-
-    # VNPay Payment Gateway
-    VNPAY_TMN_CODE: str = ""
-    VNPAY_HASH_SECRET: str = ""
-    VNPAY_URL: str = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"  # Sandbox
-    # Production: https://vnpay.vn/paymentv2/vpcpay.html
-    VNPAY_RETURN_URL: str = ""  # e.g., https://remarket.vn/payment/callback
-    VNPAY_API_URL: str = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"
-```
-
-#### Step 4: VNPay Payment Service
-
-```python
-# backend/app/services/vnpay_service.py
-import hashlib
-import hmac
-import urllib.parse
-from datetime import datetime
-from typing import Dict, Optional
-from app.core.config import settings
-
-class VNPayService:
-    def __init__(self):
-        self.vnpay_url = settings.VNPAY_URL
-        self.tmn_code = settings.VNPAY_TMN_CODE
-        self.hash_secret = settings.VNPAY_HASH_SECRET
-        self.return_url = settings.VNPAY_RETURN_URL
-
-    def create_payment_url(
-        self,
-        order_id: str,
-        amount: int,  # VND (integer)
-        order_desc: str,
-        user_ip: str,
-        bank_code: Optional[str] = None
-    ) -> str:
-        """Create VNPay payment URL"""
-
-        # Build request data
-        vnp_params = {
-            "vnp_Version": "2.1.0",
-            "vnp_Command": "pay",
-            "vnp_TmnCode": self.tmn_code,
-            "vnp_Amount": str(amount * 100),  # VNPay uses smallest unit (xu)
-            "vnp_CurrCode": "VND",
-            "vnp_TxnRef": order_id,
-            "vnp_OrderInfo": order_desc,
-            "vnp_OrderType": "other",
-            "vnp_Locale": "vn",
-            "vnp_ReturnUrl": self.return_url,
-            "vnp_IpAddr": user_ip,
-            "vnp_CreateDate": datetime.now().strftime("%Y%m%d%H%M%S"),
-        }
-
-        if bank_code:
-            vnp_params["vnp_BankCode"] = bank_code
-
-        # Sort params and create query string
-        sorted_params = sorted(vnp_params.items())
-        query_string = "&".join([f"{k}={urllib.parse.quote_plus(str(v))}" for k, v in sorted_params])
-
-        # Create secure hash
-        secure_hash = self._create_signature(query_string)
-        query_string += f"&vnp_SecureHash={secure_hash}"
-
-        # Return payment URL
-        return f"{self.vnpay_url}?{query_string}"
-
-    def verify_payment_response(self, params: Dict[str, str]) -> bool:
-        """Verify VNPay callback signature"""
-        vnp_secure_hash = params.pop("vnp_SecureHash", None)
-        if not vnp_secure_hash:
-            return False
-
-        # Sort params and create query string
-        sorted_params = sorted(params.items())
-        query_string = "&".join([f"{k}={urllib.parse.quote_plus(str(v))}" for k, v in sorted_params])
-
-        # Calculate signature
-        calculated_hash = self._create_signature(query_string)
-
-        return vnp_secure_hash == calculated_hash
-
-    def get_payment_status(self, params: Dict[str, str]) -> Dict[str, any]:
-        """Parse VNPay payment response"""
-        return {
-            "order_id": params.get("vnp_TxnRef"),
-            "amount": int(params.get("vnp_Amount", 0)) // 100,  # Convert from xu back to VND
-            "response_code": params.get("vnp_ResponseCode"),
-            "transaction_no": params.get("vnp_TransactionNo"),
-            "bank_code": params.get("vnp_BankCode"),
-            "bank_tran_no": params.get("vnp_BankTranNo"),
-            "pay_date": params.get("vnp_PayDate"),
-            "is_success": params.get("vnp_ResponseCode") == "00",
-        }
-
-    def _create_signature(self, query_string: str) -> str:
-        """Create HMAC SHA512 signature"""
-        return hmac.new(
-            self.hash_secret.encode("utf-8"),
-            query_string.encode("utf-8"),
-            hashlib.sha512
-        ).hexdigest()
-
-vnpay_service = VNPayService()
-```
-
-#### Step 5: Payment Models
-
-```python
-# backend/app/models/payment.py
-from sqlmodel import SQLModel, Field
-from datetime import datetime
-from typing import Optional
-from uuid import UUID
-import uuid
-
-class PaymentStatus(str, Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    REFUNDED = "refunded"
-
-class PaymentMethod(str, Enum):
-    WALLET = "wallet"  # Existing demo wallet
-    VNPAY = "vnpay"
-    MOMO = "momo"
-    BANK_TRANSFER = "bank_transfer"
-
-class Payment(SQLModel, table=True):
-    __tablename__ = "payments"
-
-    id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    order_id: UUID = Field(foreign_key="orders.id", nullable=False)
-    user_id: UUID = Field(foreign_key="users.id", nullable=False)
-
-    amount: int  # VND
-    method: PaymentMethod
-    status: PaymentStatus = PaymentStatus.PENDING
-
-    # Gateway details
-    gateway_transaction_id: Optional[str] = None
-    gateway_response_code: Optional[str] = None
-    gateway_response_message: Optional[str] = None
-
-    # Metadata
-    metadata: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-```
-
-#### Step 6: Payment Endpoints
-
-```python
-# backend/app/api/v1/payments.py
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlmodel.ext.asyncio.session import AsyncSession
-from app.api.dependencies import get_session, get_current_user
-from app.services.vnpay_service import vnpay_service
-from app.crud import crud_payment, crud_order
-from app.schemas.payment import PaymentCreate, PaymentRead
-from app.models import User
-
-router = APIRouter(prefix="/payments", tags=["payments"])
-
-@router.post("/vnpay/create", response_model=dict)
-async def create_vnpay_payment(
-    order_id: str,
-    bank_code: Optional[str] = None,
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-    request: Request = None
-):
-    """Create VNPay payment URL"""
-
-    # Get order
-    order = await crud_order.get(session, id=order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    # Verify order belongs to user (buyer)
-    if str(order.buyer_id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    # Check if order already paid
-    if order.status != "pending":
-        raise HTTPException(status_code=400, detail="Order already processed")
-
-    # Create payment record
-    payment = await crud_payment.create(session, obj_in={
-        "order_id": order_id,
-        "user_id": current_user.id,
-        "amount": order.final_price,
-        "method": "vnpay",
-        "status": "pending"
-    })
-
-    # Create payment URL
-    payment_url = vnpay_service.create_payment_url(
-        order_id=str(payment.id),
-        amount=order.final_price,
-        order_desc=f"Thanh toan don hang {order_id}",
-        user_ip=request.client.host,
-        bank_code=bank_code
-    )
-
-    return {
-        "payment_id": str(payment.id),
-        "payment_url": payment_url
-    }
-
-@router.get("/vnpay/callback")
-async def vnpay_callback(
-    request: Request,
-    session: AsyncSession = Depends(get_session)
-):
-    """Handle VNPay payment callback"""
-
-    # Get query params
-    params = dict(request.query_params)
-
-    # Verify signature
-    if not vnpay_service.verify_payment_response(params.copy()):
-        raise HTTPException(status_code=400, detail="Invalid signature")
-
-    # Parse payment status
-    payment_status = vnpay_service.get_payment_status(params)
-
-    # Get payment record
-    payment_id = payment_status["order_id"]
-    payment = await crud_payment.get(session, id=payment_id)
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-
-    # Update payment
-    if payment_status["is_success"]:
-        await crud_payment.update(session, db_obj=payment, obj_in={
-            "status": "completed",
-            "gateway_transaction_id": payment_status["transaction_no"],
-            "gateway_response_code": payment_status["response_code"],
-            "completed_at": datetime.utcnow(),
-            "metadata": payment_status
-        })
-
-        # Update order status
-        order = await crud_order.get(session, id=payment.order_id)
-        await crud_order.update(session, db_obj=order, obj_in={
-            "status": "paid"
-        })
-
-        # Create escrow (auto-fund)
-        # ... escrow logic here
-
-        # Redirect to success page
-        return RedirectResponse(
-            url=f"{settings.FRONTEND_HOST}/orders/{order.id}?payment=success"
-        )
-    else:
-        await crud_payment.update(session, db_obj=payment, obj_in={
-            "status": "failed",
-            "gateway_response_code": payment_status["response_code"],
-            "metadata": payment_status
-        })
-
-        return RedirectResponse(
-            url=f"{settings.FRONTEND_HOST}/orders/{order.id}?payment=failed"
-        )
-
-@router.get("/vnpay/check")
-async def check_vnpay_payment(
-    payment_id: str,
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-    """Check VNPay payment status"""
-    payment = await crud_payment.get(session, id=payment_id)
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-
-    if str(payment.user_id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    return {
-        "payment_id": str(payment.id),
-        "status": payment.status,
-        "amount": payment.amount,
-        "method": payment.method
-    }
-```
-
-### MoMo Integration
-
-#### Step 1: Register for MoMo Business Account
-
-1. Visit https://business.momo.vn/
-2. Submit documents
-3. Receive:
-   - `PARTNER_CODE`
-   - `ACCESS_KEY`
-   - `SECRET_KEY`
-
-#### Step 2: MoMo Service
-
-```python
-# backend/app/services/momo_service.py
-import hashlib
-import hmac
-import json
-import aiohttp
-from app.core.config import settings
-
-class MoMoService:
-    def __init__(self):
-        self.partner_code = settings.MOMO_PARTNER_CODE
-        self.access_key = settings.MOMO_ACCESS_KEY
-        self.secret_key = settings.MOMO_SECRET_KEY
-        self.endpoint = settings.MOMO_ENDPOINT
-        self.return_url = settings.MOMO_RETURN_URL
-        self.notify_url = settings.MOMO_NOTIFY_URL
-
-    async def create_payment(
-        self,
-        order_id: str,
-        amount: int,
-        order_info: str,
-        request_id: str
-    ) -> dict:
-        """Create MoMo payment request"""
-
-        raw_data = (
-            f"accessKey={self.access_key}"
-            f"&amount={amount}"
-            f"&extraData="
-            f"&ipnUrl={self.notify_url}"
-            f"&orderId={order_id}"
-            f"&orderInfo={order_info}"
-            f"&partnerCode={self.partner_code}"
-            f"&redirectUrl={self.return_url}"
-            f"&requestId={request_id}"
-            f"&requestType=captureWallet"
-        )
-
-        signature = hmac.new(
-            self.secret_key.encode("utf-8"),
-            raw_data.encode("utf-8"),
-            hashlib.sha256
-        ).hexdigest()
-
-        payload = {
-            "partnerCode": self.partner_code,
-            "accessKey": self.access_key,
-            "requestId": request_id,
-            "amount": str(amount),
-            "orderId": order_id,
-            "orderInfo": order_info,
-            "redirectUrl": self.return_url,
-            "ipnUrl": self.notify_url,
-            "extraData": "",
-            "requestType": "captureWallet",
-            "signature": signature,
-            "lang": "vi"
-        }
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self.endpoint}/v2/gateway/api/create",
-                json=payload
-            ) as response:
-                return await response.json()
-
-    def verify_signature(self, data: dict) -> bool:
-        """Verify MoMo callback signature"""
-        signature = data.pop("signature", None)
-        if not signature:
-            return False
-
-        raw_data = "&".join([f"{k}={v}" for k, v in sorted(data.items())])
-        calculated_signature = hmac.new(
-            self.secret_key.encode("utf-8"),
-            raw_data.encode("utf-8"),
-            hashlib.sha256
-        ).hexdigest()
-
-        return signature == calculated_signature
-
-momo_service = MoMoService()
-```
-
-### Wallet Top-up Integration
-
-```python
-# backend/app/api/v1/wallet.py (enhance existing)
-
-@router.post("/topup/vnpay", response_model=dict)
-async def topup_wallet_vnpay(
-    amount: int,  # VND
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-    request: Request = None
-):
-    """Top-up wallet via VNPay"""
-
-    if amount < 10000:
-        raise HTTPException(status_code=400, detail="Minimum 10,000 VND")
-
-    # Create payment record
-    payment = await crud_payment.create(session, obj_in={
-        "order_id": None,  # No order for wallet top-up
-        "user_id": current_user.id,
-        "amount": amount,
-        "method": "vnpay",
-        "status": "pending",
-        "metadata": {"type": "wallet_topup"}
-    })
-
-    # Create VNPay payment URL
-    payment_url = vnpay_service.create_payment_url(
-        order_id=str(payment.id),
-        amount=amount,
-        order_desc=f"Nap tien vi ReHub - User {current_user.id}",
-        user_ip=request.client.host
-    )
-
-    return {
-        "payment_id": str(payment.id),
-        "payment_url": payment_url
-    }
-
-@router.get("/topup/callback")
-async def wallet_topup_callback(
-    request: Request,
-    session: AsyncSession = Depends(get_session)
-):
-    """Handle wallet top-up payment callback"""
-
-    params = dict(request.query_params)
-
-    # Verify signature
-    if not vnpay_service.verify_payment_response(params.copy()):
-        raise HTTPException(status_code=400, detail="Invalid signature")
-
-    payment_status = vnpay_service.get_payment_status(params)
-    payment_id = payment_status["order_id"]
-
-    payment = await crud_payment.get(session, id=payment_id)
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-
-    if payment_status["is_success"]:
-        # Update payment
-        await crud_payment.update(session, db_obj=payment, obj_in={
-            "status": "completed",
-            "gateway_transaction_id": payment_status["transaction_no"],
-            "completed_at": datetime.utcnow()
-        })
-
-        # Credit wallet
-        wallet = await crud_wallet.get_or_create(session, user_id=payment.user_id)
-        await crud_wallet.credit(
-            session,
-            wallet=wallet,
-            amount=payment.amount,
-            transaction_type="topup_vnpay",
-            description=f"Nap tien qua VNPay - {payment_status['transaction_no']}"
-        )
-
-        return RedirectResponse(
-            url=f"{settings.FRONTEND_HOST}/wallet?topup=success&amount={payment.amount}"
-        )
-    else:
-        await crud_payment.update(session, db_obj=payment, obj_in={
-            "status": "failed"
-        })
-
-        return RedirectResponse(
-            url=f"{settings.FRONTEND_HOST}/wallet?topup=failed"
-        )
-```
-
-### Testing Payment Integration
-
-```python
-# backend/tests/test_vnpay.py
-import pytest
-from app.services.vnpay_service import vnpay_service
-
-def test_create_payment_url():
-    """Test VNPay payment URL generation"""
-    url = vnpay_service.create_payment_url(
-        order_id="TEST123",
-        amount=100000,
-        order_desc="Test payment",
-        user_ip="127.0.0.1"
-    )
-
-    assert "vnp_Amount=10000000" in url  # 100,000 VND * 100
-    assert "vnp_TxnRef=TEST123" in url
-    assert "vnp_SecureHash=" in url
-
-def test_verify_signature():
-    """Test VNPay signature verification"""
-    # Mock callback params from VNPay
-    params = {
-        "vnp_Amount": "10000000",
-        "vnp_BankCode": "NCB",
-        "vnp_ResponseCode": "00",
-        "vnp_TxnRef": "TEST123",
-        # ... other params
-        "vnp_SecureHash": "valid_hash_here"
-    }
-
-    # This would fail without real signature
-    # Just testing the flow
-    result = vnpay_service.verify_payment_response(params)
-    assert isinstance(result, bool)
-```
-
----
+## 2.2 (da loai bo)
+Hang muc thanh toan truc tiep da duoc bo khoi pham vi du an.
 
 ## 2.3 Phone Verification (SMS OTP)
 

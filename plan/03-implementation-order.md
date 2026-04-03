@@ -860,7 +860,7 @@ await create(
 | WebSocket               | Realtime notifications                        |
 | Frontend React          | Sau khi BE API ổn định                        |
 | CI/CD                   | GitHub Actions                                |
-| Escrow / Payment        | VNPay/MoMo integration                        |
+| Escrow / Demo Wallet    | Virtual escrow flow only                      |
 | KYC                     | Xác thực danh tính                            |
 | Rate Limiting           | Per-IP, per-user                              |
 | Logging & Monitoring    | Structured logging, Sentry                    |

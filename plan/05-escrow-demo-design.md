@@ -26,7 +26,7 @@ In scope:
 - Notifications for each event.
 
 Out of scope:
-- Real payment gateways (Momo, Stripe, VNPay, banking).
+- Real money payment integrations.
 - KYC/AML checks.
 - Withdrawal to bank.
 

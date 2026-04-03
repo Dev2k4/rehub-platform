@@ -620,12 +620,6 @@ EMAIL=admin@remarket.vn
 USERNAME=admin
 HASHED_PASSWORD=<htpasswd-hash>
 
-# === Payment (để sau) ===
-VNPAY_TMN_CODE=
-VNPAY_HASH_SECRET=
-VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-VNPAY_RETURN_URL=https://remarket.vn/payment/callback
-
 # === Sentry (optional) ===
 SENTRY_DSN=
 
