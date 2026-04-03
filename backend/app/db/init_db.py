@@ -12,6 +12,7 @@ import app.models.review  # noqa: F401
 import app.models.user  # noqa: F401
 import app.models.wallet  # noqa: F401
 import app.models.escrow  # noqa: F401
+import app.models.chat  # noqa: F401
 
 
 async def init_db() -> None:
