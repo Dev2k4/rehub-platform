@@ -25,6 +25,7 @@ import app.models.offer
 import app.models.order
 import app.models.review
 import app.models.notification
+import app.models.chat
 
 target_metadata = SQLModel.metadata
 

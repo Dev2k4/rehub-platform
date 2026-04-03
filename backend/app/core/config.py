@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: str = ""
     MINIO_BUCKET_NAME: str = "rehub-listing"
     MINIO_SECURE: bool = False
+    CHAT_MASTER_KEY: str = ""
+    CHAT_MINIO_BUCKET_NAME: str = "rehub-chat"
 
     # Offers
     OFFER_EXPIRE_HOURS: int = 48
