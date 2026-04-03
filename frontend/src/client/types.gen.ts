@@ -636,11 +636,15 @@ export type AdminResolveEscrowApiV1EscrowsOrderIdAdminResolvePostResponse = (Esc
 
 export type ListListingsApiV1ListingsGetData = {
     categoryId?: (string | null);
+    conditionGrade?: (ConditionGrade | null);
+    district?: (string | null);
     keyword?: (string | null);
     limit?: number;
     maxPrice?: (number | null);
     minPrice?: (number | null);
+    province?: (string | null);
     sellerId?: (string | null);
+    sortBy?: ('newest' | 'price_asc' | 'price_desc');
     skip?: number;
 };
 

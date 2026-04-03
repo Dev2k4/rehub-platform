@@ -2,6 +2,7 @@ import {
   CategoriesService,
   type CategoryRead,
   type CategoryTree,
+  type ConditionGrade,
   ListingsService,
   type ListingWithImages,
 } from "@/client"
@@ -11,8 +12,14 @@ export type CategoryNode = CategoryRead | CategoryTree
 export type ListingsQueryParams = {
   keyword?: string
   categoryId?: string
+  conditionGrade?: ConditionGrade
+  province?: string
+  district?: string
   skip?: number
   limit?: number
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: "newest" | "price_asc" | "price_desc"
 }
 
 export async function getCategoriesTree(): Promise<CategoryTree[]> {
@@ -41,6 +48,12 @@ export async function getListings(params: ListingsQueryParams = {}): Promise<{
   const response = await ListingsService.listListingsApiV1ListingsGet({
     keyword: params.keyword,
     categoryId: params.categoryId,
+    conditionGrade: params.conditionGrade,
+    province: params.province,
+    district: params.district,
+    minPrice: params.minPrice,
+    maxPrice: params.maxPrice,
+    sortBy: params.sortBy,
     skip: params.skip,
     limit: params.limit,
   })

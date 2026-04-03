@@ -1,5 +1,15 @@
-import { Box, Button, Container, Flex, Heading, Text } from "@chakra-ui/react"
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  Heading,
+  Input,
+  SimpleGrid,
+  Text,
+} from "@chakra-ui/react"
 import { useMemo, useState } from "react"
+import type { ConditionGrade } from "@/client"
 import { toaster } from "@/components/ui/toaster"
 import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
 import { CategorySidebar } from "@/features/home/components/CategorySidebar"
@@ -13,6 +23,8 @@ import {
   useUploadListingImage,
 } from "@/features/listings/hooks/useMyListings"
 
+type ListingSortBy = "newest" | "price_asc" | "price_desc"
+
 export function HomeMarketplacePage() {
   const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false)
   const [isListingModalOpen, setIsListingModalOpen] = useState(false)
@@ -21,6 +33,18 @@ export function HomeMarketplacePage() {
     setSelectedCategoryId,
     keyword,
     setKeyword,
+    conditionGrade,
+    setConditionGrade,
+    province,
+    setProvince,
+    district,
+    setDistrict,
+    minPrice,
+    setMinPrice,
+    maxPrice,
+    setMaxPrice,
+    sortBy,
+    setSortBy,
     page,
     setPage,
     pageSize,
@@ -144,6 +168,140 @@ export function HomeMarketplacePage() {
               : "Đang tải..."}
           </Text>
         </Flex>
+
+        <Box
+          mb={6}
+          bg="white"
+          border="1px"
+          borderColor="gray.200"
+          borderRadius="2xl"
+          p={{ base: 4, md: 5 }}
+          boxShadow="sm"
+        >
+          <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={3}>
+            Tim kiem nang cao
+          </Text>
+
+          <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={3}>
+            <Box>
+              <Text fontSize="xs" color="gray.500" mb={1}>
+                Tinh/Thanh pho
+              </Text>
+              <Input
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+                placeholder="Vi du: Ha Noi"
+                size="sm"
+              />
+            </Box>
+
+            <Box>
+              <Text fontSize="xs" color="gray.500" mb={1}>
+                Quan/Huyen
+              </Text>
+              <Input
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                placeholder="Vi du: Cau Giay"
+                size="sm"
+              />
+            </Box>
+
+            <Box>
+              <Text fontSize="xs" color="gray.500" mb={1}>
+                Tinh trang
+              </Text>
+              <select
+                value={conditionGrade}
+                onChange={(e) =>
+                  setConditionGrade(e.target.value as ConditionGrade | "")
+                }
+                style={{
+                  width: "100%",
+                  height: "32px",
+                  borderRadius: "8px",
+                  border: "1px solid #E2E8F0",
+                  padding: "0 8px",
+                  background: "white",
+                }}
+              >
+                <option value="">Tat ca</option>
+                <option value="brand_new">Moi 100%</option>
+                <option value="like_new">Nhu moi</option>
+                <option value="good">Tot</option>
+                <option value="fair">Kha</option>
+                <option value="poor">Trung binh</option>
+              </select>
+            </Box>
+
+            <Box>
+              <Text fontSize="xs" color="gray.500" mb={1}>
+                Gia tu
+              </Text>
+              <Input
+                type="number"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                placeholder="0"
+                size="sm"
+                min={0}
+              />
+            </Box>
+
+            <Box>
+              <Text fontSize="xs" color="gray.500" mb={1}>
+                Gia den
+              </Text>
+              <Input
+                type="number"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                placeholder="10000000"
+                size="sm"
+                min={0}
+              />
+            </Box>
+
+            <Box>
+              <Text fontSize="xs" color="gray.500" mb={1}>
+                Sap xep
+              </Text>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as ListingSortBy)}
+                style={{
+                  width: "100%",
+                  height: "32px",
+                  borderRadius: "8px",
+                  border: "1px solid #E2E8F0",
+                  padding: "0 8px",
+                  background: "white",
+                }}
+              >
+                <option value="newest">Moi nhat</option>
+                <option value="price_asc">Gia thap den cao</option>
+                <option value="price_desc">Gia cao den thap</option>
+              </select>
+            </Box>
+          </SimpleGrid>
+
+          <Flex justify="flex-end" mt={3}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setConditionGrade("")
+                setProvince("")
+                setDistrict("")
+                setMinPrice("")
+                setMaxPrice("")
+                setSortBy("newest")
+              }}
+            >
+              Xoa bo loc
+            </Button>
+          </Flex>
+        </Box>
 
         <Flex direction={{ base: "column", lg: "row" }} gap={6}>
           <CategorySidebar

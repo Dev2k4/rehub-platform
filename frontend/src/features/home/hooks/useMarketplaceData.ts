@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
-import type { CategoryTree, UserPublicProfile } from "@/client"
+import type { CategoryTree, ConditionGrade, UserPublicProfile } from "@/client"
 import {
   getCategoriesTree,
   getListings,
@@ -13,6 +13,14 @@ const DEFAULT_LIMIT = 24
 export function useMarketplaceData() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("")
   const [keyword, setKeyword] = useState("")
+  const [conditionGrade, setConditionGrade] = useState<ConditionGrade | "">("")
+  const [province, setProvince] = useState("")
+  const [district, setDistrict] = useState("")
+  const [minPrice, setMinPrice] = useState<string>("")
+  const [maxPrice, setMaxPrice] = useState<string>("")
+  const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc">(
+    "newest",
+  )
   const [page, setPage] = useState(1)
 
   const categoriesQuery = useQuery({
@@ -21,11 +29,29 @@ export function useMarketplaceData() {
   })
 
   const listingsQuery = useQuery({
-    queryKey: ["listings", "public", selectedCategoryId, keyword, page],
+    queryKey: [
+      "listings",
+      "public",
+      selectedCategoryId,
+      keyword,
+      conditionGrade,
+      province,
+      district,
+      minPrice,
+      maxPrice,
+      sortBy,
+      page,
+    ],
     queryFn: () =>
       getListings({
         categoryId: selectedCategoryId || undefined,
         keyword: keyword || undefined,
+        conditionGrade: conditionGrade || undefined,
+        province: province || undefined,
+        district: district || undefined,
+        minPrice: minPrice !== "" ? Number(minPrice) : undefined,
+        maxPrice: maxPrice !== "" ? Number(maxPrice) : undefined,
+        sortBy,
         limit: DEFAULT_LIMIT,
         skip: (page - 1) * DEFAULT_LIMIT,
       }),
@@ -33,7 +59,16 @@ export function useMarketplaceData() {
 
   useEffect(() => {
     setPage(1)
-  }, [selectedCategoryId, keyword])
+  }, [
+    selectedCategoryId,
+    keyword,
+    conditionGrade,
+    province,
+    district,
+    minPrice,
+    maxPrice,
+    sortBy,
+  ])
 
   const sellerIds = useMemo(() => {
     const ids = listingsQuery.data?.items.map((item) => item.seller_id) ?? []
@@ -81,6 +116,18 @@ export function useMarketplaceData() {
     setSelectedCategoryId,
     keyword,
     setKeyword,
+    conditionGrade,
+    setConditionGrade,
+    province,
+    setProvince,
+    district,
+    setDistrict,
+    minPrice,
+    setMinPrice,
+    maxPrice,
+    setMaxPrice,
+    sortBy,
+    setSortBy,
     page,
     setPage,
     pageSize: DEFAULT_LIMIT,

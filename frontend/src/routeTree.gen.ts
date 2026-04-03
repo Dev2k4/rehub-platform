@@ -13,6 +13,7 @@ import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OffersRouteImport } from './routes/offers'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -50,6 +51,11 @@ const OrdersRoute = OrdersRouteImport.update({
 const OffersRoute = OffersRouteImport.update({
   id: '/offers',
   path: '/offers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyListingsRoute = MyListingsRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/my-listings': typeof MyListingsRoute
+  '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
   '/orders': typeof OrdersRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/my-listings': typeof MyListingsRoute
+  '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
   '/profile': typeof ProfileRoute
   '/wallet': typeof WalletRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/my-listings': typeof MyListingsRoute
+  '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
   '/orders': typeof OrdersRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/my-listings'
+    | '/notifications'
     | '/offers'
     | '/orders'
     | '/profile'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/my-listings'
+    | '/notifications'
     | '/offers'
     | '/profile'
     | '/wallet'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/my-listings'
+    | '/notifications'
     | '/offers'
     | '/orders'
     | '/profile'
@@ -291,6 +303,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   MyListingsRoute: typeof MyListingsRoute
+  NotificationsRoute: typeof NotificationsRoute
   OffersRoute: typeof OffersRoute
   OrdersRoute: typeof OrdersRouteWithChildren
   ProfileRoute: typeof ProfileRoute
@@ -332,6 +345,13 @@ declare module '@tanstack/react-router' {
       path: '/offers'
       fullPath: '/offers'
       preLoaderRoute: typeof OffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-listings': {
@@ -500,6 +520,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   MyListingsRoute: MyListingsRoute,
+  NotificationsRoute: NotificationsRoute,
   OffersRoute: OffersRoute,
   OrdersRoute: OrdersRouteWithChildren,
   ProfileRoute: ProfileRoute,

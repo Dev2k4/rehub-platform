@@ -645,8 +645,12 @@ export class ListingsService {
      * @param data.keyword
      * @param data.categoryId
      * @param data.sellerId
+    * @param data.conditionGrade
+    * @param data.province
+    * @param data.district
      * @param data.minPrice
      * @param data.maxPrice
+    * @param data.sortBy
      * @param data.skip
      * @param data.limit
      * @returns ListingPaginated Successful Response
@@ -660,8 +664,12 @@ export class ListingsService {
                 keyword: data.keyword,
                 category_id: data.categoryId,
                 seller_id: data.sellerId,
+                condition_grade: data.conditionGrade,
+                province: data.province,
+                district: data.district,
                 min_price: data.minPrice,
                 max_price: data.maxPrice,
+                sort_by: data.sortBy,
                 skip: data.skip,
                 limit: data.limit
             },

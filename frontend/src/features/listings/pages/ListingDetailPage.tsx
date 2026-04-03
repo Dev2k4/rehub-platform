@@ -25,7 +25,6 @@ import {
   FiArrowLeft,
   FiCalendar,
   FiCheckCircle,
-  FiHeart,
   FiMessageCircle,
   FiShare2,
   FiStar,
