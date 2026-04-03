@@ -35,6 +35,7 @@ import type { CategoryTree } from "@/client"
 import { ApiError } from "@/client"
 import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { openChatWidget } from "@/features/chat/chat-widget.events"
 import { getCategoriesTree } from "@/features/home/api/marketplace.api"
 import {
   flattenCategories,
@@ -93,6 +94,36 @@ function getErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback
+}
+
+async function copyTextRobust(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // Fallback below
+  }
+
+  try {
+    const textarea = document.createElement("textarea")
+    textarea.value = text
+    textarea.setAttribute("readonly", "")
+    textarea.style.position = "fixed"
+    textarea.style.top = "-9999px"
+    textarea.style.left = "-9999px"
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    textarea.setSelectionRange(0, textarea.value.length)
+
+    const copied = document.execCommand("copy")
+    document.body.removeChild(textarea)
+    return copied
+  } catch {
+    return false
+  }
 }
 
 export function ListingDetailPage() {
@@ -526,9 +557,15 @@ export function ListingDetailPage() {
                         borderColor="blue.300"
                         color="blue.700"
                         _hover={{ bg: "blue.100" }}
+                        onClick={() => {
+                          if (!requireAuth()) {
+                            return
+                          }
+                          openChatWidget(listing.seller_id, listing.id)
+                        }}
                       >
                         <FiMessageCircle style={{ marginRight: "0.5rem" }} />
-                      Nhắn tin cho người bán
+                      Nhắn tin
                       </Button>
                       <Button
                         flex={1}
@@ -536,6 +573,21 @@ export function ListingDetailPage() {
                         borderColor="gray.300"
                         color="gray.700"
                         _hover={{ bg: "gray.50" }}
+                        onClick={async () => {
+                          const url = `${window.location.origin}/listings/${listing.id}`
+                          const copied = await copyTextRobust(url)
+                          if (copied) {
+                            toaster.create({
+                              title: "Đã copy link tin đăng. Dán vào chat để gửi card sản phẩm.",
+                              type: "success",
+                            })
+                          } else {
+                            toaster.create({
+                              title: "Không thể copy link. Vui lòng thử lại.",
+                              type: "error",
+                            })
+                          }
+                        }}
                       >
                         <FiShare2 style={{ marginRight: "0.5rem" }} />
                         Chia sẻ

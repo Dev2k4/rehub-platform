@@ -12,11 +12,13 @@ import {
   FiCreditCard,
   FiList,
   FiLogOut,
+  FiMessageCircle,
   FiShield,
   FiShoppingBag,
   FiUser,
 } from "react-icons/fi"
 import type { UserMe } from "@/client"
+import { openChatWidget } from "@/features/chat/chat-widget.events"
 
 interface UserDropdownMenuProps {
   user: UserMe
@@ -130,6 +132,23 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                     <span>Đơn hàng của tôi</span>
                   </Flex>
                 </Link>
+              </Menu.Item>
+
+              <Menu.Item value="chat" onClick={() => openChatWidget()}>
+                <Flex
+                  align="center"
+                  gap={3}
+                  px={4}
+                  py={2}
+                  fontSize="sm"
+                  color="gray.700"
+                  _hover={{ bg: "blue.50", color: "blue.700" }}
+                  transition="all 0.2s"
+                  cursor="pointer"
+                >
+                  <FiMessageCircle />
+                  <span>Tin nhắn</span>
+                </Flex>
               </Menu.Item>
 
               <Menu.Item value="wallet" asChild>
