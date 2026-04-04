@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    # Error tracking
+    SENTRY_DSN: str = ""
+    SENTRY_ENVIRONMENT: str = "development"
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+    SENTRY_RELEASE: str = ""
+    SENTRY_TEST_TOKEN: str = ""
+
     # Redis / cache
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_CACHE_TTL_SECONDS: int = 300
