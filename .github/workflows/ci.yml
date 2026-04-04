@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rehub
+      SECRET_KEY: ci-secret-key
+      CHAT_MASTER_KEY: ci-chat-master-key
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_BUCKET_NAME: rehub-listing
+      CHAT_MINIO_BUCKET_NAME: rehub-chat
+      REQUIRE_EMAIL_VERIFICATION: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          uv run pytest -q
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+  prod-smoke:
+    runs-on: ubuntu-latest
+    needs:
+      - backend-tests
+      - frontend-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare production env file
+        run: |
+          cat > .env.production <<'EOF'
+          DOMAIN=localhost
+          LETSENCRYPT_EMAIL=ops@localhost
+          TRAEFIK_DASHBOARD_ENABLED=false
+          TRAEFIK_HTTP_PORT=18080
+          TRAEFIK_HTTPS_PORT=18443
+          MINIO_CONSOLE_HOST=localhost
+          SECRET_KEY=ci-secret-key
+          CHAT_MASTER_KEY=ci-chat-master-key
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_DB=rehub
+          MINIO_ROOT_USER=minioadmin
+          MINIO_ROOT_PASSWORD=minioadmin123
+          MINIO_BUCKET_NAME=rehub-listing
+          CHAT_MINIO_BUCKET_NAME=rehub-chat
+          MINIO_SECURE=false
+          REQUIRE_EMAIL_VERIFICATION=false
+          SMS_DEBUG_MODE=true
+          FRONTEND_HOST=http://localhost
+          SMTP_HOST=smtp.gmail.com
+          SMTP_PORT=587
+          SMTP_USER=
+          SMTP_PASSWORD=
+          SMTP_TLS=true
+          SMTP_SSL=false
+          EMAILS_FROM_EMAIL=no-reply@localhost
+          EMAILS_FROM_NAME=ReHub Platform
+          BACKUP_RETENTION_DAYS=1
+          BACKUP_INTERVAL_HOURS=24
+          EOF
+
+      - name: Build and start prod backend stack
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build backend
+
+      - name: Wait for backend readiness
+        run: |
+          for i in $(seq 1 40); do
+            if docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend curl -fsS http://localhost:8000/api/v1/utils/health-readiness/ | grep -q '"status":"ready"'; then
+              echo "Backend readiness is healthy"
+              exit 0
+            fi
+            echo "Waiting for readiness... ($i/40)"
+            sleep 3
+          done
+
+          echo "Backend readiness check failed"
+          docker compose -f docker-compose.prod.yml --env-file .env.production ps
+          docker compose -f docker-compose.prod.yml --env-file .env.production logs backend --tail=200
+          exit 1
+
+      - name: Cleanup prod stack
+        if: always()
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file .env.production down -v --remove-orphans
