@@ -630,11 +630,10 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 **Backend (8 mục):**
 1. Redis Integration
 2. Phone Verification (SMS OTP)
-3. Shipping Integration (ưu tiên GHN)
-4. Search Enhancement (ưu tiên PostgreSQL Full-Text Search, Elasticsearch để phase sau nếu cần scale)
-5. Image Processing (thumbnail + compression)
-6. Chat/Messaging System
-7. Advanced Rate Limiting (per-endpoint, per-user)
+3. Search Enhancement (ưu tiên PostgreSQL Full-Text Search, Elasticsearch để phase sau nếu cần scale)
+4. Image Processing (thumbnail + compression)
+5. Chat/Messaging System
+6. Advanced Rate Limiting (per-endpoint, per-user)
 
 **Frontend (4 mục):**
 1. Notifications Page (full history + filter)
@@ -651,7 +650,6 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 
 **Wave 2 - Nghiệp vụ BE (tuần 2-3):**
 - BE-03 Phone Verification (SMS OTP)
-- BE-04 Shipping (GHN)
 - BE-07 Chat/Messaging API + WebSocket events
 
 **Wave 3 - Must Have FE (tuần 3-4, chạy song song phần cuối Wave 2):**
@@ -673,7 +671,6 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 |----|----------|------|------------|-------|---------|------------|---------|
 | BE-01 | Redis Integration | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them Redis cache wrapper + cache cho categories/listings va invalidate khi mutate |
 | BE-03 | Phone Verification (SMS OTP) | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them send/verify OTP cho so dien thoai, co debug OTP local va UI ho tro tren trang ho so |
-| BE-04 | Shipping Integration (GHN) | Backend | TODO | - | - | - | Fee calc + create + tracking |
 | BE-05 | Search Enhancement (PostgreSQL FTS) | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them filter nang cao (condition/location/price/sort), keyword tren title+description; test backend bi block boi login test fixture cu |
 | BE-06 | Image Processing | Backend | DONE | Copilot | 2026-04-03 | 2026-04-03 | Da them pipeline nen + thumbnail WebP khi upload anh tin dang |
 | BE-07 | Chat/Messaging System | Backend | IN_PROGRESS | Copilot | 2026-04-03 | - | Da bat dau BE chat: luu encrypted message blob tren MinIO + message index trong DB |
@@ -687,7 +684,25 @@ Buyer confirms → Confirm release → POST /api/v1/escrows/{order_id}/confirm-r
 - Khi chuyển `DONE`: bắt buộc điền ngày hoàn thành và ghi chú ngắn (API/test/UI).
 - Chưa mở phần DevOps cho tới khi toàn bộ BE-xx và FE-xx ở trạng thái `DONE`.
 
+#### Hạng mục loại khỏi phạm vi
+- BE-04 Shipping Integration (GHN) đã được loại khỏi scope theo quyết định hiện tại.
+- Phần logistics/shipping sẽ không thi công trong sprint này.
+
 ### ❌ DevOps Missing Features
+
+### ✅ Cập nhật DevOps (2026-04-04)
+
+- Đã thêm baseline production compose: `docker-compose.prod.yml` với Traefik, Redis, PostgreSQL, MinIO, backend, frontend.
+- Đã thêm backend production image: `backend/Dockerfile.prod` (run migration trước khi serve).
+- Đã thêm CI workflow: `.github/workflows/ci.yml` (backend tests + frontend build).
+- Đã mở rộng CI với `prod-smoke` job: dựng `docker-compose.prod.yml` tối thiểu và xác thực endpoint `/api/v1/utils/health-readiness/`.
+- Đã thêm workflow deploy staging thủ công: `.github/workflows/deploy-staging.yml` (workflow_dispatch + SSH + readiness check).
+- Đã thêm backup service script: `scripts/backup-postgres.sh` (backup định kỳ + retention).
+- Đã thêm template biến môi trường production: `.env.production.example`.
+- Đã thêm readiness endpoint tổng hợp: `/api/v1/utils/health-readiness/` (db/redis/minio).
+- Đã chuyển lifecycle FastAPI từ `on_event` sang `lifespan` trong `backend/app/main.py`.
+- Đã chạy stack production local thành công với cổng Traefik cấu hình qua env (`TRAEFIK_HTTP_PORT`, `TRAEFIK_HTTPS_PORT`).
+- Trạng thái hiện tại: bắt đầu DevOps phase, tập trung vào baseline deploy và automation trước khi mở rộng monitoring/logging.
 
 #### Critical (Must Have for Production)
 1. **Traefik Reverse Proxy** - SSL termination, routing

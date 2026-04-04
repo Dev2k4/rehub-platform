@@ -1,21 +1,42 @@
 import {
   Box,
+  Button,
   Container,
   Flex,
   Heading,
+  HStack,
   SimpleGrid,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { useNavigate } from "@tanstack/react-router"
 import { FiCheckCircle, FiGrid, FiUsers } from "react-icons/fi"
 import { useAdminCategories } from "../hooks/useAdminCategories"
 import { usePendingListings } from "../hooks/useAdminListings"
 import { useAdminUsers } from "../hooks/useAdminUsers"
 
 export function AdminDashboardPage() {
-  const { data: users = [] } = useAdminUsers()
-  const { data: pendingListings = [] } = usePendingListings()
-  const { data: categories = [] } = useAdminCategories()
+  const navigate = useNavigate()
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    isFetching: usersFetching,
+  } = useAdminUsers({ limit: 200 })
+  const {
+    data: pendingListings = [],
+    isLoading: listingsLoading,
+    isFetching: listingsFetching,
+  } = usePendingListings({ limit: 200 })
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+    isFetching: categoriesFetching,
+  } = useAdminCategories()
+
+  const isLoading = usersLoading || listingsLoading || categoriesLoading
+  const isRefreshing = usersFetching || listingsFetching || categoriesFetching
+  const moderationHealth = users.length > 0 ? Math.round((pendingListings.length / users.length) * 100) : 0
 
   const stats = [
     {
@@ -25,7 +46,7 @@ export function AdminDashboardPage() {
       color: "blue",
     },
     {
-      label: "Tin đăng chờ duyệt",
+      label: "Tin dang cho duyet",
       value: pendingListings.length,
       icon: FiCheckCircle,
       color: "yellow",
@@ -45,9 +66,42 @@ export function AdminDashboardPage() {
           Tổng quan
         </Heading>
         <Text color="gray.600">
-          Chào mừng đến với trang quản trị ReHub Platform
+          Theo doi nhanh tinh trang van hanh va dieu huong toi cac module quan trong.
         </Text>
       </Box>
+
+      <Flex
+        mb={6}
+        bg="blue.50"
+        border="1px"
+        borderColor="blue.100"
+        borderRadius="xl"
+        p={4}
+        align={{ base: "start", md: "center" }}
+        justify="space-between"
+        direction={{ base: "column", md: "row" }}
+        gap={3}
+      >
+        <Box>
+          <Text fontSize="sm" color="blue.700" fontWeight="semibold">
+            Suc khoe kiem duyet
+          </Text>
+          <Text fontSize="2xl" color="blue.900" fontWeight="bold">
+            {moderationHealth}%
+          </Text>
+          <Text fontSize="sm" color="blue.700">
+            Ti le tin dang cho duyet so voi tong nguoi dung hien co.
+          </Text>
+        </Box>
+        <HStack gap={2}>
+          <Button size="sm" colorPalette="blue" onClick={() => navigate({ to: "/admin/listings" })}>
+            Duyet tin dang
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => navigate({ to: "/admin/users" })}>
+            Quan ly nguoi dung
+          </Button>
+        </HStack>
+      </Flex>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} gap={6}>
         {stats.map((stat) => (
@@ -74,14 +128,32 @@ export function AdminDashboardPage() {
                 <Text fontSize="sm" color="gray.600" fontWeight="medium">
                   {stat.label}
                 </Text>
-                <Heading as="h3" size="xl" color="gray.900">
-                  {stat.value}
-                </Heading>
+                {isLoading ? (
+                  <HStack mt={1}>
+                    <Spinner size="sm" color={`${stat.color}.500`} />
+                    <Text fontSize="sm" color="gray.500">
+                      Dang tai...
+                    </Text>
+                  </HStack>
+                ) : (
+                  <Heading as="h3" size="xl" color="gray.900">
+                    {stat.value}
+                  </Heading>
+                )}
               </Box>
             </Flex>
           </Box>
         ))}
       </SimpleGrid>
+
+      <Flex mt={4} justify="space-between" align="center">
+        <Text fontSize="sm" color="gray.500">
+          {isRefreshing ? "Du lieu dang duoc cap nhat..." : "Du lieu da dong bo."}
+        </Text>
+        <Button size="sm" variant="ghost" onClick={() => navigate({ to: "/notifications" })}>
+          Mo trang thong bao
+        </Button>
+      </Flex>
 
       <Box
         bg="whiteAlpha.800"
@@ -94,20 +166,17 @@ export function AdminDashboardPage() {
         borderColor="whiteAlpha.400"
       >
         <Heading as="h2" size="md" color="gray.900" mb={4}>
-          Hướng dẫn sử dụng
+          Hanh dong de xuat
         </Heading>
         <VStack align="stretch" gap={2} fontSize="sm" color="gray.600">
           <Text>
-            • <strong>Quản lý người dùng:</strong> Xem danh sách người dùng,
-            cấm/bỏ cấm tài khoản
+            • <strong>Quan ly nguoi dung:</strong> Kiem tra tai khoan bat thuong va xu ly nhanh trang thai active.
           </Text>
           <Text>
-            • <strong>Phê duyệt tin đăng:</strong> Duyệt hoặc từ chối tin đăng
-            chờ phê duyệt
+            • <strong>Phe duyet tin dang:</strong> Uu tien cac tin dang cho duyet lau de giam tre cho nguoi ban.
           </Text>
           <Text>
-            • <strong>Quản lý danh mục:</strong> Thêm, sửa, xóa danh mục sản
-            phẩm
+            • <strong>Quan ly danh muc:</strong> Giu cau truc danh muc gon va tranh trung lap slug.
           </Text>
         </VStack>
       </Box>

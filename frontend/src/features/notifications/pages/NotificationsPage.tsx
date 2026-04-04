@@ -6,6 +6,7 @@ import {
   Flex,
   Heading,
   HStack,
+  Icon,
   Spinner,
   Text,
   VStack,
@@ -123,6 +124,12 @@ export function NotificationsPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const unreadCount = unreadCountQuery.data ?? 0
 
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
+
   const handleMarkRead = async (notificationId: string) => {
     if (markOneMutation.isPending) {
       return
@@ -180,6 +187,66 @@ export function NotificationsPage() {
             Lich su thong bao theo thoi gian thuc, co loc va phan trang.
           </Text>
         </Box>
+
+        <Flex
+          mb={6}
+          bg="white"
+          border="1px"
+          borderColor="gray.200"
+          borderRadius="xl"
+          p={4}
+          justify="space-between"
+          align={{ base: "start", md: "center" }}
+          direction={{ base: "column", md: "row" }}
+          gap={3}
+        >
+          <HStack gap={6} wrap="wrap">
+            <Box>
+              <Text fontSize="xs" color="gray.500" textTransform="uppercase">
+                Tong thong bao
+              </Text>
+              <Text fontSize="xl" fontWeight="bold" color="gray.900">
+                {total}
+              </Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color="gray.500" textTransform="uppercase">
+                Chua doc
+              </Text>
+              <Text fontSize="xl" fontWeight="bold" color="blue.600">
+                {unreadCount}
+              </Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color="gray.500" textTransform="uppercase">
+                Trang hien tai
+              </Text>
+              <Text fontSize="xl" fontWeight="bold" color="gray.900">
+                {page}/{totalPages}
+              </Text>
+            </Box>
+          </HStack>
+
+          <HStack gap={2}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setReadFilter("all")
+                setTypeFilter("all")
+              }}
+              disabled={readFilter === "all" && typeFilter === "all"}
+            >
+              Xoa bo loc
+            </Button>
+            {notificationsQuery.isFetching && (
+              <HStack color="gray.500" fontSize="sm">
+                <Spinner size="xs" />
+                <Text>Dang cap nhat...</Text>
+              </HStack>
+            )}
+          </HStack>
+        </Flex>
 
         <Flex
           justify="space-between"
@@ -280,9 +347,21 @@ export function NotificationsPage() {
             </Flex>
           ) : historyItems.length === 0 ? (
             <Box py={12} textAlign="center">
+              <Icon as={FiFilter} boxSize={6} color="gray.400" mb={3} />
               <Text fontSize="md" color="gray.500">
                 Khong co thong bao phu hop bo loc hien tai.
               </Text>
+              <Button
+                mt={4}
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setReadFilter("all")
+                  setTypeFilter("all")
+                }}
+              >
+                Tro ve tat ca thong bao
+              </Button>
             </Box>
           ) : (
             <VStack align="stretch" gap={4}>
