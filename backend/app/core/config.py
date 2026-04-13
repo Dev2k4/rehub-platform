@@ -8,6 +8,7 @@ ENV_FILE = Path(__file__).parent.parent.parent.parent / ".env"
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ReHub API"
     API_V1_STR: str = "/api/v1"
+    TESTING: bool = False
     
     # Database
     POSTGRES_SERVER: str
@@ -56,6 +57,8 @@ class Settings(BaseSettings):
 
     # Frontend host for generated links (email verification, password reset, ...)
     FRONTEND_HOST: str = "http://localhost:5173"
+    BACKEND_PUBLIC_BASE_URL: str = "http://localhost:8000"
+    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # SMS / OTP
     SMS_DEBUG_MODE: bool = True
@@ -80,3 +83,10 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+
+def get_cors_origins() -> list[str]:
+    raw = settings.BACKEND_CORS_ORIGINS.strip()
+    if not raw:
+        return []
+    return [item.strip().rstrip("/") for item in raw.split(",") if item.strip()]

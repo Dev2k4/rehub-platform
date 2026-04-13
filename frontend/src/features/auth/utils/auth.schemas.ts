@@ -2,7 +2,11 @@ import { z } from "zod"
 
 export const registerSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
-  phone: z.string().max(20, "Số điện thoại không hợp lệ").optional().or(z.literal("")),
+  phone: z
+    .string()
+    .max(20, "Số điện thoại không hợp lệ")
+    .optional()
+    .or(z.literal("")),
   password: z
     .string()
     .min(8, "Mật khẩu phải có ít nhất 8 ký tự")

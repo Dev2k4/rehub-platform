@@ -26,9 +26,9 @@ import {
   FiStar,
   FiUser,
 } from "react-icons/fi"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { sendPhoneOtp, verifyPhoneOtp } from "@/features/auth/api/auth.api"
 import { toaster } from "@/components/ui/toaster"
+import { sendPhoneOtp, verifyPhoneOtp } from "@/features/auth/api/auth.api"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { ProfileForm } from "@/features/users/components/ProfileForm"
 import { useUpdateProfile } from "@/features/users/hooks/useUpdateProfile"
 
@@ -89,7 +89,9 @@ export function ProfilePage() {
     onSuccess: (result) => {
       toaster.create({
         title: result.message,
-        description: result.debug_otp ? `OTP demo: ${result.debug_otp}` : undefined,
+        description: result.debug_otp
+          ? `OTP demo: ${result.debug_otp}`
+          : undefined,
         type: "success",
       })
     },
@@ -390,7 +392,8 @@ export function ProfilePage() {
                         </Button>
                       </HStack>
                       <Text fontSize="xs" color="gray.500">
-                        Nếu bạn vừa đổi số điện thoại, hãy lưu hồ sơ trước rồi gửi OTP ở đây.
+                        Nếu bạn vừa đổi số điện thoại, hãy lưu hồ sơ trước rồi
+                        gửi OTP ở đây.
                       </Text>
                     </Box>
                   )}

@@ -60,6 +60,7 @@ export function OffersPage() {
   )
   const [isOfferDetailOpen, setIsOfferDetailOpen] = useState(false)
   const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
+  const [activeTab, setActiveTab] = useState<"received" | "sent">("received")
   const [receivedPage, setReceivedPage] = useState(1)
   const [sentPage, setSentPage] = useState(1)
   const [receivedFilter, setReceivedFilter] = useState<OfferStatus | "all">(
@@ -108,8 +109,6 @@ export function OffersPage() {
       </Flex>
     )
   }
-
-  const [activeTab, setActiveTab] = useState<"received" | "sent">("received")
 
   // Logic to handle pagination count estimation since API doesn't return total
   const receivedDataCount =

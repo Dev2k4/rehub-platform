@@ -52,7 +52,6 @@ export function HomeMarketplacePage() {
     listingsQuery,
     categoryMap,
     sellerMap,
-    flatCategories,
   } = useMarketplaceData()
 
   const total = listingsQuery.data?.total ?? 0
@@ -108,7 +107,7 @@ export function HomeMarketplacePage() {
 
       <CategoryOverlay
         open={categoryOverlayOpen}
-        categories={flatCategories}
+        categories={categoriesQuery.data ?? []}
         selectedCategoryId={selectedCategoryId}
         onClose={() => setCategoryOverlayOpen(false)}
         onSelectCategory={(id) => {
@@ -179,37 +178,37 @@ export function HomeMarketplacePage() {
           boxShadow="sm"
         >
           <Text fontSize="sm" fontWeight="semibold" color="gray.700" mb={3}>
-            Tim kiem nang cao
+            Bộ lọc
           </Text>
 
           <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={3}>
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>
-                Tinh/Thanh pho
+                Tỉnh/Thành phố
               </Text>
               <Input
                 value={province}
                 onChange={(e) => setProvince(e.target.value)}
-                placeholder="Vi du: Ha Noi"
+                placeholder="Ví dụ: Hà Nội"
                 size="sm"
               />
             </Box>
 
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>
-                Quan/Huyen
+                Quận/Huyện
               </Text>
               <Input
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder="Vi du: Cau Giay"
+                placeholder="Ví dụ: Cầu Giấy"
                 size="sm"
               />
             </Box>
 
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>
-                Tinh trang
+                Tình trạng
               </Text>
               <select
                 value={conditionGrade}
@@ -225,18 +224,18 @@ export function HomeMarketplacePage() {
                   background: "white",
                 }}
               >
-                <option value="">Tat ca</option>
-                <option value="brand_new">Moi 100%</option>
-                <option value="like_new">Nhu moi</option>
-                <option value="good">Tot</option>
-                <option value="fair">Kha</option>
-                <option value="poor">Trung binh</option>
+                <option value="">Tất cả</option>
+                <option value="brand_new">Mới 100%</option>
+                <option value="like_new">Như mới</option>
+                <option value="good">Tốt</option>
+                <option value="fair">Khá</option>
+                <option value="poor">Trung bình</option>
               </select>
             </Box>
 
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>
-                Gia tu
+                Giá từ
               </Text>
               <Input
                 type="number"
@@ -250,7 +249,7 @@ export function HomeMarketplacePage() {
 
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>
-                Gia den
+                Giá đến
               </Text>
               <Input
                 type="number"
@@ -264,7 +263,7 @@ export function HomeMarketplacePage() {
 
             <Box>
               <Text fontSize="xs" color="gray.500" mb={1}>
-                Sap xep
+                Sắp xếp
               </Text>
               <select
                 value={sortBy}
@@ -298,14 +297,14 @@ export function HomeMarketplacePage() {
                 setSortBy("newest")
               }}
             >
-              Xoa bo loc
+              Đặt về mặc định
             </Button>
           </Flex>
         </Box>
 
         <Flex direction={{ base: "column", lg: "row" }} gap={6}>
           <CategorySidebar
-            categories={flatCategories}
+            categories={categoriesQuery.data ?? []}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={setSelectedCategoryId}
           />
@@ -356,18 +355,27 @@ export function HomeMarketplacePage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
                       disabled={page <= 1}
                     >
                       Trang trước
                     </Button>
-                    <Text fontSize="sm" color="gray.600" minW="92px" textAlign="center">
+                    <Text
+                      fontSize="sm"
+                      color="gray.600"
+                      minW="92px"
+                      textAlign="center"
+                    >
                       Trang {page}/{totalPages}
                     </Text>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                      onClick={() =>
+                        setPage((current) => Math.min(totalPages, current + 1))
+                      }
                       disabled={page >= totalPages}
                     >
                       Trang sau

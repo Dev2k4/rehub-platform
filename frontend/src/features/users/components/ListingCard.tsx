@@ -1,8 +1,8 @@
 import { Box, Flex, Heading, Image, Text } from "@chakra-ui/react"
 import { Link } from "@tanstack/react-router"
 import { FiStar, FiTag } from "react-icons/fi"
-import { Tooltip } from "@/components/ui/tooltip"
 import type { CategoryTree, ListingWithImages } from "@/client"
+import { Tooltip } from "@/components/ui/tooltip"
 import {
   formatCurrencyVnd,
   formatPostedTime,

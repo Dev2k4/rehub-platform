@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/field"
 import { InputGroup } from "@/components/ui/input-group"
 import { useResendVerificationMutation } from "@/features/auth/hooks/useResendVerificationMutation"
 import { useVerifyEmailMutation } from "@/features/auth/hooks/useVerifyEmailMutation"
+import type { AuthError } from "@/features/auth/types/auth.types"
 import {
   type VerifyEmailInput,
   verifyEmailSchema,
@@ -22,9 +23,19 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
   const verifyMutation = useVerifyEmailMutation()
   const resendMutation = useResendVerificationMutation()
   const search = useSearch({ from: "/auth/verify-email" })
-  const tokenFromUrl = (search as any)?.token as string | undefined
-  const emailFromUrl = (search as any)?.email as string | undefined
+  const tokenFromUrl = search.token
+  const emailFromUrl = search.email
   const [resendEmail, setResendEmail] = useState(emailFromUrl || "")
+
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (error && typeof error === "object") {
+      const maybeAuthError = error as Partial<AuthError>
+      if (typeof maybeAuthError.message === "string") {
+        return maybeAuthError.message
+      }
+    }
+    return fallback
+  }
 
   const {
     register,
@@ -52,9 +63,9 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
 
   function onSubmit(data: VerifyEmailInput) {
     verifyMutation.mutate(data.token, {
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         if (onError) {
-          onError(error?.message || "Xác thực email thất bại")
+          onError(getErrorMessage(error, "Xác thực email thất bại"))
         }
       },
     })
@@ -127,8 +138,10 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
             p={4}
           >
             <Text fontSize="sm" color="red.800">
-              {(verifyMutation.error as any)?.message ||
-                "Xác thực email thất bại. Vui lòng thử lại."}
+              {getErrorMessage(
+                verifyMutation.error,
+                "Xác thực email thất bại. Vui lòng thử lại.",
+              )}
             </Text>
           </Box>
         )}
@@ -193,8 +206,10 @@ export function VerifyEmailForm({ onError }: VerifyEmailFormProps) {
           )}
           {resendMutation.isError && (
             <Text mt={2} fontSize="sm" color="red.700">
-              {(resendMutation.error as any)?.message ||
-                "Không thể gửi lại email xác thực."}
+              {getErrorMessage(
+                resendMutation.error,
+                "Không thể gửi lại email xác thực.",
+              )}
             </Text>
           )}
         </Box>

@@ -55,16 +55,8 @@ export function useRealtimeListings(enabled: boolean) {
       invalidateListingQueries()
     }
 
-    const onCreated = (data: unknown) => {
-      const payload = data as ListingPayload
+    const onCreated = () => {
       invalidateListingQueries()
-      if (payload.listing?.title) {
-        toaster.create({
-          title: "Tin đăng mới đã được tạo",
-          description: payload.listing.title,
-          type: "info",
-        })
-      }
     }
 
     const onUpdated = (data: unknown) => {

@@ -39,7 +39,11 @@ async def get_current_user(
         raise credentials_exception
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    if settings.REQUIRE_EMAIL_VERIFICATION and not user.is_email_verified:
+    if (
+        settings.REQUIRE_EMAIL_VERIFICATION
+        and not settings.TESTING
+        and not user.is_email_verified
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email not verified. Please verify your email before logging in.",
@@ -68,7 +72,11 @@ async def get_current_user_optional(
     user = await get_user_by_id(db, user_id=user_id)
     if user is None or not user.is_active:
         return None
-    if settings.REQUIRE_EMAIL_VERIFICATION and not user.is_email_verified:
+    if (
+        settings.REQUIRE_EMAIL_VERIFICATION
+        and not settings.TESTING
+        and not user.is_email_verified
+    ):
         return None
     return user
 

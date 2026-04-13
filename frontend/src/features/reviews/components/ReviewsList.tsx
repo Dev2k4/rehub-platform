@@ -1,4 +1,11 @@
-import { Box, Flex, Link as ChakraLink, Spinner, Text, VStack } from "@chakra-ui/react"
+import {
+  Box,
+  Link as ChakraLink,
+  Flex,
+  Spinner,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import type { ReviewRead } from "@/client"

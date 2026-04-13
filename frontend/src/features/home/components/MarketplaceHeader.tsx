@@ -155,7 +155,10 @@ export function MarketplaceHeader({
         >
           <Flex align="center" gap={{ base: 3, md: 4 }}>
             <IconButton
-              display={{ base: onOpenCategoryMenu ? "inline-flex" : "none", lg: "none" }}
+              display={{
+                base: onOpenCategoryMenu ? "inline-flex" : "none",
+                lg: "none",
+              }}
               aria-label="Open category menu"
               onClick={onOpenCategoryMenu}
               h={10}

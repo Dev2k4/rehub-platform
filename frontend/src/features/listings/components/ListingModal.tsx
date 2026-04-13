@@ -2,7 +2,6 @@ import { CloseButton, Dialog, Portal } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import type { ListingRead } from "@/client"
 import { getCategoriesTree } from "@/features/home/api/marketplace.api"
-import { flattenCategories } from "@/features/home/utils/marketplace.utils"
 import {
   ListingForm,
   type ListingFormSubmitPayload,
@@ -29,9 +28,7 @@ export function ListingModal({
     enabled: isOpen,
   })
 
-  const flatCategories = categoriesQuery.data
-    ? flattenCategories(categoriesQuery.data)
-    : []
+  const categoryTree = categoriesQuery.data ?? []
   const handleFormSubmit = async (payload: ListingFormSubmitPayload) => {
     await onSubmit(payload)
   }
@@ -92,7 +89,7 @@ export function ListingModal({
                       }
                     : undefined
                 }
-                categories={flatCategories}
+                categories={categoryTree}
                 onSubmit={handleFormSubmit}
                 onCancel={handleCancel}
                 isLoading={isLoading}

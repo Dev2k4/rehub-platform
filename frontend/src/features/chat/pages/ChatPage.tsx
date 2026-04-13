@@ -29,7 +29,9 @@ export function ChatPage() {
   const queryClient = useQueryClient()
   const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
 
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null)
   const [messageInput, setMessageInput] = useState("")
 
   const conversationsQuery = useQuery({
@@ -48,7 +50,8 @@ export function ChatPage() {
 
   const messagesQuery = useQuery({
     queryKey: ["chat", "messages", selectedConversationId],
-    queryFn: () => listConversationMessages(selectedConversationId!, { skip: 0, limit: 50 }),
+    queryFn: () =>
+      listConversationMessages(selectedConversationId!, { skip: 0, limit: 50 }),
     enabled: isAuthenticated && !!selectedConversationId,
     refetchInterval: 12000,
   })
@@ -60,7 +63,8 @@ export function ChatPage() {
       setSelectedConversationId(conversation.id)
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Khong the tao cuoc tro chuyen"
+      const message =
+        error instanceof Error ? error.message : "Khong the tao cuoc tro chuyen"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -81,11 +85,14 @@ export function ChatPage() {
     },
     onSuccess: () => {
       setMessageInput("")
-      queryClient.invalidateQueries({ queryKey: ["chat", "messages", selectedConversationId] })
+      queryClient.invalidateQueries({
+        queryKey: ["chat", "messages", selectedConversationId],
+      })
       queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Khong the gui tin nhan"
+      const message =
+        error instanceof Error ? error.message : "Khong the gui tin nhan"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -95,7 +102,7 @@ export function ChatPage() {
       return
     }
     openConversationMutation.mutate(search.peer)
-  }, [search?.peer, isAuthenticated])
+  }, [search?.peer, isAuthenticated, openConversationMutation.mutate])
 
   useEffect(() => {
     if (selectedConversationId) {
@@ -111,7 +118,9 @@ export function ChatPage() {
     const off = wsClient.on("chat:message", () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
       if (selectedConversationId) {
-        queryClient.invalidateQueries({ queryKey: ["chat", "messages", selectedConversationId] })
+        queryClient.invalidateQueries({
+          queryKey: ["chat", "messages", selectedConversationId],
+        })
       }
     })
     return () => off()
@@ -180,10 +189,14 @@ export function ChatPage() {
                       onClick={() => setSelectedConversationId(conversation.id)}
                     >
                       <VStack align="start" gap={0}>
-                        <Text fontWeight="semibold">User {peerId.slice(0, 8)}</Text>
+                        <Text fontWeight="semibold">
+                          User {peerId.slice(0, 8)}
+                        </Text>
                         <Text fontSize="xs" color="gray.500">
                           {conversation.last_message_at
-                            ? new Date(conversation.last_message_at).toLocaleString("vi-VN")
+                            ? new Date(
+                                conversation.last_message_at,
+                              ).toLocaleString("vi-VN")
                             : "Chua co tin nhan"}
                         </Text>
                       </VStack>
@@ -226,7 +239,10 @@ export function ChatPage() {
                 (messagesQuery.data?.items ?? []).map((message) => {
                   const mine = message.sender_id === user.id
                   return (
-                    <Flex key={message.id} justify={mine ? "flex-end" : "flex-start"}>
+                    <Flex
+                      key={message.id}
+                      justify={mine ? "flex-end" : "flex-start"}
+                    >
                       <Box
                         maxW="75%"
                         px={3}
@@ -235,7 +251,9 @@ export function ChatPage() {
                         bg={mine ? "blue.600" : "gray.100"}
                         color={mine ? "white" : "gray.800"}
                       >
-                        <Text whiteSpace="pre-wrap">{message.content ?? ""}</Text>
+                        <Text whiteSpace="pre-wrap">
+                          {message.content ?? ""}
+                        </Text>
                         <Text fontSize="xs" mt={1} opacity={0.75}>
                           {new Date(message.created_at).toLocaleString("vi-VN")}
                         </Text>

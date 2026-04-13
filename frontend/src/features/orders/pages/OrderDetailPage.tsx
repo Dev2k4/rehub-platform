@@ -314,7 +314,6 @@ export function OrderDetailPage() {
                   <Text
                     fontSize="sm"
                     color="blue.600"
-                  
                     cursor="pointer"
                     wordBreak="break-all"
                     textAlign="right"
@@ -365,7 +364,12 @@ export function OrderDetailPage() {
                 {buyerActionHint}
               </Text>
               <HStack gap={2} flexWrap="wrap">
-                <Badge colorPalette="blue" variant="subtle" borderRadius="full" px={3}>
+                <Badge
+                  colorPalette="blue"
+                  variant="subtle"
+                  borderRadius="full"
+                  px={3}
+                >
                   {paymentModeLabel}
                 </Badge>
                 <Badge
@@ -662,7 +666,8 @@ export function OrderDetailPage() {
                   Đánh giá người bán
                 </Heading>
                 <Text fontSize="sm" color="gray.500">
-                  Đánh giá sẽ giúp người mua khác có thêm thông tin trước khi giao dịch.
+                  Đánh giá sẽ giúp người mua khác có thêm thông tin trước khi
+                  giao dịch.
                 </Text>
               </Box>
             )}

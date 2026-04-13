@@ -8,8 +8,8 @@ import {
   Input,
   Spinner,
   Text,
-  VStack,
   useBreakpointValue,
+  VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -26,7 +26,10 @@ import {
   sendChatMessage,
 } from "@/features/chat/api/chat.api"
 import { onChatWidgetOpenRequest } from "@/features/chat/chat-widget.events"
-import { formatCurrencyVnd, getListingImageUrl } from "@/features/home/utils/marketplace.utils"
+import {
+  formatCurrencyVnd,
+  getListingImageUrl,
+} from "@/features/home/utils/marketplace.utils"
 import { wsClient } from "@/features/shared/realtime/ws.client"
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 import { getUserPublicProfile } from "@/features/users/api/users.api"
@@ -55,7 +58,12 @@ function ListingSharedCard({
   listing,
   onOpen,
 }: {
-  listing: { id: string; title: string; price: string | number; image_url?: string | null }
+  listing: {
+    id: string
+    title: string
+    price: string | number
+    image_url?: string | null
+  }
   onOpen: () => void
 }) {
   return (
@@ -80,7 +88,9 @@ function ListingSharedCard({
         </Box>
       ) : (
         <Flex h="120px" align="center" justify="center" bg="gray.50">
-          <Text fontSize="xs" color="gray.500">Khong co hinh</Text>
+          <Text fontSize="xs" color="gray.500">
+            Khong co hinh
+          </Text>
         </Flex>
       )}
       <Box p={2.5}>
@@ -123,7 +133,8 @@ function ConversationItem({
     staleTime: 5 * 60 * 1000,
   })
 
-  const displayName = profileQuery.data?.full_name ?? `User ${peerId.slice(0, 6)}`
+  const displayName =
+    profileQuery.data?.full_name ?? `User ${peerId.slice(0, 6)}`
   const avatarUrl = profileQuery.data?.avatar_url ?? undefined
   const isOnline = useIsUserOnline(peerId)
 
@@ -160,7 +171,9 @@ function ConversationItem({
           </Text>
           <Text fontSize="xs" color="gray.500">
             {conversation.last_message_at
-              ? new Date(conversation.last_message_at).toLocaleTimeString("vi-VN")
+              ? new Date(conversation.last_message_at).toLocaleTimeString(
+                  "vi-VN",
+                )
               : "Chua co tin"}
           </Text>
         </VStack>
@@ -182,9 +195,13 @@ export function ChatFloatingWidget() {
 
   const [isOpen, setIsOpen] = useState(false)
   const [isPanelMounted, setIsPanelMounted] = useState(false)
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null)
   const [messageInput, setMessageInput] = useState("")
-  const [pendingListingShareId, setPendingListingShareId] = useState<string | null>(null)
+  const [pendingListingShareId, setPendingListingShareId] = useState<
+    string | null
+  >(null)
   const closeTimerRef = useRef<number | null>(null)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
 
@@ -208,13 +225,16 @@ export function ChatFloatingWidget() {
     }, 220)
   }, [])
 
-  const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const container = messagesScrollRef.current
-    if (!container) {
-      return
-    }
-    container.scrollTo({ top: container.scrollHeight, behavior })
-  }, [])
+  const scrollMessagesToBottom = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      const container = messagesScrollRef.current
+      if (!container) {
+        return
+      }
+      container.scrollTo({ top: container.scrollHeight, behavior })
+    },
+    [],
+  )
 
   const conversationsQuery = useQuery({
     queryKey: ["chat", "conversations"],
@@ -234,12 +254,16 @@ export function ChatFloatingWidget() {
     if (!conversationsQuery.data || isOpen) {
       return 0
     }
-    return conversationsQuery.data.reduce((acc, item) => acc + (item.unread_count ?? 0), 0)
+    return conversationsQuery.data.reduce(
+      (acc, item) => acc + (item.unread_count ?? 0),
+      0,
+    )
   }, [conversationsQuery.data, isOpen])
 
   const messagesQuery = useQuery({
     queryKey: ["chat", "messages", selectedConversationId],
-    queryFn: () => listConversationMessages(selectedConversationId!, { skip: 0, limit: 50 }),
+    queryFn: () =>
+      listConversationMessages(selectedConversationId!, { skip: 0, limit: 50 }),
     enabled: isAuthenticated && isOpen && !!selectedConversationId,
     refetchInterval: isOpen ? 12000 : false,
   })
@@ -252,7 +276,8 @@ export function ChatFloatingWidget() {
       openWidget()
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Khong the tao cuoc tro chuyen"
+      const message =
+        error instanceof Error ? error.message : "Khong the tao cuoc tro chuyen"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -261,7 +286,11 @@ export function ChatFloatingWidget() {
     mutationFn: async (
       payload:
         | { message_type: "text"; content: string }
-        | { message_type: "listing_share"; listing_id: string; content?: string },
+        | {
+            message_type: "listing_share"
+            listing_id: string
+            content?: string
+          },
     ) => {
       if (!selectedConversationId) {
         throw new Error("Chua chon cuoc tro chuyen")
@@ -270,11 +299,14 @@ export function ChatFloatingWidget() {
     },
     onSuccess: () => {
       setMessageInput("")
-      queryClient.invalidateQueries({ queryKey: ["chat", "messages", selectedConversationId] })
+      queryClient.invalidateQueries({
+        queryKey: ["chat", "messages", selectedConversationId],
+      })
       queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Khong the gui tin nhan"
+      const message =
+        error instanceof Error ? error.message : "Khong the gui tin nhan"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -289,7 +321,10 @@ export function ChatFloatingWidget() {
   useEffect(() => {
     const off = onChatWidgetOpenRequest((payload) => {
       if (!isAuthenticated) {
-        toaster.create({ title: "Vui long dang nhap de nhan tin", type: "info" })
+        toaster.create({
+          title: "Vui long dang nhap de nhan tin",
+          type: "info",
+        })
         return
       }
       openWidget()
@@ -334,7 +369,9 @@ export function ChatFloatingWidget() {
     const off = wsClient.on("chat:message", () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
       if (selectedConversationId) {
-        queryClient.invalidateQueries({ queryKey: ["chat", "messages", selectedConversationId] })
+        queryClient.invalidateQueries({
+          queryKey: ["chat", "messages", selectedConversationId],
+        })
       }
     })
     return () => off()
@@ -344,7 +381,9 @@ export function ChatFloatingWidget() {
     if (!isOpen || !selectedConversationId) {
       return
     }
-    const selected = conversationsQuery.data?.find((item) => item.id == selectedConversationId)
+    const selected = conversationsQuery.data?.find(
+      (item) => item.id === selectedConversationId,
+    )
     if (!selected || selected.unread_count <= 0 || markReadMutation.isPending) {
       return
     }
@@ -377,7 +416,9 @@ export function ChatFloatingWidget() {
     }
 
     const existingShared = (messagesQuery.data?.items ?? []).some(
-      (item) => item.message_type === "listing_share" && item.listing?.id === pendingListingShareId,
+      (item) =>
+        item.message_type === "listing_share" &&
+        item.listing?.id === pendingListingShareId,
     )
     if (existingShared) {
       setPendingListingShareId(null)
@@ -430,7 +471,12 @@ export function ChatFloatingWidget() {
   return (
     <>
       {!isPanelMounted && (
-        <Box position="fixed" right={{ base: 3, md: 5 }} bottom={{ base: 3, md: 5 }} zIndex={1200}>
+        <Box
+          position="fixed"
+          right={{ base: 3, md: 5 }}
+          bottom={{ base: 3, md: 5 }}
+          zIndex={1200}
+        >
           <Button
             borderRadius="full"
             h="56px"
@@ -442,7 +488,12 @@ export function ChatFloatingWidget() {
             <FiMessageCircle style={{ marginRight: "0.5rem" }} />
             Tin nhan
             {unreadCount > 0 && (
-              <Badge ml={2} colorPalette="whiteAlpha" borderRadius="full" px={2}>
+              <Badge
+                ml={2}
+                colorPalette="whiteAlpha"
+                borderRadius="full"
+                px={2}
+              >
                 {unreadCount}
               </Badge>
             )}
@@ -479,7 +530,13 @@ export function ChatFloatingWidget() {
           }
           opacity={isOpen ? 1 : 0}
         >
-          <HStack px={4} py={3} borderBottom="1px" borderColor="gray.100" justify="space-between">
+          <HStack
+            px={4}
+            py={3}
+            borderBottom="1px"
+            borderColor="gray.100"
+            justify="space-between"
+          >
             <VStack align="start" gap={0}>
               <Text fontWeight="bold">Tin nhan</Text>
               <Text fontSize="xs" color="gray.500">
@@ -531,7 +588,9 @@ export function ChatFloatingWidget() {
                         conversation={conversation}
                         currentUserId={user.id}
                         selected={conversation.id === selectedConversationId}
-                        onSelect={() => setSelectedConversationId(conversation.id)}
+                        onSelect={() =>
+                          setSelectedConversationId(conversation.id)
+                        }
                       />
                     )
                   })}
@@ -545,7 +604,14 @@ export function ChatFloatingWidget() {
             </Box>
 
             <Flex flex={1} minW={0} direction="column">
-              <VStack ref={messagesScrollRef} align="stretch" gap={2} flex={1} p={3} overflowY="auto">
+              <VStack
+                ref={messagesScrollRef}
+                align="stretch"
+                gap={2}
+                flex={1}
+                p={3}
+                overflowY="auto"
+              >
                 {messagesQuery.isLoading && selectedConversationId ? (
                   <Flex justify="center" py={8}>
                     <Spinner size="sm" color="blue.500" />
@@ -554,12 +620,19 @@ export function ChatFloatingWidget() {
                   (messagesQuery.data?.items ?? []).map((message) => {
                     const mine = message.sender_id === user.id
                     return (
-                      <Flex key={message.id} justify={mine ? "flex-end" : "flex-start"}>
-                        {message.message_type === "listing_share" && message.listing ? (
+                      <Flex
+                        key={message.id}
+                        justify={mine ? "flex-end" : "flex-start"}
+                      >
+                        {message.message_type === "listing_share" &&
+                        message.listing ? (
                           <ListingSharedCard
                             listing={message.listing}
                             onOpen={() => {
-                              navigate({ to: "/listings/$id", params: { id: message.listing!.id } })
+                              navigate({
+                                to: "/listings/$id",
+                                params: { id: message.listing!.id },
+                              })
                             }}
                           />
                         ) : (

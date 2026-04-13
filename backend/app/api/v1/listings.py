@@ -4,13 +4,14 @@ import json
 from typing import Optional
 import logging
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_current_user, get_current_user_optional
 from app.core.cache import cache
 from app.core.config import settings
 from app.core.rate_limit import RateLimitError, enforce_rate_limit
+from app.models.listing import Listing, ListingImage
 from app.models.user import User
 from app.models.enums import ConditionGrade, ListingStatus, UserRole
 from app.schemas.listing import (
@@ -22,6 +23,7 @@ from app.schemas.listing import (
     ListingImageRead
 )
 from app.crud import crud_listing
+from app.services.duplicate_image_service import DuplicateImageService
 from app.services.storage_service import upload_listing_image as upload_to_object_storage, delete_listing_image as delete_from_object_storage
 from app.services.websocket_manager import connection_manager
 
@@ -46,6 +48,7 @@ async def _invalidate_public_listing_cache() -> None:
 async def _broadcast_listing_event(listing: ListingRead, event_type: str) -> None:
     try:
         payload = ListingRead.model_validate(listing).model_dump(mode="json")
+        status_value = listing.status.value if hasattr(listing.status, "value") else str(listing.status)
         await connection_manager.send_to_user(
             listing.seller_id,
             {
@@ -61,7 +64,7 @@ async def _broadcast_listing_event(listing: ListingRead, event_type: str) -> Non
                 "type": "listing:status_updated",
                 "data": {
                     "listing_id": str(listing.id),
-                    "status": listing.status.value,
+                        "status": status_value,
                 },
             }
         )
@@ -243,6 +246,173 @@ async def create_listing(
     await _invalidate_public_listing_cache()
     return new_listing
 
+
+@router.post("/with-images", response_model=ListingWithImages, status_code=status.HTTP_201_CREATED)
+async def create_listing_with_images_atomic(
+    title: str = Form(...),
+    description: str | None = Form(None),
+    price: str = Form(...),
+    is_negotiable: bool = Form(True),
+    condition_grade: str = Form(...),
+    category_id: str = Form(...),
+    files: list[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Atomic create endpoint: listing + all images in one request.
+    If any image fails validation/upload, no listing is persisted.
+    """
+    try:
+        await enforce_rate_limit("listings:create", str(current_user.id), limit=10, window_seconds=60)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one image is required")
+
+    # Validate and normalize listing payload via existing schema contract.
+    try:
+        payload = ListingCreate.model_validate(
+            {
+                "title": title,
+                "description": description,
+                "price": price,
+                "is_negotiable": is_negotiable,
+                "condition_grade": condition_grade,
+                "category_id": category_id,
+            }
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Invalid listing payload") from exc
+
+    prepared_images: list[dict[str, object]] = []
+    batch_md5: set[str] = set()
+
+    for file in files:
+        if file.content_type not in ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+
+        if not file.filename or "." not in file.filename:
+            raise HTTPException(status_code=400, detail="Invalid file name")
+
+        ext = file.filename.rsplit(".", 1)[-1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Unsupported file extension")
+
+        file_bytes = await file.read()
+        if len(file_bytes) > MAX_IMAGE_BYTES:
+            raise HTTPException(status_code=400, detail="File too large")
+
+        try:
+            duplicate_check = await DuplicateImageService.check_duplicate(
+                db=db,
+                image_bytes=file_bytes,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        if duplicate_check.is_duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "DUPLICATE_IMAGE",
+                    "message": "Image already exists in another listing",
+                    "duplicate_listing_id": str(duplicate_check.duplicate_listing_id)
+                    if duplicate_check.duplicate_listing_id is not None
+                    else None,
+                    "duplicate_image_id": str(duplicate_check.duplicate_image_id)
+                    if duplicate_check.duplicate_image_id is not None
+                    else None,
+                    "duplicate_image_url": duplicate_check.duplicate_image_url,
+                    "similarity_score": duplicate_check.similarity_score,
+                },
+            )
+
+        if duplicate_check.image_md5 in batch_md5:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "DUPLICATE_IMAGE_IN_REQUEST",
+                    "message": "Duplicate image in the same request",
+                },
+            )
+
+        batch_md5.add(duplicate_check.image_md5)
+        prepared_images.append(
+            {
+                "bytes": file_bytes,
+                "ext": ext,
+                "content_type": file.content_type,
+                "duplicate_check": duplicate_check,
+            }
+        )
+
+    listing: Listing | None = None
+    created_images: list[ListingImage] = []
+    uploaded_assets: list[tuple[str, str | None]] = []
+
+    try:
+        listing = Listing(
+            seller_id=current_user.id,
+            category_id=payload.category_id,
+            title=payload.title,
+            description=payload.description,
+            price=payload.price,
+            is_negotiable=payload.is_negotiable,
+            condition_grade=payload.condition_grade,
+            status=ListingStatus.PENDING,
+        )
+        db.add(listing)
+        await db.flush()
+
+        for index, image in enumerate(prepared_images):
+            duplicate_check = image["duplicate_check"]
+            try:
+                image_url, thumbnail_url = upload_to_object_storage(
+                    file_bytes=image["bytes"],
+                    ext=image["ext"],
+                    content_type=image["content_type"],
+                    user_id=str(current_user.id),
+                    listing_id=str(listing.id),
+                )
+            except RuntimeError as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+            uploaded_assets.append((image_url, thumbnail_url))
+            db_image = ListingImage(
+                listing_id=listing.id,
+                image_url=image_url,
+                thumbnail_url=thumbnail_url,
+                perceptual_hash=duplicate_check.perceptual_hash,
+                image_md5=duplicate_check.image_md5,
+                is_primary=(index == 0),
+            )
+            db.add(db_image)
+            created_images.append(db_image)
+
+        await db.commit()
+        await db.refresh(listing)
+    except HTTPException:
+        await db.rollback()
+        for image_url, thumbnail_url in uploaded_assets:
+            delete_from_object_storage(image_url, thumbnail_url)
+        raise
+    except Exception:
+        await db.rollback()
+        for image_url, thumbnail_url in uploaded_assets:
+            delete_from_object_storage(image_url, thumbnail_url)
+        logger.exception("Atomic listing creation failed")
+        raise HTTPException(status_code=500, detail="Failed to create listing with images")
+
+    listing_dict = listing.model_dump()
+    listing_dict["images"] = created_images
+    listing_with_images = ListingWithImages(**listing_dict)
+
+    await _broadcast_listing_event(listing_with_images, "listing:created")
+    await _invalidate_public_listing_cache()
+    return listing_with_images
+
 @router.patch("/{listing_id}", response_model=ListingRead)
 async def update_listing(
     listing_id: uuid.UUID,
@@ -326,6 +496,31 @@ async def upload_listing_image(
         raise HTTPException(status_code=400, detail="File too large")
 
     try:
+        duplicate_check = await DuplicateImageService.check_duplicate(
+            db=db,
+            image_bytes=file_bytes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if duplicate_check.is_duplicate:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "DUPLICATE_IMAGE",
+                "message": "Image already exists in another listing",
+                "duplicate_listing_id": str(duplicate_check.duplicate_listing_id)
+                if duplicate_check.duplicate_listing_id is not None
+                else None,
+                "duplicate_image_id": str(duplicate_check.duplicate_image_id)
+                if duplicate_check.duplicate_image_id is not None
+                else None,
+                "duplicate_image_url": duplicate_check.duplicate_image_url,
+                "similarity_score": duplicate_check.similarity_score,
+            },
+        )
+
+    try:
         image_url, thumbnail_url = upload_to_object_storage(
             file_bytes=file_bytes,
             ext=ext,
@@ -341,7 +536,9 @@ async def upload_listing_image(
         str(listing_id),
         image_url,
         thumbnail_url,
-        is_primary,
+        perceptual_hash=duplicate_check.perceptual_hash,
+        image_md5=duplicate_check.image_md5,
+        is_primary=is_primary,
     )
     await _invalidate_public_listing_cache()
     return new_image

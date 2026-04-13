@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 import sentry_sdk
 from fastapi import APIRouter, FastAPI, Header, HTTPException
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from minio import Minio
@@ -14,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from app.api.v1 import api_router
 from app.core.cache import cache
-from app.core.config import settings
+from app.core.config import get_cors_origins, settings
 from app.crud import crud_offer
 from app.db.init_db import init_db
 from app.db.session import AsyncSessionLocal
@@ -146,16 +147,19 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Set all CORS enabled origins
+cors_origins = get_cors_origins()
+
+# Set CORS enabled origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For base template simplicity. In prod, use split list from settings.BACKEND_CORS_ORIGINS
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Add health check for Docker
 utils_router = APIRouter(prefix="/utils", tags=["Utils"])

@@ -8,7 +8,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useSearch } from "@tanstack/react-router"
 import { useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, type Resolver, useForm } from "react-hook-form"
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -17,6 +17,7 @@ import { InputGroup } from "@/components/ui/input-group"
 import { toaster } from "@/components/ui/toaster"
 import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation"
 import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation"
+import type { AuthError } from "@/features/auth/types/auth.types"
 import { AuthErrorCode } from "@/features/auth/types/auth.types"
 import {
   type LoginInput,
@@ -31,7 +32,7 @@ export function LoginForm({ onError }: LoginFormProps) {
   const loginMutation = useLoginMutation()
   const resetPasswordMutation = useResetPasswordMutation()
   const search = useSearch({ from: "/auth/login" })
-  const resetToken = (search as any)?.reset_token as string | undefined
+  const resetToken = search.reset_token
   const [newPassword, setNewPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const {
@@ -40,7 +41,7 @@ export function LoginForm({ onError }: LoginFormProps) {
     control,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema) as any,
+    resolver: zodResolver(loginSchema) as Resolver<LoginInput>,
     mode: "onBlur",
     defaultValues: {
       email: "",
@@ -54,32 +55,45 @@ export function LoginForm({ onError }: LoginFormProps) {
       onSuccess: () => {
         toaster.create({ title: "Đăng nhập thành công!", type: "success" })
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         toaster.create({ title: getErrorMessage(error), type: "error" })
+        const authError = toAuthError(error)
         if (
-          error?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED ||
-          error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED
+          authError?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED ||
+          authError?.code === AuthErrorCode.EMAIL_NOT_VERIFIED
         ) {
           if (onError) {
-            onError(error.message)
+            onError(authError?.message ?? "Đã xảy ra lỗi. Vui lòng thử lại.")
           }
         }
       },
     })
   }
 
-  const getErrorMessage = (error?: any) => {
-    if (error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
+  const toAuthError = (error: unknown): AuthError | null => {
+    if (!error || typeof error !== "object") {
+      return null
+    }
+    const maybeAuthError = error as Partial<AuthError>
+    if (typeof maybeAuthError.message === "string") {
+      return maybeAuthError as AuthError
+    }
+    return null
+  }
+
+  const getErrorMessage = (error: unknown) => {
+    const authError = toAuthError(error)
+    if (authError?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
       return "Email của bạn chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản."
     }
-    if (error?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED) {
+    if (authError?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED) {
       return "Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút."
     }
-    return error?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+    return authError?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
   }
 
   return (
-    <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
+    <Box as="form" onSubmit={handleSubmit(onSubmit)}>
       <Stack gap={5}>
         {/* Email */}
         <Field

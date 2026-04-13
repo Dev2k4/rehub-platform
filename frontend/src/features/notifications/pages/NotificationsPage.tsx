@@ -65,10 +65,17 @@ export function NotificationsPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [readFilter, typeFilter])
+  }, [])
 
   const notificationsQuery = useQuery({
-    queryKey: ["notifications", "history", readFilter, typeFilter, page, pageSize],
+    queryKey: [
+      "notifications",
+      "history",
+      readFilter,
+      typeFilter,
+      page,
+      pageSize,
+    ],
     queryFn: () =>
       getMyNotificationsHistory({
         readFilter,
@@ -106,6 +113,17 @@ export function NotificationsPage() {
     },
   })
 
+  const historyItems = notificationsQuery.data?.items ?? []
+  const total = notificationsQuery.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const unreadCount = unreadCountQuery.data ?? 0
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
+
   if (!authLoading && !isAuthenticated) {
     navigate({ to: "/auth/login" })
     return null
@@ -118,17 +136,6 @@ export function NotificationsPage() {
       </Flex>
     )
   }
-
-  const historyItems = notificationsQuery.data?.items ?? []
-  const total = notificationsQuery.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const unreadCount = unreadCountQuery.data ?? 0
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages)
-    }
-  }, [page, totalPages])
 
   const handleMarkRead = async (notificationId: string) => {
     if (markOneMutation.isPending) {
@@ -299,7 +306,11 @@ export function NotificationsPage() {
               <MenuTrigger asChild>
                 <Button variant="outline" size="sm" borderRadius="xl" px={4}>
                   <FiFilter style={{ marginRight: "0.5rem" }} />
-                  {TYPE_FILTER_OPTIONS.find((item) => item.value === typeFilter)?.label}
+                  {
+                    TYPE_FILTER_OPTIONS.find(
+                      (item) => item.value === typeFilter,
+                    )?.label
+                  }
                 </Button>
               </MenuTrigger>
               <MenuContent borderRadius="xl" boxShadow="xl">
@@ -387,13 +398,19 @@ export function NotificationsPage() {
                       <Box minW={0} flex={1}>
                         <HStack mb={2} gap={2} wrap="wrap">
                           <Badge
-                            colorPalette={notification.is_read ? "gray" : "blue"}
+                            colorPalette={
+                              notification.is_read ? "gray" : "blue"
+                            }
                             variant="subtle"
                             borderRadius="full"
                           >
                             {notification.is_read ? "Da doc" : "Moi"}
                           </Badge>
-                          <Badge colorPalette="purple" variant="subtle" borderRadius="full">
+                          <Badge
+                            colorPalette="purple"
+                            variant="subtle"
+                            borderRadius="full"
+                          >
                             {typeLabel}
                           </Badge>
                         </HStack>
@@ -401,11 +418,18 @@ export function NotificationsPage() {
                         <Text fontWeight="bold" color="gray.900" lineClamp={1}>
                           {notification.title}
                         </Text>
-                        <Text mt={1} color="gray.600" fontSize="sm" lineClamp={2}>
+                        <Text
+                          mt={1}
+                          color="gray.600"
+                          fontSize="sm"
+                          lineClamp={2}
+                        >
                           {notification.message}
                         </Text>
                         <Text mt={2} fontSize="xs" color="gray.500">
-                          {new Date(notification.created_at).toLocaleString("vi-VN")}
+                          {new Date(notification.created_at).toLocaleString(
+                            "vi-VN",
+                          )}
                         </Text>
                       </Box>
 
@@ -444,13 +468,20 @@ export function NotificationsPage() {
                 >
                   Trang truoc
                 </Button>
-                <Text fontSize="sm" color="gray.600" minW="120px" textAlign="center">
+                <Text
+                  fontSize="sm"
+                  color="gray.600"
+                  minW="120px"
+                  textAlign="center"
+                >
                   Trang {page}/{totalPages}
                 </Text>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
                   disabled={page >= totalPages}
                 >
                   Trang sau

@@ -3,6 +3,7 @@ import type { ListingPaginated, ListingWithImages } from "@/client"
 import {
   type CreateListingInput,
   createListing,
+  createListingWithImagesAtomic,
   deleteListing,
   deleteListingImage,
   getListingDetails,
@@ -67,6 +68,28 @@ export function useCreateListing() {
         },
       )
       queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
+    },
+  })
+}
+
+export function useCreateListingWithImagesAtomic() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      data,
+      files,
+    }: {
+      data: CreateListingInput
+      files: File[]
+    }) => createListingWithImagesAtomic(data, files),
+    onSuccess: (created) => {
+      queryClient.setQueryData<ListingWithImages>(
+        ["listings", created.id],
+        created,
+      )
+      queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
+      queryClient.invalidateQueries({ queryKey: ["listings", "public"] })
     },
   })
 }

@@ -139,10 +139,22 @@ export async function refreshAccessToken(
 }
 
 function mapAuthError(error: unknown): AuthError {
+  const getErrorDetail = (body: unknown): unknown => {
+    if (!body || typeof body !== "object") {
+      return undefined
+    }
+    return (body as { detail?: unknown }).detail
+  }
+
+  const getErrorDetailText = (body: unknown): string => {
+    const detail = getErrorDetail(body)
+    return typeof detail === "string" ? detail : ""
+  }
+
   if (error instanceof ApiError) {
     switch (error.status) {
       case 409:
-        if (((error.body as any)?.detail || "").includes("not verified")) {
+        if (getErrorDetailText(error.body).includes("not verified")) {
           return {
             code: AuthErrorCode.EMAIL_NOT_VERIFIED,
             message:
@@ -158,7 +170,7 @@ function mapAuthError(error: unknown): AuthError {
         }
       case 401: {
         // Could be invalid credentials or invalid token
-        const detail = (error.body as any)?.detail || ""
+        const detail = getErrorDetailText(error.body)
         if (detail.includes("Email") || detail.includes("password")) {
           return {
             code: AuthErrorCode.INVALID_CREDENTIALS,
@@ -179,7 +191,7 @@ function mapAuthError(error: unknown): AuthError {
           statusCode: 403,
         }
       case 400: {
-        const detail400 = (error.body as any)?.detail || ""
+        const detail400 = getErrorDetailText(error.body)
         if (detail400.includes("Inactive")) {
           return {
             code: AuthErrorCode.INACTIVE_USER,
@@ -209,7 +221,7 @@ function mapAuthError(error: unknown): AuthError {
           statusCode: 429,
         }
       case 422: {
-        const validationErrors = (error.body as any)?.detail
+        const validationErrors = getErrorDetail(error.body)
         const firstError =
           Array.isArray(validationErrors) &&
           validationErrors[0] &&
@@ -224,7 +236,7 @@ function mapAuthError(error: unknown): AuthError {
       }
       default: {
         const defaultDetail =
-          (error.body as any)?.detail || "Có lỗi xảy ra. Vui lòng thử lại."
+          getErrorDetailText(error.body) || "Có lỗi xảy ra. Vui lòng thử lại."
         return {
           code: AuthErrorCode.UNKNOWN_ERROR,
           message: defaultDetail,

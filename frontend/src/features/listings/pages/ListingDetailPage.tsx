@@ -549,7 +549,7 @@ export function ListingDetailPage() {
                         Thương lượng
                       </Button>
                     )}
-                    
+
                     <HStack w="full" gap={3}>
                       <Button
                         flex={1}
@@ -565,7 +565,7 @@ export function ListingDetailPage() {
                         }}
                       >
                         <FiMessageCircle style={{ marginRight: "0.5rem" }} />
-                      Nhắn tin
+                        Nhắn tin
                       </Button>
                       <Button
                         flex={1}
@@ -578,7 +578,8 @@ export function ListingDetailPage() {
                           const copied = await copyTextRobust(url)
                           if (copied) {
                             toaster.create({
-                              title: "Đã copy link tin đăng. Dán vào chat để gửi card sản phẩm.",
+                              title:
+                                "Đã copy link tin đăng. Dán vào chat để gửi card sản phẩm.",
                               type: "success",
                             })
                           } else {

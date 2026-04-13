@@ -120,6 +120,9 @@ export function SellerProfilePage() {
     })
   }
 
+  const profile = profileQuery.data
+  const isSellerOnline = useIsUserOnline(profile?.id ?? "")
+
   if (profileQuery.isLoading) {
     return (
       <Flex minH="100vh" align="center" justify="center" bg="gray.50">
@@ -128,7 +131,7 @@ export function SellerProfilePage() {
     )
   }
 
-  if (profileQuery.isError || !profileQuery.data) {
+  if (profileQuery.isError || !profile) {
     return (
       <Box minH="100vh" bg="gray.50">
         <Container maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={8}>
@@ -169,8 +172,6 @@ export function SellerProfilePage() {
     )
   }
 
-  const profile = profileQuery.data
-  const isSellerOnline = useIsUserOnline(profile.id)
   const listings = listingsQuery.data?.items ?? []
 
   const locationParts = [profile.district, profile.province].filter(Boolean)

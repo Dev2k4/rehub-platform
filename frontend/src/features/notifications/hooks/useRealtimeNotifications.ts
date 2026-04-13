@@ -35,21 +35,21 @@ export function useRealtimeNotifications(enabled: boolean) {
         return
       }
 
-      const authUser = queryClient.getQueryData<{ id?: string }>(["auth", "user"])
+      const authUser = queryClient.getQueryData<{ id?: string }>([
+        "auth",
+        "user",
+      ])
       if (authUser?.id && incoming.user_id !== authUser.id) {
         return
       }
 
-      queryClient.setQueryData<NotificationRead[]>(
-        ["notifications"],
-        (old) => {
-          const current = old ?? []
-          const withoutDuplicate = current.filter(
-            (item) => item.id !== incoming.id,
-          )
-          return [incoming, ...withoutDuplicate]
-        },
-      )
+      queryClient.setQueryData<NotificationRead[]>(["notifications"], (old) => {
+        const current = old ?? []
+        const withoutDuplicate = current.filter(
+          (item) => item.id !== incoming.id,
+        )
+        return [incoming, ...withoutDuplicate]
+      })
 
       queryClient.setQueryData<number>(
         ["notifications", "unread-count"],

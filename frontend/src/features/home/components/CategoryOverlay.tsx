@@ -9,6 +9,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useNavigate } from "@tanstack/react-router"
+import { useMemo, useState } from "react"
 import { FiBell, FiChevronRight, FiList, FiUser } from "react-icons/fi"
 import type { CategoryTree } from "@/client"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
@@ -30,6 +31,26 @@ export function CategoryOverlay({
 }: CategoryOverlayProps) {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthUser()
+
+  const rootByCategoryId = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const root of categories) {
+      map.set(root.id, root.id)
+      for (const child of root.children ?? []) {
+        map.set(child.id, root.id)
+      }
+    }
+    return map
+  }, [categories])
+
+  const [expandedRootId, setExpandedRootId] = useState<string | null>(null)
+  const activeRootId =
+    rootByCategoryId.get(selectedCategoryId) ?? expandedRootId ?? null
+
+  const toggleRoot = (rootId: string) => {
+    setExpandedRootId((current) => (current === rootId ? null : rootId))
+  }
+
   return (
     <Drawer.Root
       open={open}
@@ -100,7 +121,7 @@ export function CategoryOverlay({
                   }}
                   transition="all 0.2s"
                 >
-                  <span>Tất cả ngành hàng</span>
+                  <span>Tất cả danh mục</span>
                   <Box
                     as={FiChevronRight}
                     w={4}
@@ -111,35 +132,85 @@ export function CategoryOverlay({
 
                 {categories.map((category) => {
                   const active = selectedCategoryId === category.id
+                  const hasChildren = (category.children?.length ?? 0) > 0
+                  const isExpanded = activeRootId === category.id
+
                   return (
-                    <Button
-                      key={category.id}
-                      onClick={() => {
-                        onSelectCategory(category.id)
-                        onClose()
-                      }}
-                      variant="ghost"
-                      w="full"
-                      justifyContent="space-between"
-                      borderRadius="xl"
-                      px={3}
-                      py={2.5}
-                      h="auto"
-                      bg={active ? "blue.50" : "transparent"}
-                      color={active ? "blue.600" : "gray.700"}
-                      fontSize="sm"
-                      fontWeight="medium"
-                      _hover={{ bg: active ? "blue.50" : "gray.50" }}
-                      transition="all 0.2s"
-                    >
-                      <Text lineClamp={1}>{category.name}</Text>
-                      <Box
-                        as={FiChevronRight}
-                        w={4}
-                        h={4}
-                        color={active ? "blue.500" : "gray.400"}
-                      />
-                    </Button>
+                    <Box key={category.id}>
+                      <Button
+                        onClick={() => {
+                          onSelectCategory(category.id)
+                          if (hasChildren) {
+                            toggleRoot(category.id)
+                            return
+                          }
+                          onClose()
+                        }}
+                        variant="ghost"
+                        w="full"
+                        justifyContent="space-between"
+                        borderRadius="xl"
+                        px={3}
+                        py={2.5}
+                        h="auto"
+                        bg={active ? "blue.50" : "transparent"}
+                        color={active ? "blue.600" : "gray.700"}
+                        fontSize="sm"
+                        fontWeight="medium"
+                        _hover={{ bg: active ? "blue.50" : "gray.50" }}
+                        transition="all 0.2s"
+                      >
+                        <Text lineClamp={1}>{category.name}</Text>
+                        <Box
+                          as={FiChevronRight}
+                          w={4}
+                          h={4}
+                          color={active ? "blue.500" : "gray.400"}
+                          transform={
+                            hasChildren && isExpanded ? "rotate(90deg)" : "none"
+                          }
+                          transition="transform 0.2s ease"
+                        />
+                      </Button>
+
+                      {hasChildren && isExpanded ? (
+                        <VStack align="stretch" gap={1} mt={1} pl={4}>
+                          {category.children?.map((child) => {
+                            const activeChild = selectedCategoryId === child.id
+                            return (
+                              <Button
+                                key={child.id}
+                                onClick={() => {
+                                  onSelectCategory(child.id)
+                                  onClose()
+                                }}
+                                variant="ghost"
+                                w="full"
+                                justifyContent="space-between"
+                                borderRadius="lg"
+                                px={3}
+                                py={2}
+                                h="auto"
+                                bg={activeChild ? "blue.50" : "transparent"}
+                                color={activeChild ? "blue.600" : "gray.600"}
+                                fontSize="sm"
+                                _hover={{
+                                  bg: activeChild ? "blue.50" : "gray.50",
+                                }}
+                              >
+                                <Text lineClamp={1}>{child.name}</Text>
+                                <Box
+                                  as={FiChevronRight}
+                                  w={3.5}
+                                  h={3.5}
+                                  color={activeChild ? "blue.500" : "gray.400"}
+                                />
+                              </Button>
+                            )
+                          })}
+                        </VStack>
+                      ) : null}
+                    </Box>
                   )
                 })}
               </VStack>

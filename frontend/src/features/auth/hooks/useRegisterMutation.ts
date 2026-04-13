@@ -12,7 +12,7 @@ export function useRegisterMutation() {
       return data.email
     },
     onSuccess: (email) => {
-      navigate({ to: "/auth/verify-email", search: { email } as any })
+      navigate({ to: "/auth/verify-email", search: { email } })
     },
   })
 }

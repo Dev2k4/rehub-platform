@@ -35,5 +35,7 @@ class ListingImage(SQLModel, table=True):
     listing_id: uuid.UUID = Field(foreign_key="listings.id", ondelete="CASCADE")
     image_url: str
     thumbnail_url: Optional[str] = None
+    perceptual_hash: Optional[str] = Field(default=None, max_length=32)
+    image_md5: Optional[str] = Field(default=None, max_length=32)
     is_primary: bool = Field(default=False)
     created_at: datetime = Field(default_factory=_utc_now)

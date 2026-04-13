@@ -1,6 +1,7 @@
 import logging
 import uuid
 from io import BytesIO
+from pathlib import Path
 from pathlib import PurePosixPath
 from urllib.parse import urlparse
 
@@ -108,7 +109,30 @@ def upload_listing_image(
     listing_id: str,
 ) -> tuple[str, str | None]:
     if settings.STORAGE_BACKEND.lower() != "minio":
-        raise RuntimeError("Storage backend is not set to minio")
+        optimized_bytes, thumbnail_bytes, optimized_ext, _optimized_content_type = _optimize_listing_image(
+            file_bytes,
+            ext,
+            content_type,
+        )
+        object_name = _listing_object_name(user_id, listing_id, optimized_ext)
+        thumbnail_object_name = _listing_object_name(user_id, listing_id, optimized_ext, suffix="_thumb")
+
+        root = Path(settings.UPLOAD_DIR) / "listings"
+        main_path = root / object_name
+        main_path.parent.mkdir(parents=True, exist_ok=True)
+        main_path.write_bytes(optimized_bytes)
+
+        thumbnail_url: str | None = None
+        if thumbnail_bytes is not None:
+            thumb_path = root / thumbnail_object_name
+            thumb_path.parent.mkdir(parents=True, exist_ok=True)
+            thumb_path.write_bytes(thumbnail_bytes)
+            thumbnail_url = (
+                f"{settings.BACKEND_PUBLIC_BASE_URL.rstrip('/')}/uploads/listings/{thumbnail_object_name}"
+            )
+
+        image_url = f"{settings.BACKEND_PUBLIC_BASE_URL.rstrip('/')}/uploads/listings/{object_name}"
+        return image_url, thumbnail_url
 
     client = _minio_client()
     bucket = settings.MINIO_BUCKET_NAME
@@ -149,6 +173,22 @@ def upload_listing_image(
 
 def delete_listing_image(image_url: str, thumbnail_url: str | None = None) -> None:
     if settings.STORAGE_BACKEND.lower() != "minio":
+        for raw_url in [image_url, thumbnail_url]:
+            if not raw_url:
+                continue
+            parsed = urlparse(raw_url)
+            upload_prefix = "/uploads/listings/"
+            if not parsed.path.startswith(upload_prefix):
+                continue
+            relative_path = parsed.path[len(upload_prefix):]
+            if not relative_path:
+                continue
+            target_path = Path(settings.UPLOAD_DIR) / "listings" / relative_path
+            try:
+                if target_path.exists() and target_path.is_file():
+                    target_path.unlink()
+            except Exception:
+                logger.exception("Failed to delete local listing image %s", target_path)
         return
 
     client = _minio_client()

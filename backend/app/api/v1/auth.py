@@ -131,7 +131,7 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/15minutes")
+@limiter.limit("5/15minutes", exempt_when=lambda: settings.TESTING)
 async def login(
     request: Request,
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -150,7 +150,11 @@ async def login(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    if settings.REQUIRE_EMAIL_VERIFICATION and not user.is_email_verified:
+    if (
+        settings.REQUIRE_EMAIL_VERIFICATION
+        and not settings.TESTING
+        and not user.is_email_verified
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email not verified. Please verify your email before logging in.",

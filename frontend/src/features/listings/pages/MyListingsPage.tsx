@@ -15,14 +15,16 @@ import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { FiArrowLeft, FiPlus, FiSearch } from "react-icons/fi"
 import type { ListingRead } from "@/client"
+import { ApiError } from "@/client"
 import { Button } from "@/components/ui/button"
 import { InputGroup } from "@/components/ui/input-group"
+import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm"
 import { ListingModal } from "@/features/listings/components/ListingModal"
 import { ListingsTable } from "@/features/listings/components/ListingsTable"
 import {
-  useCreateListing,
+  useCreateListingWithImagesAtomic,
   useDeleteListing,
   useMyListings,
   useUpdateListing,
@@ -47,7 +49,7 @@ export function MyListingsPage() {
     limit: 50,
   })
 
-  const createMutation = useCreateListing()
+  const createWithImagesAtomicMutation = useCreateListingWithImagesAtomic()
   const updateMutation = useUpdateListing()
   const deleteMutation = useDeleteListing()
   const uploadImageMutation = useUploadListingImage()
@@ -73,36 +75,55 @@ export function MyListingsPage() {
   }
 
   const handleViewClick = (listing: ListingRead) => {
-    navigate({ to: `/listing/${listing.id}` })
+    navigate({ to: `/listings/${listing.id}` })
   }
 
   const handleFormSubmit = async ({
     data,
     files,
   }: ListingFormSubmitPayload) => {
-    let targetListingId = editingListing?.id
-
-    if (editingListing) {
-      await updateMutation.mutateAsync({
-        listingId: editingListing.id,
-        data,
-      })
-    } else {
-      const created = await createMutation.mutateAsync(data)
-      targetListingId = created.id
-    }
-
-    if (targetListingId) {
-      for (const [index, file] of files.entries()) {
-        await uploadImageMutation.mutateAsync({
-          listingId: targetListingId,
-          file,
-          isPrimary: index === 0,
+    try {
+      if (editingListing) {
+        await updateMutation.mutateAsync({
+          listingId: editingListing.id,
+          data,
         })
-      }
-    }
 
-    setIsFormOpen(false)
+        // For edit mode, keep existing incremental image upload behavior.
+        for (const [index, file] of files.entries()) {
+          await uploadImageMutation.mutateAsync({
+            listingId: editingListing.id,
+            file,
+            isPrimary: index === 0,
+          })
+        }
+      } else {
+        // Atomic create: backend guarantees rollback if any image upload fails.
+        await createWithImagesAtomicMutation.mutateAsync({ data, files })
+      }
+
+      toaster.create({
+        type: "success",
+        title: editingListing
+          ? "Cập nhật tin đăng thành công"
+          : "Tạo tin đăng thành công",
+      })
+      setIsFormOpen(false)
+    } catch (error) {
+      let message = "Tạo tin đăng thất bại. Vui lòng thử lại."
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          message = "Ảnh bị trùng với tin khác. Vui lòng chọn ảnh khác."
+        } else if (error.status === 429) {
+          message = "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít giây."
+        } else if (error.status >= 500) {
+          message = "Lỗi máy chủ khi tạo tin/ảnh. Tin chưa được tạo."
+        }
+      }
+
+      toaster.create({ type: "error", title: message })
+      return
+    }
   }
 
   const handleConfirmDelete = async () => {
@@ -280,7 +301,7 @@ export function MyListingsPage() {
         editingListing={editingListing}
         onSubmit={handleFormSubmit}
         isLoading={
-          createMutation.isPending ||
+          createWithImagesAtomicMutation.isPending ||
           updateMutation.isPending ||
           uploadImageMutation.isPending
         }

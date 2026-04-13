@@ -10,7 +10,9 @@ import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
 
 function AppLayout() {
   const matchRoute = useMatchRoute()
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
   const isHome = Boolean(matchRoute({ to: "/", fuzzy: false }))
   const isAuthFlow = pathname.startsWith("/auth")
 

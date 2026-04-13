@@ -8,14 +8,22 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { Controller, useForm } from "react-hook-form"
-import { FiEye, FiEyeOff, FiLock, FiMail, FiPhone, FiUser } from "react-icons/fi"
+import { Controller, type Resolver, useForm } from "react-hook-form"
+import {
+  FiEye,
+  FiEyeOff,
+  FiLock,
+  FiMail,
+  FiPhone,
+  FiUser,
+} from "react-icons/fi"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import { InputGroup } from "@/components/ui/input-group"
 import { toaster } from "@/components/ui/toaster"
 import { useRegisterMutation } from "@/features/auth/hooks/useRegisterMutation"
+import type { AuthError } from "@/features/auth/types/auth.types"
 import { AuthErrorCode } from "@/features/auth/types/auth.types"
 import {
   type RegisterInput,
@@ -37,7 +45,7 @@ export function RegisterForm({ onError }: RegisterFormProps) {
     formState: { errors, isSubmitting },
     watch,
   } = useForm<RegisterInput>({
-    resolver: zodResolver(registerSchema) as any,
+    resolver: zodResolver(registerSchema) as Resolver<RegisterInput>,
     mode: "onBlur",
     defaultValues: {
       email: "",
@@ -55,25 +63,38 @@ export function RegisterForm({ onError }: RegisterFormProps) {
       onSuccess: () => {
         toaster.create({ title: "Đăng ký thành công!", type: "success" })
       },
-      onError: (error: any) => {
-        const errorMsg = error?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+      onError: (error: unknown) => {
+        const authError = toAuthError(error)
+        const errorMsg =
+          authError?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
         toaster.create({ title: errorMsg, type: "error" })
-        if (error?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
+        if (authError?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
           navigate({
             to: "/auth/verify-email",
-            search: { email: data.email } as any,
+            search: { email: data.email },
           })
           return
         }
-        if (error?.code === AuthErrorCode.EMAIL_ALREADY_EXISTS && onError) {
-          onError(error.message)
+        if (authError?.code === AuthErrorCode.EMAIL_ALREADY_EXISTS && onError) {
+          onError(authError.message)
         }
       },
     })
   }
 
+  const toAuthError = (error: unknown): AuthError | null => {
+    if (!error || typeof error !== "object") {
+      return null
+    }
+    const maybeAuthError = error as Partial<AuthError>
+    if (typeof maybeAuthError.message === "string") {
+      return maybeAuthError as AuthError
+    }
+    return null
+  }
+
   return (
-    <Box as="form" onSubmit={handleSubmit(onSubmit as any)}>
+    <Box as="form" onSubmit={handleSubmit(onSubmit)}>
       <Stack gap={5}>
         {/* Email */}
         <Field

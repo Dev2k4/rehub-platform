@@ -9,12 +9,12 @@ import {
 } from "@chakra-ui/react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { FiStar, FiTag, FiUser } from "react-icons/fi"
-import { Tooltip } from "@/components/ui/tooltip"
 import type {
   CategoryTree,
   ListingWithImages,
   UserPublicProfile,
 } from "@/client"
+import { Tooltip } from "@/components/ui/tooltip"
 import {
   formatCurrencyVnd,
   formatPostedTime,

@@ -49,7 +49,10 @@ function getAuthHeaders(tokenOverride?: string | null): HeadersInit {
   }
 }
 
-async function fetchWithAuthRetry(path: string, init: RequestInit): Promise<Response> {
+async function fetchWithAuthRetry(
+  path: string,
+  init: RequestInit,
+): Promise<Response> {
   let response = await fetch(`${getApiBase()}${path}`, init)
   if (response.status === 401) {
     const refreshedToken = await refreshAccessTokenIfPossible()
@@ -77,11 +80,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T
 }
 
-export async function createOrGetConversation(otherUserId: string): Promise<ChatConversationRead> {
-  const response = await fetchWithAuthRetry(`/chat/conversations/${otherUserId}`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  })
+export async function createOrGetConversation(
+  otherUserId: string,
+): Promise<ChatConversationRead> {
+  const response = await fetchWithAuthRetry(
+    `/chat/conversations/${otherUserId}`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  )
   return parseResponse<ChatConversationRead>(response)
 }
 
@@ -118,20 +126,26 @@ export async function sendChatMessage(
     | { message_type: "text"; content: string }
     | { message_type: "listing_share"; listing_id: string; content?: string },
 ): Promise<ChatMessageRead> {
-  const response = await fetchWithAuthRetry(`/chat/conversations/${conversationId}/messages`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  })
+  const response = await fetchWithAuthRetry(
+    `/chat/conversations/${conversationId}/messages`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    },
+  )
   return parseResponse<ChatMessageRead>(response)
 }
 
 export async function markConversationRead(
   conversationId: string,
 ): Promise<{ ok: boolean }> {
-  const response = await fetchWithAuthRetry(`/chat/conversations/${conversationId}/read`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  })
+  const response = await fetchWithAuthRetry(
+    `/chat/conversations/${conversationId}/read`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  )
   return parseResponse<{ ok: boolean }>(response)
 }

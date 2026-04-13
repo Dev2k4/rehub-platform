@@ -36,7 +36,10 @@ export function AdminDashboardPage() {
 
   const isLoading = usersLoading || listingsLoading || categoriesLoading
   const isRefreshing = usersFetching || listingsFetching || categoriesFetching
-  const moderationHealth = users.length > 0 ? Math.round((pendingListings.length / users.length) * 100) : 0
+  const moderationHealth =
+    users.length > 0
+      ? Math.round((pendingListings.length / users.length) * 100)
+      : 0
 
   const stats = [
     {
@@ -65,9 +68,6 @@ export function AdminDashboardPage() {
         <Heading as="h1" size="xl" color="gray.900" mb={2}>
           Tổng quan
         </Heading>
-        <Text color="gray.600">
-          Theo doi nhanh tinh trang van hanh va dieu huong toi cac module quan trong.
-        </Text>
       </Box>
 
       <Flex
@@ -94,10 +94,18 @@ export function AdminDashboardPage() {
           </Text>
         </Box>
         <HStack gap={2}>
-          <Button size="sm" colorPalette="blue" onClick={() => navigate({ to: "/admin/listings" })}>
+          <Button
+            size="sm"
+            colorPalette="blue"
+            onClick={() => navigate({ to: "/admin/listings" })}
+          >
             Duyet tin dang
           </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate({ to: "/admin/users" })}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate({ to: "/admin/users" })}
+          >
             Quan ly nguoi dung
           </Button>
         </HStack>
@@ -148,9 +156,15 @@ export function AdminDashboardPage() {
 
       <Flex mt={4} justify="space-between" align="center">
         <Text fontSize="sm" color="gray.500">
-          {isRefreshing ? "Du lieu dang duoc cap nhat..." : "Du lieu da dong bo."}
+          {isRefreshing
+            ? "Du lieu dang duoc cap nhat..."
+            : "Du lieu da dong bo."}
         </Text>
-        <Button size="sm" variant="ghost" onClick={() => navigate({ to: "/notifications" })}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => navigate({ to: "/notifications" })}
+        >
           Mo trang thong bao
         </Button>
       </Flex>
@@ -170,13 +184,16 @@ export function AdminDashboardPage() {
         </Heading>
         <VStack align="stretch" gap={2} fontSize="sm" color="gray.600">
           <Text>
-            • <strong>Quan ly nguoi dung:</strong> Kiem tra tai khoan bat thuong va xu ly nhanh trang thai active.
+            • <strong>Quan ly nguoi dung:</strong> Kiem tra tai khoan bat thuong
+            va xu ly nhanh trang thai active.
           </Text>
           <Text>
-            • <strong>Phe duyet tin dang:</strong> Uu tien cac tin dang cho duyet lau de giam tre cho nguoi ban.
+            • <strong>Phe duyet tin dang:</strong> Uu tien cac tin dang cho
+            duyet lau de giam tre cho nguoi ban.
           </Text>
           <Text>
-            • <strong>Quan ly danh muc:</strong> Giu cau truc danh muc gon va tranh trung lap slug.
+            • <strong>Quan ly danh muc:</strong> Giu cau truc danh muc gon va
+            tranh trung lap slug.
           </Text>
         </VStack>
       </Box>

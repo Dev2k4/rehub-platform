@@ -12,7 +12,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { FiCamera, FiTrash2 } from "react-icons/fi"
 import { z } from "zod"
@@ -55,11 +55,14 @@ export function ListingForm({
 }: ListingFormProps) {
   const [previewImages, setPreviewImages] = useState<string[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [selectedParentId, setSelectedParentId] = useState<string>("")
 
   const {
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm({
     // @ts-expect-error - zod resolver type coercion issue
@@ -69,6 +72,55 @@ export function ListingForm({
       is_negotiable: false,
     },
   })
+
+  const selectedCategoryId = watch("category_id")
+
+  const selectedParent = useMemo(() => {
+    return categories.find((item) => item.id === selectedParentId) ?? null
+  }, [categories, selectedParentId])
+
+  useEffect(() => {
+    if (!categories.length) return
+
+    if (selectedParentId) return
+
+    const initialCategoryId = initialData?.category_id ?? selectedCategoryId
+    if (!initialCategoryId) return
+
+    const direct = categories.find((root) => root.id === initialCategoryId)
+    const byChild = categories.find((root) =>
+      (root.children ?? []).some((child) => child.id === initialCategoryId),
+    )
+    const parentId = direct?.id ?? byChild?.id ?? ""
+
+    if (parentId) {
+      setSelectedParentId(parentId)
+    }
+  }, [
+    categories,
+    initialData?.category_id,
+    selectedCategoryId,
+    selectedParentId,
+  ])
+
+  useEffect(() => {
+    if (!selectedParent) return
+
+    const children = selectedParent.children ?? []
+    if (children.length === 0) {
+      if (selectedCategoryId !== selectedParent.id) {
+        setValue("category_id", selectedParent.id, { shouldValidate: true })
+      }
+      return
+    }
+
+    const isValidChild = children.some(
+      (child) => child.id === selectedCategoryId,
+    )
+    if (!isValidChild) {
+      setValue("category_id", "", { shouldValidate: false })
+    }
+  }, [selectedParent, selectedCategoryId, setValue])
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -184,30 +236,106 @@ export function ListingForm({
           invalid={!!errors.category_id}
           errorText={errors.category_id?.message}
         >
-          <NativeSelect.Root>
-            <NativeSelect.Field
-              {...register("category_id")}
-              bg="gray.50"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              px={4}
-              py={2}
-              _focus={{
-                bg: "white",
-                borderColor: "blue.500",
-                ring: "1px",
-                ringColor: "blue.500",
-              }}
-            >
-              <option value="">Chọn danh mục</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </NativeSelect.Field>
-          </NativeSelect.Root>
+          <VStack align="stretch" gap={3}>
+            <input type="hidden" {...register("category_id")} />
+
+            {!selectedParent ? (
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  value={selectedParentId}
+                  onChange={(e) => {
+                    const nextParentId = e.target.value
+                    setSelectedParentId(nextParentId)
+                    setValue("category_id", "", { shouldValidate: true })
+                  }}
+                  bg="gray.50"
+                  borderRadius="xl"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  px={4}
+                  py={2}
+                  _focus={{
+                    bg: "white",
+                    borderColor: "blue.500",
+                    ring: "1px",
+                    ringColor: "blue.500",
+                  }}
+                >
+                  <option value="">Chọn danh mục mẹ</option>
+                  {categories.map((root) => (
+                    <option key={root.id} value={root.id}>
+                      {root.name}
+                    </option>
+                  ))}
+                </NativeSelect.Field>
+              </NativeSelect.Root>
+            ) : (
+              <Flex
+                align="center"
+                justify="space-between"
+                bg="blue.50"
+                border="1px solid"
+                borderColor="blue.200"
+                borderRadius="xl"
+                px={4}
+                py={2.5}
+              >
+                <Text fontSize="sm" color="blue.700" fontWeight="medium">
+                  Danh mục mẹ: {selectedParent.name}
+                </Text>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => {
+                    setSelectedParentId("")
+                    setValue("category_id", "", { shouldValidate: true })
+                  }}
+                >
+                  Chọn lại
+                </Button>
+              </Flex>
+            )}
+
+            {selectedParent && (selectedParent.children?.length ?? 0) > 0 ? (
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  value={selectedCategoryId || ""}
+                  onChange={(e) => {
+                    setValue("category_id", e.target.value, {
+                      shouldValidate: true,
+                    })
+                  }}
+                  bg="gray.50"
+                  borderRadius="xl"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  px={4}
+                  py={2}
+                  _focus={{
+                    bg: "white",
+                    borderColor: "blue.500",
+                    ring: "1px",
+                    ringColor: "blue.500",
+                  }}
+                >
+                  <option value="">Chọn danh mục con</option>
+                  {selectedParent.children?.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {child.name}
+                    </option>
+                  ))}
+                </NativeSelect.Field>
+              </NativeSelect.Root>
+            ) : null}
+
+            {selectedParent && (selectedParent.children?.length ?? 0) === 0 ? (
+              <Text fontSize="sm" color="gray.500">
+                Danh mục này không có danh mục con. Hệ thống sẽ dùng trực tiếp
+                danh mục mẹ đã chọn.
+              </Text>
+            ) : null}
+          </VStack>
         </Field>
 
         {/* Condition */}

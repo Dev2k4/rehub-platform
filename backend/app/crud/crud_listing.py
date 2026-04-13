@@ -44,6 +44,8 @@ async def add_listing_image(
     listing_id: str,
     image_url: str,
     thumbnail_url: str | None = None,
+    perceptual_hash: str | None = None,
+    image_md5: str | None = None,
     is_primary: bool = False,
 ) -> ListingImage:
     # If this is the primary image, unfollow others
@@ -58,6 +60,8 @@ async def add_listing_image(
         listing_id=uuid.UUID(listing_id),
         image_url=image_url,
         thumbnail_url=thumbnail_url,
+        perceptual_hash=perceptual_hash,
+        image_md5=image_md5,
         is_primary=is_primary
     )
     db.add(db_img)
