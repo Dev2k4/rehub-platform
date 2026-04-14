@@ -6,6 +6,8 @@ from email.message import EmailMessage
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+# Force email module to log at INFO level for debugging
+logger.setLevel(logging.DEBUG)
 
 
 def _smtp_user() -> str:
