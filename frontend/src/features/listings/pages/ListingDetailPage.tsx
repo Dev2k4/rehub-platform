@@ -28,7 +28,7 @@ import {
   FiMessageCircle,
   FiShare2,
   FiStar,
-  FiTag,
+  // FiTag,
   FiUser,
 } from "react-icons/fi"
 import type { CategoryTree } from "@/client"
@@ -203,7 +203,7 @@ export function ListingDetailPage() {
   if (listingQuery.isError || !listingQuery.data) {
     return (
       <Box minH="100vh" bg="gray.50">
-        <Container maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={8}>
+        <Container maxW="1400px" mx="auto" px={{ base: 4, md: 6 }} py={8}>
           <Button
             variant="ghost"
             onClick={() => navigate({ to: "/" })}
@@ -348,7 +348,7 @@ export function ListingDetailPage() {
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={8}>
+      <Container maxW="1400px" mx="auto" px={{ base: 4, md: 6 }} py={8}>
         {/* Back Button */}
         <Button
           variant="ghost"
@@ -361,9 +361,9 @@ export function ListingDetailPage() {
           Quay lại trang chủ
         </Button>
 
-        <Flex direction={{ base: "column", lg: "row" }} gap={8}>
+        <Flex direction={{ base: "column", lg: "row" }} gap={8} align="start">
           {/* Image Gallery */}
-          <Box flex={1} minW={0}>
+          <Box w={{ base: "full", lg: "520px" }} flexShrink={0}>
             <Box
               bg="whiteAlpha.800"
               backdropFilter="blur(20px)"
@@ -381,7 +381,7 @@ export function ListingDetailPage() {
                     alt={listing.title}
                     w="full"
                     h="full"
-                    objectFit="contain"
+                    objectFit="cover"
                   />
                 ) : (
                   <Flex
@@ -445,7 +445,7 @@ export function ListingDetailPage() {
           </Box>
 
           {/* Product Info */}
-          <Box w={{ base: "full", lg: "400px" }} flexShrink={0}>
+          <Box flex={1} minW={0}>
             <VStack gap={4} align="stretch">
               {/* Main Info Card */}
               <Box
@@ -459,12 +459,12 @@ export function ListingDetailPage() {
               >
                 <Box p={6}>
                   {/* Category */}
-                  <HStack gap={2} mb={3}>
+                  {/* <HStack gap={2} mb={3}>
                     <Box as={FiTag} w={4} h={4} color="gray.400" />
                     <Text fontSize="sm" color="gray.500">
                       {category?.name ?? "Chưa phân loại"}
                     </Text>
-                  </HStack>
+                  </HStack> */}
 
                   {/* Title */}
                   <Heading as="h1" size="lg" color="gray.900" mb={4}>
@@ -715,109 +715,119 @@ export function ListingDetailPage() {
         </Flex>
 
         {/* Description Section */}
-        {isOwnListing && (
-          <Box
-            mt={8}
-            bg="whiteAlpha.800"
-            backdropFilter="blur(20px)"
-            borderRadius="xl"
-            boxShadow="0 10px 40px rgba(0,0,0,0.06)"
-            border="1px"
-            borderColor="whiteAlpha.400"
-            p={6}
-          >
-            <Heading as="h2" size="md" color="gray.900" mb={4}>
-              Offers cho tin đăng này
-            </Heading>
+        <Box mt={8}>
+          <SimpleGrid columns={{ base: 1, lg: 12 }} gap={8}>
+            <Box gridColumn={{ base: "span 1", lg: "span 8" }}>
+              <VStack gap={8} align="stretch">
+                {isOwnListing && (
+                  <Box
+                    bg="whiteAlpha.800"
+                    backdropFilter="blur(20px)"
+                    borderRadius="xl"
+                    boxShadow="0 10px 40px rgba(0,0,0,0.06)"
+                    border="1px"
+                    borderColor="whiteAlpha.400"
+                    p={6}
+                  >
+                    <Heading as="h2" size="md" color="gray.900" mb={4}>
+                      Offers cho tin đăng này
+                    </Heading>
 
-            {listingOffersQuery.isLoading ? (
-              <Flex py={6} justify="center">
-                <Spinner size="md" color="blue.500" />
-              </Flex>
-            ) : listingOffersQuery.data &&
-              listingOffersQuery.data.length > 0 ? (
-              <VStack align="stretch" gap={3}>
-                {listingOffersQuery.data.map((offer) => {
-                  const statusMeta = OFFER_STATUS_META[offer.status] ?? {
-                    label: offer.status,
-                    color: "gray",
-                  }
-
-                  return (
-                    <Box
-                      key={offer.id}
-                      border="1px"
-                      borderColor="gray.200"
-                      borderRadius="lg"
-                      p={4}
-                    >
-                      <Flex
-                        justify="space-between"
-                        align={{ base: "start", md: "center" }}
-                        gap={3}
-                      >
-                        <Box>
-                          <Text fontWeight="semibold" color="gray.900">
-                            {formatCurrencyVnd(
-                              Math.floor(Number(offer.offer_price)),
-                            )}
-                          </Text>
-                          <Text fontSize="sm" color="gray.500">
-                            Offer: {offer.id.slice(0, 8)}... ·{" "}
-                            {new Date(offer.created_at).toLocaleString("vi-VN")}
-                          </Text>
-                        </Box>
-
-                        <HStack>
-                          <Badge colorPalette={statusMeta.color as any}>
-                            {statusMeta.label}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedOfferId(offer.id)
-                              setIsOfferDetailModalOpen(true)
-                            }}
-                          >
-                            Xem chi tiết
-                          </Button>
-                        </HStack>
+                    {listingOffersQuery.isLoading ? (
+                      <Flex py={6} justify="center">
+                        <Spinner size="md" color="blue.500" />
                       </Flex>
-                    </Box>
-                  )
-                })}
-              </VStack>
-            ) : (
-              <Text fontSize="sm" color="gray.500">
-                Chưa có đề xuất giá nào cho tin đăng này.
-              </Text>
-            )}
-          </Box>
-        )}
+                    ) : listingOffersQuery.data &&
+                      listingOffersQuery.data.length > 0 ? (
+                      <VStack align="stretch" gap={3}>
+                        {listingOffersQuery.data.map((offer) => {
+                          const statusMeta = OFFER_STATUS_META[offer.status] ?? {
+                            label: offer.status,
+                            color: "gray",
+                          }
 
-        <Box
-          mt={8}
-          bg="whiteAlpha.800"
-          backdropFilter="blur(20px)"
-          borderRadius="xl"
-          boxShadow="0 10px 40px rgba(0,0,0,0.06)"
-          border="1px"
-          borderColor="whiteAlpha.400"
-          p={6}
-        >
-          <Heading as="h2" size="md" color="gray.900" mb={4}>
-            Mô tả sản phẩm
-          </Heading>
-          {listing.description ? (
-            <Text color="gray.700" whiteSpace="pre-wrap" lineHeight={1.8}>
-              {listing.description}
-            </Text>
-          ) : (
-            <Text color="gray.400" fontStyle="italic">
-              Người bán chưa thêm mô tả cho sản phẩm này.
-            </Text>
-          )}
+                          return (
+                            <Box
+                              key={offer.id}
+                              border="1px"
+                              borderColor="gray.200"
+                              borderRadius="lg"
+                              p={4}
+                            >
+                              <Flex
+                                justify="space-between"
+                                align={{ base: "start", md: "center" }}
+                                gap={3}
+                              >
+                                <Box>
+                                  <Text fontWeight="semibold" color="gray.900">
+                                    {formatCurrencyVnd(
+                                      Math.floor(Number(offer.offer_price)),
+                                    )}
+                                  </Text>
+                                  <Text fontSize="sm" color="gray.500">
+                                    Offer: {offer.id.slice(0, 8)}... ·{" "}
+                                    {new Date(offer.created_at).toLocaleString("vi-VN")}
+                                  </Text>
+                                </Box>
+
+                                <HStack>
+                                  <Badge colorPalette={statusMeta.color as any}>
+                                    {statusMeta.label}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedOfferId(offer.id)
+                                      setIsOfferDetailModalOpen(true)
+                                    }}
+                                  >
+                                    Xem chi tiết
+                                  </Button>
+                                </HStack>
+                              </Flex>
+                            </Box>
+                          )
+                        })}
+                      </VStack>
+                    ) : (
+                      <Text fontSize="sm" color="gray.500">
+                        Chưa có đề xuất giá nào cho tin đăng này.
+                      </Text>
+                    )}
+                  </Box>
+                )}
+
+                <Box
+                  bg="whiteAlpha.800"
+                  backdropFilter="blur(20px)"
+                  borderRadius="xl"
+                  boxShadow="0 10px 40px rgba(0,0,0,0.06)"
+                  border="1px"
+                  borderColor="whiteAlpha.400"
+                  p={6}
+                >
+                  <Heading as="h2" size="md" color="gray.900" mb={4}>
+                    Mô tả sản phẩm
+                  </Heading>
+                  {listing.description ? (
+                    <Text color="gray.700" whiteSpace="pre-wrap" lineHeight={1.8}>
+                      {listing.description}
+                    </Text>
+                  ) : (
+                    <Text color="gray.400" fontStyle="italic">
+                      Người bán chưa thêm mô tả cho sản phẩm này.
+                    </Text>
+                  )}
+                </Box>
+              </VStack>
+            </Box>
+
+            <Box gridColumn={{ base: "span 1", lg: "span 4" }}>
+              {/* Sidebar content could go here in future */}
+            </Box>
+          </SimpleGrid>
         </Box>
       </Container>
 
