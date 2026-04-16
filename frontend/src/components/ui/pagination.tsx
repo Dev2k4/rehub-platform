@@ -210,37 +210,43 @@
 //   )
 // })
 
-"use client"
+"use client";
 
-import type { ButtonProps } from "@chakra-ui/react"
+import type { ButtonProps } from "@chakra-ui/react";
 import {
   Button,
   Pagination as ChakraPagination,
   IconButton,
   createContext,
-} from "@chakra-ui/react"
-import * as React from "react"
-import { HiChevronLeft, HiChevronRight } from "react-icons/hi2"
+  Center,
+} from "@chakra-ui/react";
+import * as React from "react";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiMoreHorizontal,
+} from "react-icons/fi";
 
 interface PaginationContext {
-  size: ButtonProps["size"]
+  size: ButtonProps["size"];
 }
 
-const [PaginationProvider, usePaginationContext] = createContext<PaginationContext>({
-  name: "PaginationContext",
-})
+const [PaginationProvider, usePaginationContext] =
+  createContext<PaginationContext>({
+    name: "PaginationContext",
+  });
 
 export const PaginationRoot = React.forwardRef<
   HTMLDivElement,
   ChakraPagination.RootProps & { size?: ButtonProps["size"] }
 >(function PaginationRoot(props, ref) {
-  const { size = "sm", ...rest } = props
+  const { size = "sm", ...rest } = props;
   return (
     <PaginationProvider value={{ size }}>
       <ChakraPagination.Root ref={ref} {...rest} />
     </PaginationProvider>
-  )
-})
+  );
+});
 
 export const PaginationItems = () => {
   return (
@@ -248,7 +254,13 @@ export const PaginationItems = () => {
       {({ pages }) =>
         pages.map((page, index) => {
           if (page.type === "ellipsis") {
-            return <ChakraPagination.Ellipsis key={index} index={index} />
+            return (
+              <ChakraPagination.Ellipsis key={index} index={index} asChild>
+                <Center w="36px" h="36px" color="gray.400">
+                  <FiMoreHorizontal />
+                </Center>
+              </ChakraPagination.Ellipsis>
+            );
           }
           return (
             <ChakraPagination.Item
@@ -259,26 +271,30 @@ export const PaginationItems = () => {
             >
               <Button
                 variant="ghost"
-                borderRadius="full"
+                borderRadius="md"
                 minW="36px"
                 h="36px"
                 p={0}
+                fontWeight="500"
+                color="gray.600"
                 _selected={{
-                  bg: "linear-gradient(135deg, #02457A 0%, #018ABE 100%)",
-                  color: "white",
-                  boxShadow: "0 4px 10px rgba(1, 138, 190, 0.3)",
+                  bg: "white",
+                  color: "blue.600",
+                  border: "1px solid",
+                  borderColor: "gray.300",
+                  boxShadow: "sm",
                 }}
-                _hover={{ bg: "gray.100" }}
+                _hover={{ bg: "gray.50" }}
               >
                 {page.value}
               </Button>
             </ChakraPagination.Item>
-          )
+          );
         })
       }
     </ChakraPagination.Context>
-  )
-}
+  );
+};
 
 export const PaginationPrevTrigger = React.forwardRef<
   HTMLButtonElement,
@@ -286,12 +302,17 @@ export const PaginationPrevTrigger = React.forwardRef<
 >(function PaginationPrevTrigger(props, ref) {
   return (
     <ChakraPagination.PrevTrigger ref={ref} asChild {...props}>
-      <IconButton variant="ghost" borderRadius="full" color="gray.600">
-        <HiChevronLeft />
+      <IconButton
+        variant="ghost"
+        borderRadius="md"
+        color="gray.500"
+        _hover={{ bg: "gray.50" }}
+      >
+        <FiChevronLeft />
       </IconButton>
     </ChakraPagination.PrevTrigger>
-  )
-})
+  );
+});
 
 export const PaginationNextTrigger = React.forwardRef<
   HTMLButtonElement,
@@ -299,9 +320,14 @@ export const PaginationNextTrigger = React.forwardRef<
 >(function PaginationNextTrigger(props, ref) {
   return (
     <ChakraPagination.NextTrigger ref={ref} asChild {...props}>
-      <IconButton variant="ghost" borderRadius="full" color="gray.600">
-        <HiChevronRight />
+      <IconButton
+        variant="ghost"
+        borderRadius="md"
+        color="gray.500"
+        _hover={{ bg: "gray.50" }}
+      >
+        <FiChevronRight />
       </IconButton>
     </ChakraPagination.NextTrigger>
-  )
-})
+  );
+});

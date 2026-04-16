@@ -11,10 +11,10 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import { useMutation } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+} from "@chakra-ui/react";
+import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   FiArrowLeft,
   FiCalendar,
@@ -25,22 +25,22 @@ import {
   FiPhone,
   FiStar,
   FiUser,
-} from "react-icons/fi"
-import { toaster } from "@/components/ui/toaster"
-import { sendPhoneOtp, verifyPhoneOtp } from "@/features/auth/api/auth.api"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { ProfileForm } from "@/features/users/components/ProfileForm"
-import { useUpdateProfile } from "@/features/users/hooks/useUpdateProfile"
+} from "react-icons/fi";
+import { toaster } from "@/components/ui/toaster";
+import { sendPhoneOtp, verifyPhoneOtp } from "@/features/auth/api/auth.api";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
+import { ProfileForm } from "@/features/users/components/ProfileForm";
+import { useUpdateProfile } from "@/features/users/hooks/useUpdateProfile";
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   admin: { label: "Quản trị viên", color: "red" },
   user: { label: "Thành viên", color: "blue" },
   moderator: { label: "Kiểm duyệt", color: "purple" },
-}
+};
 
 function StarRating({ score }: { score: number }) {
-  const maxStars = 5
-  const filledStars = Math.round((score / 100) * maxStars)
+  const maxStars = 5;
+  const filledStars = Math.round((score / 100) * maxStars);
   return (
     <HStack gap={1}>
       {Array.from({ length: maxStars }).map((_, i) => (
@@ -57,7 +57,7 @@ function StarRating({ score }: { score: number }) {
         {(((score || 0) / 100) * 5).toFixed(1)} / 5
       </Text>
     </HStack>
-  )
+  );
 }
 
 function VerificationBadge({ verified }: { verified: boolean }) {
@@ -73,16 +73,16 @@ function VerificationBadge({ verified }: { verified: boolean }) {
     >
       {verified ? "Đã xác thực" : "Chưa xác thực"}
     </Badge>
-  )
+  );
 }
 
 export function ProfilePage() {
-  const navigate = useNavigate()
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
-  const updateMutation = useUpdateProfile()
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser();
+  const updateMutation = useUpdateProfile();
 
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [otpCode, setOtpCode] = useState("")
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
 
   const sendOtpMutation = useMutation({
     mutationFn: async () => sendPhoneOtp((user as any)?.phone),
@@ -93,34 +93,34 @@ export function ProfilePage() {
           ? `OTP demo: ${result.debug_otp}`
           : undefined,
         type: "success",
-      })
+      });
     },
     onError: (error: any) => {
       toaster.create({
         title: error?.message || "Không thể gửi OTP",
         type: "error",
-      })
+      });
     },
-  })
+  });
 
   const verifyOtpMutation = useMutation({
     mutationFn: async (code: string) => verifyPhoneOtp(code),
     onSuccess: (result) => {
-      toaster.create({ title: result.message, type: "success" })
-      window.location.reload()
+      toaster.create({ title: result.message, type: "success" });
+      window.location.reload();
     },
     onError: (error: any) => {
       toaster.create({
         title: error?.message || "Không thể xác thực OTP",
         type: "error",
-      })
+      });
     },
-  })
+  });
 
   // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
-    navigate({ to: "/auth/login" })
-    return null
+    navigate({ to: "/auth/login" });
+    return null;
   }
 
   if (authLoading || !user) {
@@ -128,329 +128,387 @@ export function ProfilePage() {
       <Flex minH="100vh" align="center" justify="center">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   const handleFormSubmit = async (data: any) => {
     try {
-      await updateMutation.mutateAsync(data)
-      setIsEditMode(false)
+      await updateMutation.mutateAsync(data);
+      setIsEditMode(false);
     } catch (error) {
-      console.error("Error updating profile:", error)
+      console.error("Error updating profile:", error);
     }
-  }
+  };
 
-  const roleInfo = ROLE_LABELS[user.role || "user"] ?? ROLE_LABELS.user
+  const roleInfo = ROLE_LABELS[user.role || "user"] ?? ROLE_LABELS.user;
   const addressParts = [
     (user as any).address_detail,
     (user as any).ward,
     (user as any).district,
     (user as any).province,
-  ].filter(Boolean)
-  const fullAddress = addressParts.join(", ")
+  ].filter(Boolean);
+  const fullAddress = addressParts.join(", ");
 
   return (
-    <Box minH="100vh" bg="gray.50">
-      <Container maxW="2xl" mx="auto" px={{ base: 4, sm: 6, lg: 8 }} py={8}>
-        {/* Top Actions */}
-        <Flex align="center" justify="space-between" mb={6}>
-          <Button
-            variant="ghost"
-            onClick={() => navigate({ to: "/" })}
-            color="blue.600"
-            _hover={{ bg: "blue.50" }}
-            px={4}
-          >
-            <FiArrowLeft style={{ marginRight: "0.5rem" }} />
-            Quay lại trang chủ
-          </Button>
-
-          {!isEditMode && (
+    <Box
+      minH="100vh"
+      style={{
+        background:
+          "linear-gradient(160deg, #EFF6FF 0%, #F0F9FF 40%, #F8FAFC 100%)",
+      }}
+    >
+      <Container maxW="1440px" mx="auto" px={{ base: "1rem", md: "2%" }} py={8}>
+        <Box w="100%" maxW="800px" mx="auto">
+          {/* Top Actions */}
+          <Flex align="center" justify="space-between" mb={6}>
             <Button
-              onClick={() => setIsEditMode(true)}
-              bg="blue.600"
-              color="white"
-              _hover={{ bg: "blue.700" }}
-              borderRadius="md"
-              fontWeight="medium"
-              size="sm"
+              variant="ghost"
+              onClick={() => navigate({ to: "/" })}
+              color="blue.600"
+              _hover={{ bg: "blue.50" }}
               px={4}
             >
-              <FiEdit2 style={{ marginRight: "0.5rem" }} />
-              Chỉnh sửa
+              <FiArrowLeft style={{ marginRight: "0.5rem" }} />
+              Quay lại trang chủ
             </Button>
-          )}
-        </Flex>
 
-        {/* Profile Card */}
-        {isEditMode ? (
-          // Edit Mode
-          <Box
-            bg="white"
-            borderRadius="xl"
-            boxShadow="md"
-            p={8}
-            mt={isEditMode ? 6 : 0}
-          >
-            <Heading as="h2" size="lg" color="gray.900" mb={6}>
-              Chỉnh sửa thông tin
-            </Heading>
-            <ProfileForm
-              user={user}
-              onSubmit={handleFormSubmit}
-              onCancel={() => setIsEditMode(false)}
-              isLoading={updateMutation.isPending}
-            />
-          </Box>
-        ) : (
-          <Box bg="white" borderRadius="xl" boxShadow="md" overflow="hidden">
-            {/* Avatar strip */}
-            <Box bg="blue.600" h={24} />
+            {!isEditMode && (
+              <Button
+                onClick={() => setIsEditMode(true)}
+                bg="blue.600"
+                color="white"
+                _hover={{ bg: "blue.700" }}
+                borderRadius="md"
+                fontWeight="medium"
+                size="sm"
+                px={4}
+              >
+                <FiEdit2 style={{ marginRight: "0.5rem" }} />
+                Chỉnh sửa
+              </Button>
+            )}
+          </Flex>
 
-            {/* User Header */}
-            <Box px={8} mt={-11} pb={6} position="relative" zIndex={10}>
-              <Flex align="center" gap={6} mb={4}>
-                <Box
-                  w="88px"
-                  h="88px"
-                  bg="white"
-                  color="gray.400"
-                  border="4px solid"
-                  borderColor="white"
-                  borderRadius="full"
-                  boxShadow="lg"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  bgColor="gray.100"
-                  flexShrink={0}
-                >
-                  <FiUser size={36} color="#9ca3af" />
-                </Box>
-                <Box pb={1}>
-                  <HStack gap={4} align="center" flexWrap="wrap">
-                    <Heading as="h2" size="lg" color="gray.900">
-                      {user.full_name || "Chưa cập nhật"}
-                    </Heading>
-                    <Badge
-                      colorPalette={roleInfo.color as any}
-                      variant="subtle"
-                      borderRadius="full"
-                      px={2}
-                      py={0.5}
-                      fontSize="xs"
-                      fontWeight="semibold"
-                    >
-                      {roleInfo.label}
-                    </Badge>
-                  </HStack>
-                  <Text fontSize="sm" color="gray.500" mt={0.5}>
-                    {user.email}
-                  </Text>
-                </Box>
-              </Flex>
-
-              {/* Stats Row */}
-              <Flex gap={6} bg="gray.50" borderRadius="lg" p={4} wrap="wrap">
-                <Box textAlign="center" minW="80px">
-                  <Text fontSize="xl" fontWeight="bold" color="gray.800">
-                    {(user as any).completed_orders ?? 0}
-                  </Text>
-                  <Text fontSize="xs" color="gray.500" mt={0.5}>
-                    Đơn hoàn thành
-                  </Text>
-                </Box>
-                <Separator orientation="vertical" h="auto" />
-                <Box>
-                  <StarRating score={(user as any).trust_score ?? 0} />
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    Độ tin cậy
-                  </Text>
-                </Box>
-                <Separator orientation="vertical" h="auto" />
-                <Box textAlign="center" minW="80px">
-                  <Text fontSize="xl" fontWeight="bold" color="gray.800">
-                    {(user as any).rating_avg?.toFixed(1) ?? "0.0"}
-                  </Text>
-                  <Text fontSize="xs" color="gray.500" mt={0.5}>
-                    Đánh giá ({(user as any).rating_count ?? 0})
-                  </Text>
-                </Box>
-              </Flex>
+          {/* Profile Card */}
+          {isEditMode ? (
+            // Edit Mode
+            <Box
+              bg="white"
+              borderRadius="xl"
+              boxShadow="md"
+              p={8}
+              mt={isEditMode ? 6 : 0}
+            >
+              <Heading as="h2" size="lg" color="gray.900" mb={6}>
+                Chỉnh sửa thông tin
+              </Heading>
+              <ProfileForm
+                user={user}
+                onSubmit={handleFormSubmit}
+                onCancel={() => setIsEditMode(false)}
+                isLoading={updateMutation.isPending}
+              />
             </Box>
+          ) : (
+            <Box
+              bg="white"
+              borderRadius="1.5rem"
+              boxShadow="0 20px 60px rgba(0,0,0,0.08)"
+              overflow="hidden"
+              border="1px solid"
+              borderColor="gray.100"
+            >
+              {/* Beautiful gradient banner */}
+              <Box
+                h={28}
+                position="relative"
+                overflow="hidden"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #02457A 0%, #0369A1 50%, #018ABE 100%)",
+                }}
+              >
+                {/* Decorative orbs */}
+                <Box
+                  position="absolute"
+                  top="-40px"
+                  left="-40px"
+                  w="160px"
+                  h="160px"
+                  borderRadius="full"
+                  bg="whiteAlpha.100"
+                  filter="blur(30px)"
+                />
+                <Box
+                  position="absolute"
+                  bottom="-30px"
+                  right="-20px"
+                  w="120px"
+                  h="120px"
+                  borderRadius="full"
+                  bg="whiteAlpha.100"
+                  filter="blur(24px)"
+                />
+                <Box
+                  position="absolute"
+                  top="20px"
+                  right="30%"
+                  w="80px"
+                  h="80px"
+                  borderRadius="full"
+                  bg="whiteAlpha.50"
+                  filter="blur(16px)"
+                />
+              </Box>
 
-            <Separator />
-
-            {/* Profile Details */}
-            <VStack gap={0} align="stretch" divideY="1px">
-              {/* Bio */}
-              <Box px={8} py={5}>
-                <HStack gap={2} mb={2}>
-                  <Box as={FiFileText} w={4} h={4} color="gray.400" />
-                  <Text
-                    fontSize="sm"
-                    fontWeight="semibold"
-                    color="gray.600"
-                    textTransform="uppercase"
-                    letterSpacing="wider"
+              {/* User Header */}
+              <Box px={8} mt={-11} pb={6} position="relative" zIndex={10}>
+                <Flex align="center" gap={6} mb={4}>
+                  <Box
+                    w="88px"
+                    h="88px"
+                    bg="white"
+                    color="gray.400"
+                    border="4px solid"
+                    borderColor="white"
+                    borderRadius="full"
+                    boxShadow="lg"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    bgColor="gray.100"
+                    flexShrink={0}
                   >
-                    Giới thiệu
+                    <FiUser size={36} color="#9ca3af" />
+                  </Box>
+                  <Box pb={1}>
+                    <HStack gap={4} align="center" flexWrap="wrap">
+                      <Heading as="h2" size="lg" color="gray.900">
+                        {user.full_name || "Chưa cập nhật"}
+                      </Heading>
+                      <Badge
+                        colorPalette={roleInfo.color as any}
+                        variant="subtle"
+                        borderRadius="full"
+                        px={2}
+                        py={0.5}
+                        fontSize="xs"
+                        fontWeight="semibold"
+                      >
+                        {roleInfo.label}
+                      </Badge>
+                    </HStack>
+                    <Text fontSize="sm" color="gray.500" mt={0.5}>
+                      {user.email}
+                    </Text>
+                  </Box>
+                </Flex>
+
+                {/* Stats Row */}
+                <Flex gap={6} bg="gray.50" borderRadius="lg" p={4} wrap="wrap">
+                  <Box textAlign="center" minW="80px">
+                    <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                      {(user as any).completed_orders ?? 0}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500" mt={0.5}>
+                      Đơn hoàn thành
+                    </Text>
+                  </Box>
+                  <Separator orientation="vertical" h="auto" />
+                  <Box>
+                    <StarRating score={(user as any).trust_score ?? 0} />
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      Độ tin cậy
+                    </Text>
+                  </Box>
+                  <Separator orientation="vertical" h="auto" />
+                  <Box textAlign="center" minW="80px">
+                    <Text fontSize="xl" fontWeight="bold" color="gray.800">
+                      {(user as any).rating_avg?.toFixed(1) ?? "0.0"}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500" mt={0.5}>
+                      Đánh giá ({(user as any).rating_count ?? 0})
+                    </Text>
+                  </Box>
+                </Flex>
+              </Box>
+
+              <Separator />
+
+              {/* Profile Details */}
+              <VStack gap={0} align="stretch" divideY="1px">
+                {/* Bio */}
+                <Box px={8} py={5}>
+                  <HStack gap={2} mb={2}>
+                    <Box as={FiFileText} w={4} h={4} color="gray.400" />
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color="gray.600"
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                    >
+                      Giới thiệu
+                    </Text>
+                  </HStack>
+                  <Text color="gray.700" fontSize="sm" lineHeight={1.8}>
+                    {(user as any).bio || (
+                      <Text as="span" color="gray.400" fontStyle="italic">
+                        Chưa có mô tả. Nhấn "Chỉnh sửa" để thêm giới thiệu bản
+                        thân.
+                      </Text>
+                    )}
                   </Text>
-                </HStack>
-                <Text color="gray.700" fontSize="sm" lineHeight={1.8}>
-                  {(user as any).bio || (
-                    <Text as="span" color="gray.400" fontStyle="italic">
-                      Chưa có mô tả. Nhấn "Chỉnh sửa" để thêm giới thiệu bản
-                      thân.
+                </Box>
+
+                {/* Contact */}
+                <Box px={8} py={5}>
+                  <HStack gap={2} mb={3}>
+                    <Box as={FiPhone} w={4} h={4} color="gray.400" />
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color="gray.600"
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                    >
+                      Liên hệ
+                    </Text>
+                  </HStack>
+                  <VStack align="stretch" gap={3}>
+                    <HStack gap={3} justify="space-between">
+                      <HStack gap={3}>
+                        <Box
+                          as={FiMail}
+                          w={4}
+                          h={4}
+                          color="gray.300"
+                          flexShrink={0}
+                        />
+                        <Text fontSize="sm" color="gray.700">
+                          {user.email}
+                        </Text>
+                      </HStack>
+                      {user.email && (
+                        <VerificationBadge
+                          verified={user.is_email_verified ?? false}
+                        />
+                      )}
+                    </HStack>
+                    <HStack gap={3} justify="space-between">
+                      <HStack gap={3}>
+                        <Box
+                          as={FiPhone}
+                          w={4}
+                          h={4}
+                          color="gray.300"
+                          flexShrink={0}
+                        />
+                        <Text
+                          fontSize="sm"
+                          color={(user as any).phone ? "gray.700" : "gray.400"}
+                        >
+                          {(user as any).phone || "Chưa cập nhật số điện thoại"}
+                        </Text>
+                      </HStack>
+                      {(user as any).phone && (
+                        <VerificationBadge
+                          verified={(user as any).is_phone_verified ?? false}
+                        />
+                      )}
+                    </HStack>
+
+                    {(user as any).phone &&
+                      !(user as any).is_phone_verified && (
+                        <Box pt={2}>
+                          <HStack gap={2} mb={2}>
+                            <Input
+                              value={otpCode}
+                              onChange={(event) =>
+                                setOtpCode(event.target.value)
+                              }
+                              placeholder="Nhập OTP 6 số"
+                              maxLength={6}
+                              w="180px"
+                            />
+                            <Button
+                              colorPalette="blue"
+                              variant="outline"
+                              onClick={() => sendOtpMutation.mutate()}
+                              loading={sendOtpMutation.isPending}
+                            >
+                              Gửi OTP
+                            </Button>
+                            <Button
+                              colorPalette="green"
+                              onClick={() => verifyOtpMutation.mutate(otpCode)}
+                              loading={verifyOtpMutation.isPending}
+                              disabled={otpCode.trim().length !== 6}
+                            >
+                              Xác thực
+                            </Button>
+                          </HStack>
+                          <Text fontSize="xs" color="gray.500">
+                            Nếu bạn vừa đổi số điện thoại, hãy lưu hồ sơ trước
+                            rồi gửi OTP ở đây.
+                          </Text>
+                        </Box>
+                      )}
+                  </VStack>
+                </Box>
+
+                {/* Address */}
+                <Box px={8} py={5}>
+                  <HStack gap={2} mb={3}>
+                    <Box as={FiMapPin} w={4} h={4} color="gray.400" />
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color="gray.600"
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                    >
+                      Địa chỉ
+                    </Text>
+                  </HStack>
+                  {fullAddress ? (
+                    <Text fontSize="sm" color="gray.700">
+                      {fullAddress}
+                    </Text>
+                  ) : (
+                    <Text fontSize="sm" color="gray.400" fontStyle="italic">
+                      Chưa cập nhật địa chỉ
                     </Text>
                   )}
-                </Text>
-              </Box>
+                </Box>
 
-              {/* Contact */}
-              <Box px={8} py={5}>
-                <HStack gap={2} mb={3}>
-                  <Box as={FiPhone} w={4} h={4} color="gray.400" />
-                  <Text
-                    fontSize="sm"
-                    fontWeight="semibold"
-                    color="gray.600"
-                    textTransform="uppercase"
-                    letterSpacing="wider"
-                  >
-                    Liên hệ
-                  </Text>
-                </HStack>
-                <VStack align="stretch" gap={3}>
-                  <HStack gap={3} justify="space-between">
-                    <HStack gap={3}>
-                      <Box
-                        as={FiMail}
-                        w={4}
-                        h={4}
-                        color="gray.300"
-                        flexShrink={0}
-                      />
-                      <Text fontSize="sm" color="gray.700">
-                        {user.email}
-                      </Text>
-                    </HStack>
-                    {user.email && (
-                      <VerificationBadge
-                        verified={user.is_email_verified ?? false}
-                      />
-                    )}
+                {/* Member Since */}
+                <Box px={8} py={5}>
+                  <HStack gap={2} mb={2}>
+                    <Box as={FiCalendar} w={4} h={4} color="gray.400" />
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color="gray.600"
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                    >
+                      Thành viên từ
+                    </Text>
                   </HStack>
-                  <HStack gap={3} justify="space-between">
-                    <HStack gap={3}>
-                      <Box
-                        as={FiPhone}
-                        w={4}
-                        h={4}
-                        color="gray.300"
-                        flexShrink={0}
-                      />
-                      <Text
-                        fontSize="sm"
-                        color={(user as any).phone ? "gray.700" : "gray.400"}
-                      >
-                        {(user as any).phone || "Chưa cập nhật số điện thoại"}
-                      </Text>
-                    </HStack>
-                    {(user as any).phone && (
-                      <VerificationBadge
-                        verified={(user as any).is_phone_verified ?? false}
-                      />
-                    )}
-                  </HStack>
-
-                  {(user as any).phone && !(user as any).is_phone_verified && (
-                    <Box pt={2}>
-                      <HStack gap={2} mb={2}>
-                        <Input
-                          value={otpCode}
-                          onChange={(event) => setOtpCode(event.target.value)}
-                          placeholder="Nhập OTP 6 số"
-                          maxLength={6}
-                          w="180px"
-                        />
-                        <Button
-                          colorPalette="blue"
-                          variant="outline"
-                          onClick={() => sendOtpMutation.mutate()}
-                          loading={sendOtpMutation.isPending}
-                        >
-                          Gửi OTP
-                        </Button>
-                        <Button
-                          colorPalette="green"
-                          onClick={() => verifyOtpMutation.mutate(otpCode)}
-                          loading={verifyOtpMutation.isPending}
-                          disabled={otpCode.trim().length !== 6}
-                        >
-                          Xác thực
-                        </Button>
-                      </HStack>
-                      <Text fontSize="xs" color="gray.500">
-                        Nếu bạn vừa đổi số điện thoại, hãy lưu hồ sơ trước rồi
-                        gửi OTP ở đây.
-                      </Text>
-                    </Box>
-                  )}
-                </VStack>
-              </Box>
-
-              {/* Address */}
-              <Box px={8} py={5}>
-                <HStack gap={2} mb={3}>
-                  <Box as={FiMapPin} w={4} h={4} color="gray.400" />
-                  <Text
-                    fontSize="sm"
-                    fontWeight="semibold"
-                    color="gray.600"
-                    textTransform="uppercase"
-                    letterSpacing="wider"
-                  >
-                    Địa chỉ
-                  </Text>
-                </HStack>
-                {fullAddress ? (
                   <Text fontSize="sm" color="gray.700">
-                    {fullAddress}
+                    {new Date(user.created_at).toLocaleDateString("vi-VN", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
                   </Text>
-                ) : (
-                  <Text fontSize="sm" color="gray.400" fontStyle="italic">
-                    Chưa cập nhật địa chỉ
-                  </Text>
-                )}
-              </Box>
-
-              {/* Member Since */}
-              <Box px={8} py={5}>
-                <HStack gap={2} mb={2}>
-                  <Box as={FiCalendar} w={4} h={4} color="gray.400" />
-                  <Text
-                    fontSize="sm"
-                    fontWeight="semibold"
-                    color="gray.600"
-                    textTransform="uppercase"
-                    letterSpacing="wider"
-                  >
-                    Thành viên từ
-                  </Text>
-                </HStack>
-                <Text fontSize="sm" color="gray.700">
-                  {new Date(user.created_at).toLocaleDateString("vi-VN", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </Text>
-              </Box>
-            </VStack>
-          </Box>
-        )}
+                </Box>
+              </VStack>
+            </Box>
+          )}
+        </Box>
       </Container>
     </Box>
-  )
+  );
 }

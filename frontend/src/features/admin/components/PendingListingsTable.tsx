@@ -6,19 +6,19 @@ import {
   Spinner,
   Table,
   Text,
-} from "@chakra-ui/react"
-import { useState } from "react"
-import { FiCheck, FiX } from "react-icons/fi"
-import type { ListingRead } from "@/client"
-import { useApproveListing, useRejectListing } from "../hooks/useAdminListings"
-import { ConfirmDialog } from "./ConfirmDialog"
+} from "@chakra-ui/react";
+import { useState } from "react";
+import { FiCheck, FiX } from "react-icons/fi";
+import type { ListingRead } from "@/client";
+import { useApproveListing, useRejectListing } from "../hooks/useAdminListings";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface PendingListingsTableProps {
-  listings: ListingRead[]
-  isLoading: boolean
+  listings: ListingRead[];
+  isLoading: boolean;
 }
 
-type ActionType = "approve" | "reject" | null
+type ActionType = "approve" | "reject" | null;
 
 export function PendingListingsTable({
   listings,
@@ -26,43 +26,44 @@ export function PendingListingsTable({
 }: PendingListingsTableProps) {
   const [selectedListing, setSelectedListing] = useState<ListingRead | null>(
     null,
-  )
-  const [actionType, setActionType] = useState<ActionType>(null)
+  );
+  const [actionType, setActionType] = useState<ActionType>(null);
 
-  const approveMutation = useApproveListing()
-  const rejectMutation = useRejectListing()
+  const approveMutation = useApproveListing();
+  const rejectMutation = useRejectListing();
 
   const handleAction = (listing: ListingRead, type: "approve" | "reject") => {
-    setSelectedListing(listing)
-    setActionType(type)
-  }
+    setSelectedListing(listing);
+    setActionType(type);
+  };
 
   const handleConfirm = () => {
-    if (!selectedListing || !actionType) return
+    if (!selectedListing || !actionType) return;
 
-    const mutation = actionType === "approve" ? approveMutation : rejectMutation
+    const mutation =
+      actionType === "approve" ? approveMutation : rejectMutation;
 
     mutation.mutate(selectedListing.id, {
       onSuccess: () => {
-        setSelectedListing(null)
-        setActionType(null)
+        setSelectedListing(null);
+        setActionType(null);
       },
-    })
-  }
+    });
+  };
 
   const formatPrice = (price: string) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(parseInt(price, 10))
-  }
+    }).format(parseInt(price, 10));
+  };
 
   if (isLoading) {
     return (
       <Flex justify="center" py={12}>
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   if (listings.length === 0) {
@@ -70,7 +71,7 @@ export function PendingListingsTable({
       <Flex justify="center" py={12}>
         <Text color="gray.500">Không có tin đăng chờ duyệt</Text>
       </Flex>
-    )
+    );
   }
 
   return (
@@ -78,51 +79,61 @@ export function PendingListingsTable({
       <Box overflowX="auto">
         <Table.Root size="md">
           <Table.Header>
-            <Table.Row bg="gray.100">
+            <Table.Row bg="gray.50">
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
               >
                 Tiêu đề
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
               >
                 Giá
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
               >
                 Tình trạng
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
               >
-                Ngày tạo
+                Ngày đăng
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
               >
-                Hành động
+                Thao tác
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
@@ -210,8 +221,8 @@ export function PendingListingsTable({
         open={!!selectedListing && !!actionType}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedListing(null)
-            setActionType(null)
+            setSelectedListing(null);
+            setActionType(null);
           }
         }}
         title={
@@ -228,5 +239,5 @@ export function PendingListingsTable({
         isLoading={approveMutation.isPending || rejectMutation.isPending}
       />
     </>
-  )
+  );
 }

@@ -1,73 +1,72 @@
 import {
   Box,
-  Link as ChakraLink,
-  Container,
-  Flex,
   Heading,
+  Link as ChakraLink,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import { Link } from "@tanstack/react-router"
-import { FiPackage } from "react-icons/fi"
-import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm"
+} from "@chakra-ui/react";
+import { Link } from "@tanstack/react-router";
+import { FiMail } from "react-icons/fi";
+import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout";
+import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm";
 
 export function VerifyEmailPage() {
   return (
-    <Box
-      minH="100vh"
-      bg="gray.50"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      py={12}
-      px={4}
-    >
-      <Container maxW="md" w="full">
-        {/* Header */}
-        <VStack gap={2} textAlign="center" mb={8}>
-          <Flex
-            h={14}
-            w={14}
-            alignItems="center"
-            justifyContent="center"
-            borderRadius="xl"
-            bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
-            mb={2}
-          >
-            <Box as={FiPackage} w={7} h={7} color="white" />
-          </Flex>
-          <Heading as="h1" size="xl" color="gray.900" fontWeight="bold">
-            ReHub
-          </Heading>
-          <Heading
-            as="h2"
-            size="md"
-            color="gray.700"
-            fontWeight="semibold"
-            mt={4}
-          >
-            Xác thực Email
-          </Heading>
-          <Text fontSize="sm" color="gray.500" mt={1}>
-            Chúng tôi đã gửi một email xác thực đến bạn
-          </Text>
-        </VStack>
-
-        {/* Form */}
-        <Box bg="white" py={8} px={6} boxShadow="md" borderRadius="xl">
-          <VerifyEmailForm />
+    <AuthPageLayout backTo="/auth/login" backLabel="Về trang đăng nhập">
+      {/* Header */}
+      <VStack align="center" gap={3} mb={8}>
+        {/* Email icon */}
+        <Box
+          w="4rem"
+          h="4rem"
+          borderRadius="1.25rem"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          fontSize="2rem"
+          style={{
+            background: "linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 100%)",
+            boxShadow: "0 8px 24px rgba(59,130,246,0.15)",
+          }}
+        >
+          <Box as={FiMail} color="blue.600" w={8} h={8} />
         </Box>
+        <Heading
+          fontSize="1.5rem"
+          fontWeight="900"
+          color="gray.900"
+          textAlign="center"
+          letterSpacing="-0.02em"
+        >
+          Xác thực Email
+        </Heading>
+        <Text fontSize="sm" color="gray.500" textAlign="center" maxW="320px">
+          Chúng tôi đã gửi một email xác thực đến bạn. Vui lòng kiểm tra hộp thư
+          và nhập mã bên dưới.
+        </Text>
+      </VStack>
 
-        {/* Footer */}
-        <VStack gap={4} mt={8} textAlign="center">
-          <Text fontSize="xs" color="gray.500">
-            Các vấn đề về xác thực?{" "}
-            <ChakraLink asChild color="blue.600" _hover={{ color: "blue.700" }}>
-              <Link to="/auth/login">Quay lại đăng nhập</Link>
-            </ChakraLink>
-          </Text>
-        </VStack>
-      </Container>
-    </Box>
-  )
+      <VerifyEmailForm />
+
+      <Box
+        mt={8}
+        pt={6}
+        borderTop="1px solid"
+        borderColor="gray.100"
+        textAlign="center"
+      >
+        <Text fontSize="sm" color="gray.500">
+          Gặp vấn đề?{" "}
+          <ChakraLink
+            asChild
+            color="blue.600"
+            fontWeight="600"
+            _hover={{ color: "blue.700" }}
+          >
+            <Link to="/auth/login">Quay lại đăng nhập</Link>
+          </ChakraLink>
+        </Text>
+      </Box>
+    </AuthPageLayout>
+  );
 }

@@ -16,10 +16,15 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+} from "@chakra-ui/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearch,
+} from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowLeft,
@@ -30,26 +35,31 @@ import {
   FiStar,
   // FiTag,
   FiUser,
-} from "react-icons/fi"
-import type { CategoryTree } from "@/client"
-import { ApiError } from "@/client"
-import { toaster } from "@/components/ui/toaster"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { openChatWidget } from "@/features/chat/chat-widget.events"
-import { getCategoriesTree } from "@/features/home/api/marketplace.api"
+} from "react-icons/fi";
+import type { CategoryTree } from "@/client";
+import { ApiError } from "@/client";
+import { toaster } from "@/components/ui/toaster";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
+import { openChatWidget } from "@/features/chat/chat-widget.events";
+import { getCategoriesTree } from "@/features/home/api/marketplace.api";
 import {
   flattenCategories,
   formatCurrencyVnd,
   formatPostedTime,
   getListingImageUrl,
-} from "@/features/home/utils/marketplace.utils"
-import { getListingDetails } from "@/features/listings/api/listings.api"
-import { createOffer } from "@/features/offers/api/offers.api"
-import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal"
-import { useOffersForListing } from "@/features/offers/hooks/useOffers"
-import { createOrder } from "@/features/orders/api/orders.api"
-import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
-import { getUserPublicProfile } from "@/features/users/api/users.api"
+} from "@/features/home/utils/marketplace.utils";
+import { getListingDetails } from "@/features/listings/api/listings.api";
+import { createOffer } from "@/features/offers/api/offers.api";
+import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal";
+import { useOffersForListing } from "@/features/offers/hooks/useOffers";
+import { createOrder } from "@/features/orders/api/orders.api";
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
+import {
+  getUserPublicProfile,
+  getSellerListings,
+} from "@/features/users/api/users.api";
+import { getListings } from "@/features/home/api/marketplace.api";
+import { ListingCard } from "@/features/users/components/ListingCard";
 
 const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
   brand_new: { label: "Mới 100%", color: "green" },
@@ -57,7 +67,7 @@ const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
   good: { label: "Tốt", color: "blue" },
   fair: { label: "Khá", color: "yellow" },
   poor: { label: "Cũ", color: "gray" },
-}
+};
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active: { label: "Đang bán", color: "green" },
@@ -65,7 +75,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   sold: { label: "Đã bán", color: "gray" },
   hidden: { label: "Ẩn", color: "gray" },
   rejected: { label: "Bị từ chối", color: "red" },
-}
+};
 
 const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
   pending: { label: "Chờ xử lý", color: "yellow" },
@@ -73,123 +83,139 @@ const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
   rejected: { label: "Đã từ chối", color: "red" },
   countered: { label: "Đã counter", color: "blue" },
   expired: { label: "Hết hạn", color: "gray" },
-}
+};
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
-    const detail = (error.body as { detail?: unknown })?.detail
+    const detail = (error.body as { detail?: unknown })?.detail;
     if (typeof detail === "string" && detail.trim()) {
-      return detail
+      return detail;
     }
     if (Array.isArray(detail) && detail.length > 0) {
-      const firstMessage = (detail[0] as { msg?: unknown })?.msg
+      const firstMessage = (detail[0] as { msg?: unknown })?.msg;
       if (typeof firstMessage === "string" && firstMessage.trim()) {
-        return firstMessage
+        return firstMessage;
       }
     }
   }
 
   if (error instanceof Error && error.message.trim()) {
-    return error.message
+    return error.message;
   }
 
-  return fallback
+  return fallback;
 }
 
 async function copyTextRobust(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text)
-      return true
+      await navigator.clipboard.writeText(text);
+      return true;
     }
   } catch {
     // Fallback below
   }
 
   try {
-    const textarea = document.createElement("textarea")
-    textarea.value = text
-    textarea.setAttribute("readonly", "")
-    textarea.style.position = "fixed"
-    textarea.style.top = "-9999px"
-    textarea.style.left = "-9999px"
-    document.body.appendChild(textarea)
-    textarea.focus()
-    textarea.select()
-    textarea.setSelectionRange(0, textarea.value.length)
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
 
-    const copied = document.execCommand("copy")
-    document.body.removeChild(textarea)
-    return copied
+    const copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return copied;
   } catch {
-    return false
+    return false;
   }
 }
 
 export function ListingDetailPage() {
-  const navigate = useNavigate()
-  const { id } = useParams({ from: "/listings/$id" })
+  const navigate = useNavigate();
+  const { id } = useParams({ from: "/listings/$id" });
   const search = useSearch({ from: "/listings/$id" }) as
     | { offerId?: string }
-    | undefined
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
-  const [offerPrice, setOfferPrice] = useState("")
-  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false)
-  const [isOfferDetailModalOpen, setIsOfferDetailModalOpen] = useState(false)
+    | undefined;
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [offerPrice, setOfferPrice] = useState("");
+  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
+  const [isOfferDetailModalOpen, setIsOfferDetailModalOpen] = useState(false);
   const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(
     undefined,
-  )
-  const { user, isAuthenticated } = useAuthUser()
+  );
+  const { user, isAuthenticated } = useAuthUser();
 
   // Auto-open offer detail modal if offerId is in URL search params
   useEffect(() => {
     if (search?.offerId) {
-      setSelectedOfferId(search.offerId)
-      setIsOfferDetailModalOpen(true)
+      setSelectedOfferId(search.offerId);
+      setIsOfferDetailModalOpen(true);
     }
-  }, [search?.offerId])
+  }, [search?.offerId]);
 
   const listingQuery = useQuery({
     queryKey: ["listing", id],
     queryFn: () => getListingDetails(id),
     enabled: !!id,
-  })
+  });
 
-  const sellerId = listingQuery.data?.seller_id ?? ""
+  const sellerId = listingQuery.data?.seller_id ?? "";
   const sellerProfileQuery = useQuery({
     queryKey: ["seller-profile", sellerId],
     queryFn: () => getUserPublicProfile(sellerId),
     enabled: !!sellerId,
-  })
-  const isSellerOnline = useIsUserOnline(sellerId)
+  });
+  const isSellerOnline = useIsUserOnline(sellerId);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
     queryFn: () => getCategoriesTree(),
-  })
+  });
 
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
-  })
+  });
 
   const createOfferMutation = useMutation({
     mutationFn: createOffer,
-  })
+  });
+
+  // Seller's other listings (exclude current)
+  const sellerListingsQuery = useQuery({
+    queryKey: ["seller-listings", sellerId],
+    queryFn: () => getSellerListings({ sellerId, limit: 7 }),
+    enabled: !!sellerId,
+  });
+
+  // Similar listings (same category, exclude current + seller)
+  const categoryId = listingQuery.data?.category_id ?? "";
+  const similarListingsQuery = useQuery({
+    queryKey: ["similar-listings", categoryId],
+    queryFn: () => getListings({ categoryId, limit: 9 }),
+    enabled: !!categoryId,
+  });
 
   // Hook must be called unconditionally before early returns
-  const isOwnListingCheck = user?.id && listingQuery.data?.seller_id === user.id
+  const isOwnListingCheck =
+    user?.id && listingQuery.data?.seller_id === user.id;
   const listingOffersQuery = useOffersForListing(
     isOwnListingCheck && listingQuery.data ? listingQuery.data.id : "",
     {
       limit: 20,
     },
-  )
+  );
 
-  const categoryMap = new Map<string, CategoryTree>()
+  const categoryMap = new Map<string, CategoryTree>();
   if (categoriesQuery.data) {
     flattenCategories(categoriesQuery.data).forEach((cat) => {
-      categoryMap.set(cat.id, cat)
-    })
+      categoryMap.set(cat.id, cat);
+    });
   }
 
   if (listingQuery.isLoading) {
@@ -197,7 +223,7 @@ export function ListingDetailPage() {
       <Flex minH="100vh" align="center" justify="center" bg="gray.50">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   if (listingQuery.isError || !listingQuery.data) {
@@ -238,55 +264,55 @@ export function ListingDetailPage() {
           </Box>
         </Container>
       </Box>
-    )
+    );
   }
 
-  const listing = listingQuery.data
-  const category = categoryMap.get(listing.category_id)
+  const listing = listingQuery.data;
+  const category = categoryMap.get(listing.category_id);
   const conditionInfo = CONDITION_LABELS[listing.condition_grade] ?? {
     label: listing.condition_grade,
     color: "gray",
-  }
+  };
   const statusInfo = STATUS_LABELS[listing.status] ?? {
     label: listing.status,
     color: "gray",
-  }
+  };
 
-  const images = listing.images ?? []
-  const currentImage = images[selectedImageIndex]
-  const isOwnListing = user?.id === listing.seller_id
-  const canTransact = listing.status === "active" && !isOwnListing
+  const images = listing.images ?? [];
+  const currentImage = images[selectedImageIndex];
+  const isOwnListing = user?.id === listing.seller_id;
+  const canTransact = listing.status === "active" && !isOwnListing;
 
   const requireAuth = () => {
     if (isAuthenticated) {
-      return true
+      return true;
     }
-    navigate({ to: "/auth/login" })
-    return false
-  }
+    navigate({ to: "/auth/login" });
+    return false;
+  };
 
   const handleBuyNow = async () => {
     if (!requireAuth()) {
-      return
+      return;
     }
 
     if (!canTransact) {
       toaster.create({
         title: "Bạn không thể mua sản phẩm này ở thời điểm hiện tại.",
         type: "error",
-      })
-      return
+      });
+      return;
     }
 
     try {
       const order = await createOrderMutation.mutateAsync({
         listing_id: listing.id,
         use_escrow: true,
-      })
+      });
       toaster.create({
         title: `Đặt hàng thành công. Mã đơn: ${order.id.slice(0, 8)}... Vào trang đơn hàng để fund ví demo.`,
         type: "success",
-      })
+      });
     } catch (error) {
       toaster.create({
         title: getErrorMessage(
@@ -294,47 +320,47 @@ export function ListingDetailPage() {
           "Không thể tạo đơn hàng. Vui lòng thử lại.",
         ),
         type: "error",
-      })
+      });
     }
-  }
+  };
 
   const handleOpenOfferDialog = () => {
     if (!requireAuth()) {
-      return
+      return;
     }
 
     if (!canTransact) {
       toaster.create({
         title: "Bạn không thể thương lượng sản phẩm này ở thời điểm hiện tại.",
         type: "error",
-      })
-      return
+      });
+      return;
     }
 
-    setOfferPrice(listing.price)
-    setIsOfferDialogOpen(true)
-  }
+    setOfferPrice(listing.price);
+    setIsOfferDialogOpen(true);
+  };
 
   const handleSubmitOffer = async () => {
-    const parsedPrice = Number(offerPrice)
+    const parsedPrice = Number(offerPrice);
     if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
       toaster.create({
         title: "Giá đề xuất phải là số lớn hơn 0.",
         type: "error",
-      })
-      return
+      });
+      return;
     }
 
     try {
       await createOfferMutation.mutateAsync({
         listing_id: listing.id,
         offer_price: parsedPrice,
-      })
-      setIsOfferDialogOpen(false)
+      });
+      setIsOfferDialogOpen(false);
       toaster.create({
         title: "Đã gửi đề xuất giá cho người bán thành công.",
         type: "success",
-      })
+      });
     } catch (error) {
       toaster.create({
         title: getErrorMessage(
@@ -342,9 +368,9 @@ export function ListingDetailPage() {
           "Không thể gửi đề xuất giá. Vui lòng thử lại.",
         ),
         type: "error",
-      })
+      });
     }
-  }
+  };
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -559,9 +585,9 @@ export function ListingDetailPage() {
                         _hover={{ bg: "blue.100" }}
                         onClick={() => {
                           if (!requireAuth()) {
-                            return
+                            return;
                           }
-                          openChatWidget(listing.seller_id, listing.id)
+                          openChatWidget(listing.seller_id, listing.id);
                         }}
                       >
                         <FiMessageCircle style={{ marginRight: "0.5rem" }} />
@@ -574,19 +600,19 @@ export function ListingDetailPage() {
                         color="gray.700"
                         _hover={{ bg: "gray.50" }}
                         onClick={async () => {
-                          const url = `${window.location.origin}/listings/${listing.id}`
-                          const copied = await copyTextRobust(url)
+                          const url = `${window.location.origin}/listings/${listing.id}`;
+                          const copied = await copyTextRobust(url);
                           if (copied) {
                             toaster.create({
                               title:
                                 "Đã copy link tin đăng. Dán vào chat để gửi card sản phẩm.",
                               type: "success",
-                            })
+                            });
                           } else {
                             toaster.create({
                               title: "Không thể copy link. Vui lòng thử lại.",
                               type: "error",
-                            })
+                            });
                           }
                         }}
                       >
@@ -741,10 +767,12 @@ export function ListingDetailPage() {
                       listingOffersQuery.data.length > 0 ? (
                       <VStack align="stretch" gap={3}>
                         {listingOffersQuery.data.map((offer) => {
-                          const statusMeta = OFFER_STATUS_META[offer.status] ?? {
+                          const statusMeta = OFFER_STATUS_META[
+                            offer.status
+                          ] ?? {
                             label: offer.status,
                             color: "gray",
-                          }
+                          };
 
                           return (
                             <Box
@@ -767,7 +795,9 @@ export function ListingDetailPage() {
                                   </Text>
                                   <Text fontSize="sm" color="gray.500">
                                     Offer: {offer.id.slice(0, 8)}... ·{" "}
-                                    {new Date(offer.created_at).toLocaleString("vi-VN")}
+                                    {new Date(offer.created_at).toLocaleString(
+                                      "vi-VN",
+                                    )}
                                   </Text>
                                 </Box>
 
@@ -779,8 +809,8 @@ export function ListingDetailPage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => {
-                                      setSelectedOfferId(offer.id)
-                                      setIsOfferDetailModalOpen(true)
+                                      setSelectedOfferId(offer.id);
+                                      setIsOfferDetailModalOpen(true);
                                     }}
                                   >
                                     Xem chi tiết
@@ -788,7 +818,7 @@ export function ListingDetailPage() {
                                 </HStack>
                               </Flex>
                             </Box>
-                          )
+                          );
                         })}
                       </VStack>
                     ) : (
@@ -812,7 +842,11 @@ export function ListingDetailPage() {
                     Mô tả sản phẩm
                   </Heading>
                   {listing.description ? (
-                    <Text color="gray.700" whiteSpace="pre-wrap" lineHeight={1.8}>
+                    <Text
+                      color="gray.700"
+                      whiteSpace="pre-wrap"
+                      lineHeight={1.8}
+                    >
                       {listing.description}
                     </Text>
                   ) : (
@@ -830,6 +864,114 @@ export function ListingDetailPage() {
           </SimpleGrid>
         </Box>
       </Container>
+
+      {/* ===== EXTRA SECTIONS ===== */}
+      <Box bg="gray.50">
+        <Container maxW="1400px" mx="auto" px={{ base: 4, md: 6 }}>
+          {/* CTA Banner */}
+          <Box
+            mt={8}
+            p={{ base: 5, md: 7 }}
+            borderRadius="2xl"
+            background="linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fbbf24 100%)"
+            color="white"
+            display="flex"
+            flexDirection={{ base: "column", sm: "row" }}
+            alignItems="center"
+            justifyContent="space-between"
+            gap={4}
+            boxShadow="0 8px 30px rgba(251,146,60,0.35)"
+          >
+            <Box>
+              <Text fontSize={{ base: "lg", md: "xl" }} fontWeight="800" mb={1}>
+                Bạn có sản phẩm tương tự?
+              </Text>
+              <Text fontSize="sm" opacity={0.9}>
+                Đăng tin miễn phí – Tiếp cận hàng nghìn người mua ngay hôm nay!
+              </Text>
+            </Box>
+            <Button
+              asChild
+              bg="white"
+              color="orange.500"
+              fontWeight="700"
+              flexShrink={0}
+              borderRadius="xl"
+              px={7}
+              _hover={{ bg: "orange.50", transform: "translateY(-1px)" }}
+              transition="all 0.2s"
+              size="lg"
+            >
+              <Link to="/my-listings">Đăng tin ngay</Link>
+            </Button>
+          </Box>
+
+          {/* Seller's other listings */}
+          {sellerListingsQuery.data &&
+            sellerListingsQuery.data.items.filter((l) => l.id !== id).length >
+              0 && (
+              <Box mt={12}>
+                <Flex align="center" gap={3} mb={5}>
+                  <Heading
+                    as="h2"
+                    fontSize="lg"
+                    fontWeight="800"
+                    color="gray.900"
+                  >
+                    Tin rao khác của người bán
+                  </Heading>
+                </Flex>
+                <SimpleGrid
+                  columns={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }}
+                  gap={4}
+                >
+                  {sellerListingsQuery.data.items
+                    .filter((l) => l.id !== id)
+                    .slice(0, 6)
+                    .map((l) => (
+                      <ListingCard
+                        key={l.id}
+                        listing={l}
+                        categoryMap={categoryMap}
+                        seller={sellerProfileQuery.data}
+                      />
+                    ))}
+                </SimpleGrid>
+              </Box>
+            )}
+
+          {/* Similar Listings */}
+          {similarListingsQuery.data &&
+            similarListingsQuery.data.items.filter(
+              (l) => l.id !== id && l.seller_id !== sellerId,
+            ).length > 0 && (
+              <Box mt={12} mb={12}>
+                <Flex align="center" gap={3} mb={5}>
+                  <Heading
+                    as="h2"
+                    fontSize="lg"
+                    fontWeight="800"
+                    color="gray.900"
+                  >
+                    Tin đăng tương tự
+                  </Heading>
+                </Flex>
+                <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} gap={4}>
+                  {similarListingsQuery.data.items
+                    .filter((l) => l.id !== id && l.seller_id !== sellerId)
+                    .slice(0, 8)
+                    .map((l) => (
+                      <ListingCard
+                        key={l.id}
+                        listing={l}
+                        categoryMap={categoryMap}
+                      />
+                    ))}
+                </SimpleGrid>
+              </Box>
+            )}
+        </Container>
+      </Box>
 
       <Dialog.Root
         open={isOfferDialogOpen}
@@ -896,5 +1038,5 @@ export function ListingDetailPage() {
         offerId={selectedOfferId}
       />
     </Box>
-  )
+  );
 }

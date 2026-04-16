@@ -401,7 +401,6 @@
 
 import {
   Box,
-  Button,
   Container,
   Flex,
   Heading,
@@ -409,41 +408,40 @@ import {
   SimpleGrid,
   Text,
   HStack,
-} from "@chakra-ui/react"
-import { useMemo, useState } from "react"
-import type { ConditionGrade } from "@/client"
-import { toaster } from "@/components/ui/toaster"
-import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
-import { CategorySidebar } from "@/features/home/components/CategorySidebar"
-import { ListingGrid } from "@/features/home/components/ListingGrid"
-import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
-import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData"
-import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm"
-import { ListingModal } from "@/features/listings/components/ListingModal"
+} from "@chakra-ui/react";
+import { useMemo, useState } from "react";
+import { toaster } from "@/components/ui/toaster";
+import { CategoryOverlay } from "@/features/home/components/CategoryOverlay";
+import { CategorySidebar } from "@/features/home/components/CategorySidebar";
+import { CategoryQuickAccess } from "@/features/home/components/CategoryQuickAccess";
+import { HeroBannerCarousel } from "@/features/home/components/HeroBannerCarousel";
+import { ListingGrid } from "@/features/home/components/ListingGrid";
+import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader";
+import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData";
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
+import { ListingModal } from "@/features/listings/components/ListingModal";
 import {
   useCreateListing,
   useUploadListingImage,
-} from "@/features/listings/hooks/useMyListings"
+} from "@/features/listings/hooks/useMyListings";
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination"
+} from "@/components/ui/pagination";
 
-type ListingSortBy = "newest" | "price_asc" | "price_desc"
+type ListingSortBy = "newest" | "price_asc" | "price_desc";
 
 export function HomeMarketplacePage() {
-  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false)
-  const [isListingModalOpen, setIsListingModalOpen] = useState(false)
+  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false);
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
 
   const {
     selectedCategoryId,
     setSelectedCategoryId,
     keyword,
     setKeyword,
-    conditionGrade,
-    setConditionGrade,
     province,
     setProvince,
     district,
@@ -462,40 +460,42 @@ export function HomeMarketplacePage() {
     categoryMap,
     sellerMap,
     flatCategories,
-  } = useMarketplaceData()
+  } = useMarketplaceData();
 
-  const listings = listingsQuery.data?.items ?? []
-  const totalListings = listingsQuery.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalListings / pageSize))
-  const isLoading = categoriesQuery.isLoading || listingsQuery.isLoading
-  const isError = categoriesQuery.isError || listingsQuery.isError
+  const listings = listingsQuery.data?.items ?? [];
+  const totalListings = listingsQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalListings / pageSize));
+  const isLoading = categoriesQuery.isLoading || listingsQuery.isLoading;
 
   const selectedCategoryName = useMemo(() => {
-    if (!selectedCategoryId) return "Tất cả sản phẩm"
-    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục"
-  }, [selectedCategoryId, categoryMap])
+    if (!selectedCategoryId) return "Tất cả sản phẩm";
+    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục";
+  }, [selectedCategoryId, categoryMap]);
 
-  const createMutation = useCreateListing()
-  const uploadImageMutation = useUploadListingImage()
+  const createMutation = useCreateListing();
+  const uploadImageMutation = useUploadListingImage();
 
   const handleCreateListing = async (payload: ListingFormSubmitPayload) => {
     try {
-      const created = await createMutation.mutateAsync(payload.data)
+      const created = await createMutation.mutateAsync(payload.data);
       if (payload.files.length > 0) {
         for (let i = 0; i < payload.files.length; i++) {
           await uploadImageMutation.mutateAsync({
             listingId: created.id,
             file: payload.files[i],
             isPrimary: i === 0,
-          })
+          });
         }
       }
-      setIsListingModalOpen(false)
-      toaster.create({ title: "Đăng tin thành công!", type: "success" })
+      setIsListingModalOpen(false);
+      toaster.create({ title: "Đăng tin thành công!", type: "success" });
     } catch (error: any) {
-      toaster.create({ title: error?.message || "Đăng tin thất bại", type: "error" })
+      toaster.create({
+        title: error?.message || "Đăng tin thất bại",
+        type: "error",
+      });
     }
-  }
+  };
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -504,6 +504,7 @@ export function HomeMarketplacePage() {
         onKeywordChange={setKeyword}
         onOpenCategoryMenu={() => setCategoryOverlayOpen(true)}
         onOpenListingModal={() => setIsListingModalOpen(true)}
+        showMarquee={true}
       />
 
       <CategoryOverlay
@@ -512,74 +513,163 @@ export function HomeMarketplacePage() {
         selectedCategoryId={selectedCategoryId}
         onClose={() => setCategoryOverlayOpen(false)}
         onSelectCategory={(id) => {
-          setSelectedCategoryId(id)
-          setCategoryOverlayOpen(false)
+          setSelectedCategoryId(id);
+          setCategoryOverlayOpen(false);
         }}
         onOpenListingModal={() => setIsListingModalOpen(true)}
       />
 
-      <Container maxW="1440px" mx="auto" px="2%" pt="7.5rem" pb="5rem">
-        <Box
-          mb="2.5rem"
-          borderRadius="1.5rem"
-          p="4%"
-          color="white"
-          boxShadow="0 20px 40px rgba(2, 69, 122, 0.12)"
-          position="relative"
-          overflow="hidden"
-          bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
-        >
-          <Text fontSize="0.75rem" textTransform="uppercase" letterSpacing="0.2em" color="whiteAlpha.700" fontWeight="800" mb="0.5rem">
-            ReHub Marketplace
-          </Text>
-          <Heading as="h1" fontSize={{ base: "1.75rem", md: "2.5rem" }} fontWeight="900" lineHeight="1.1">
-            Trao đổi đồ cũ, <br /> Lan tỏa giá trị mới.
-          </Heading>
-        </Box>
+      <Container maxW="1440px" mx="auto" px="2%" pt="9rem" pb="5rem">
+        {/* Hero Banner Carousel */}
+        <HeroBannerCarousel />
+
+        {/* Category Quick Access */}
+        <CategoryQuickAccess
+          categories={flatCategories}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
+        />
 
         <Flex gap="3%" align="flex-start">
           <Box w="22%" display={{ base: "none", lg: "block" }}>
-             <Box bg="white" border="1px solid" borderColor="gray.200" borderRadius="1.25rem" p="1.25rem" boxShadow="sm">
-                <CategorySidebar
-                  categories={flatCategories}
-                  selectedCategoryId={selectedCategoryId}
-                  onSelectCategory={setSelectedCategoryId}
-                />
-             </Box>
+            <Box
+              bg="white"
+              border="1px solid"
+              borderColor="gray.200"
+              borderRadius="1.25rem"
+              p="1.25rem"
+              boxShadow="sm"
+            >
+              <CategorySidebar
+                categories={flatCategories}
+                selectedCategoryId={selectedCategoryId}
+                onSelectCategory={setSelectedCategoryId}
+              />
+            </Box>
           </Box>
 
           <Box flex="1" minW={0}>
             <Flex mb="1.5rem" align="center" justify="space-between">
-              <Heading as="h2" fontSize="1.5rem" fontWeight="800" color="gray.800">
+              <Heading
+                as="h2"
+                fontSize="1.5rem"
+                fontWeight="800"
+                color="gray.800"
+              >
                 {selectedCategoryName}
               </Heading>
-              <Text fontSize="0.85rem" fontWeight="700" color="blue.600" bg="white" px="1rem" py="0.4rem" borderRadius="1rem" border="1px solid" borderColor="gray.200">
+              <Text
+                fontSize="0.85rem"
+                fontWeight="700"
+                color="blue.600"
+                bg="white"
+                px="1rem"
+                py="0.4rem"
+                borderRadius="1rem"
+                border="1px solid"
+                borderColor="gray.200"
+              >
                 {!isLoading ? `${totalListings} kết quả` : "Đang tải..."}
               </Text>
             </Flex>
 
-            <Box mb="2rem" bg="white" borderRadius="1.25rem" p="1.5rem" border="1px solid" borderColor="gray.200" boxShadow="sm">
+            <Box
+              mb="2rem"
+              bg="white"
+              borderRadius="1.25rem"
+              p="1.5rem"
+              border="1px solid"
+              borderColor="gray.200"
+              boxShadow="sm"
+            >
               <SimpleGrid columns={{ base: 1, md: 3 }} gap="1.25rem">
                 <Box>
-                  <Text fontSize="0.7rem" fontWeight="800" color="gray.500" mb="0.5rem" textTransform="uppercase">Khu vực</Text>
+                  <Text
+                    fontSize="0.7rem"
+                    fontWeight="800"
+                    color="gray.500"
+                    mb="0.5rem"
+                    textTransform="uppercase"
+                  >
+                    Khu vực
+                  </Text>
                   <HStack gap="0.5rem">
-                    <Input value={province} onChange={(e) => setProvince(e.target.value)} placeholder="Tỉnh" size="sm" borderRadius="0.6rem" border="1px solid" borderColor="gray.200" />
-                    <Input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Huyện" size="sm" borderRadius="0.6rem" border="1px solid" borderColor="gray.200" />
+                    <Input
+                      value={province}
+                      onChange={(e) => setProvince(e.target.value)}
+                      placeholder="Tỉnh"
+                      size="sm"
+                      borderRadius="0.6rem"
+                      border="1px solid"
+                      borderColor="gray.200"
+                    />
+                    <Input
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      placeholder="Huyện"
+                      size="sm"
+                      borderRadius="0.6rem"
+                      border="1px solid"
+                      borderColor="gray.200"
+                    />
                   </HStack>
                 </Box>
                 <Box>
-                  <Text fontSize="0.7rem" fontWeight="800" color="gray.500" mb="0.5rem" textTransform="uppercase">Giá (VNĐ)</Text>
+                  <Text
+                    fontSize="0.7rem"
+                    fontWeight="800"
+                    color="gray.500"
+                    mb="0.5rem"
+                    textTransform="uppercase"
+                  >
+                    Giá (VNĐ)
+                  </Text>
                   <HStack gap="0.5rem">
-                    <Input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Từ" size="sm" borderRadius="0.6rem" border="1px solid" borderColor="gray.200" />
-                    <Input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Đến" size="sm" borderRadius="0.6rem" border="1px solid" borderColor="gray.200" />
+                    <Input
+                      type="number"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      placeholder="Từ"
+                      size="sm"
+                      borderRadius="0.6rem"
+                      border="1px solid"
+                      borderColor="gray.200"
+                    />
+                    <Input
+                      type="number"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      placeholder="Đến"
+                      size="sm"
+                      borderRadius="0.6rem"
+                      border="1px solid"
+                      borderColor="gray.200"
+                    />
                   </HStack>
                 </Box>
                 <Box>
-                  <Text fontSize="0.7rem" fontWeight="800" color="gray.500" mb="0.5rem" textTransform="uppercase">Sắp xếp</Text>
+                  <Text
+                    fontSize="0.7rem"
+                    fontWeight="800"
+                    color="gray.500"
+                    mb="0.5rem"
+                    textTransform="uppercase"
+                  >
+                    Sắp xếp
+                  </Text>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as ListingSortBy)}
-                    style={{ width: "100%", height: "2rem", borderRadius: "0.6rem", border: "1px solid #E2E8F0", padding: "0 0.75rem", fontSize: "0.85rem", outline: "none", background: "white" }}
+                    style={{
+                      width: "100%",
+                      height: "2rem",
+                      borderRadius: "0.6rem",
+                      border: "1px solid #E2E8F0",
+                      padding: "0 0.75rem",
+                      fontSize: "0.85rem",
+                      outline: "none",
+                      background: "white",
+                    }}
                   >
                     <option value="newest">Mới nhất</option>
                     <option value="price_asc">Giá tăng dần</option>
@@ -590,16 +680,42 @@ export function HomeMarketplacePage() {
             </Box>
 
             {isLoading ? (
-              <Flex w="100%" h="25rem" align="center" justify="center" bg="white" borderRadius="1.25rem" border="1px dashed" borderColor="gray.300">
-                <Box w="2.5rem" h="2.5rem" border="3px solid" borderColor="blue.500" borderBottomColor="transparent" borderRadius="50%" animation="spin 1s linear infinite" />
+              <Flex
+                w="100%"
+                h="25rem"
+                align="center"
+                justify="center"
+                bg="white"
+                borderRadius="1.25rem"
+                border="1px dashed"
+                borderColor="gray.300"
+              >
+                <Box
+                  w="2.5rem"
+                  h="2.5rem"
+                  border="3px solid"
+                  borderColor="blue.500"
+                  borderBottomColor="transparent"
+                  borderRadius="50%"
+                  animation="spin 1s linear infinite"
+                />
               </Flex>
             ) : (
               <>
-                <ListingGrid listings={listings} categoryMap={categoryMap} sellerMap={sellerMap} />
-                
+                <ListingGrid
+                  listings={listings}
+                  categoryMap={categoryMap}
+                  sellerMap={sellerMap}
+                />
+
                 {totalPages > 1 && (
                   <Flex mt="4rem" justify="center">
-                    <PaginationRoot count={totalListings} pageSize={pageSize} page={page} onPageChange={(e) => setPage(e.page)}>
+                    <PaginationRoot
+                      count={totalListings}
+                      pageSize={pageSize}
+                      page={page}
+                      onPageChange={(e) => setPage(e.page)}
+                    >
                       <HStack gap="0.5rem">
                         <PaginationPrevTrigger />
                         <PaginationItems />
@@ -614,7 +730,12 @@ export function HomeMarketplacePage() {
         </Flex>
       </Container>
 
-      <ListingModal isOpen={isListingModalOpen} onOpenChange={setIsListingModalOpen} onSubmit={handleCreateListing} isLoading={createMutation.isPending || uploadImageMutation.isPending} />
+      <ListingModal
+        isOpen={isListingModalOpen}
+        onOpenChange={setIsListingModalOpen}
+        onSubmit={handleCreateListing}
+        isLoading={createMutation.isPending || uploadImageMutation.isPending}
+      />
     </Box>
-  )
+  );
 }

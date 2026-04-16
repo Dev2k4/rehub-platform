@@ -1,20 +1,42 @@
-import { Box, Container, Flex, Heading, Input, Text } from "@chakra-ui/react"
-import { useState } from "react"
-import { UsersTable } from "../components/UsersTable"
-import { useAdminUsers } from "../hooks/useAdminUsers"
+import {
+  Box,
+  Container,
+  Flex,
+  Heading,
+  Input,
+  Text,
+  HStack,
+} from "@chakra-ui/react";
+import { useState } from "react";
+import { UsersTable } from "../components/UsersTable";
+import { useAdminUsers } from "../hooks/useAdminUsers";
+import {
+  PaginationItems,
+  PaginationNextTrigger,
+  PaginationPrevTrigger,
+  PaginationRoot,
+} from "@/components/ui/pagination";
 
 export function AdminUsersPage() {
-  const [searchKeyword, setSearchKeyword] = useState("")
-  const { data: users = [], isLoading } = useAdminUsers({ limit: 100 })
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const { data: users = [], isLoading } = useAdminUsers({ limit: 100 });
 
   // Simple client-side filter
   const filteredUsers = users.filter((user) => {
-    const keyword = searchKeyword.toLowerCase()
+    const keyword = searchKeyword.toLowerCase();
     return (
       user.full_name.toLowerCase().includes(keyword) ||
       user.email.toLowerCase().includes(keyword)
-    )
-  })
+    );
+  });
+
+  // Pagination processing
+  const paginatedUsers = filteredUsers.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  );
 
   return (
     <Container maxW="7xl" px={0}>
@@ -56,14 +78,36 @@ export function AdminUsersPage() {
         boxShadow="0 10px 40px rgba(0,0,0,0.06)"
         overflow="hidden"
       >
-        <UsersTable users={filteredUsers} isLoading={isLoading} />
+        <UsersTable users={paginatedUsers} isLoading={isLoading} />
       </Box>
 
-      {/* Stats */}
-      <Flex gap={4} mt={4} fontSize="sm" color="gray.600">
-        <Text>Tổng: {users.length} người dùng</Text>
-        <Text>Hiển thị: {filteredUsers.length}</Text>
+      {/* Stats and Pagination */}
+      <Flex
+        justify="space-between"
+        align="center"
+        mt={4}
+        flexDirection={{ base: "column", sm: "row" }}
+        gap={4}
+      >
+        <Flex gap={4} fontSize="sm" color="gray.600">
+          <Text>Tổng: {users.length} người dùng</Text>
+          <Text>Tìm thấy: {filteredUsers.length}</Text>
+        </Flex>
+
+        <PaginationRoot
+          count={filteredUsers.length}
+          pageSize={pageSize}
+          page={page}
+          onPageChange={(e) => setPage(e.page)}
+          siblingCount={1}
+        >
+          <HStack gap={2}>
+            <PaginationPrevTrigger />
+            <PaginationItems />
+            <PaginationNextTrigger />
+          </HStack>
+        </PaginationRoot>
       </Flex>
     </Container>
-  )
+  );
 }

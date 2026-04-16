@@ -489,171 +489,512 @@ import {
   Container,
   HStack,
   Heading,
-} from "@chakra-ui/react"
-import { useQueryClient } from "@tanstack/react-query"
-import { Link, useNavigate } from "@tanstack/react-router"
-import { FiMenu, FiPlusCircle, FiSearch, FiX } from "react-icons/fi"
-import { InputGroup } from "@/components/ui/input-group"
-import { logoutUser } from "@/features/auth/api/auth.api"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { clearTokens } from "@/features/auth/utils/auth.storage"
-import { AuthButtons } from "./AuthButtons"
-import { UserDropdownMenu } from "./UserDropdownMenu"
+  Menu,
+  Portal,
+  Separator,
+  Spinner,
+  Text,
+} from "@chakra-ui/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  FiMenu,
+  FiPlusCircle,
+  FiSearch,
+  FiX,
+  FiCheckCircle,
+  FiHeart,
+  FiRefreshCw,
+  FiShield,
+  FiStar,
+  FiTrendingUp,
+  FiTruck,
+  FiBell,
+} from "react-icons/fi";
+import type { NotificationRead } from "@/client";
+import { InputGroup } from "@/components/ui/input-group";
+import { logoutUser } from "@/features/auth/api/auth.api";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
+import { clearTokens } from "@/features/auth/utils/auth.storage";
+import {
+  getMyNotifications,
+  getUnreadNotificationsCount,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "@/features/notifications/api/notifications.api";
+import { getNotificationDestination } from "@/features/notifications/utils/notificationNavigation";
+import { AuthButtons } from "./AuthButtons";
+import { UserDropdownMenu } from "./UserDropdownMenu";
 
 type MarketplaceHeaderProps = {
-  keyword?: string
-  onKeywordChange?: (value: string) => void
-  onOpenCategoryMenu?: () => void
-  onOpenListingModal?: () => void
-}
+  keyword?: string;
+  onKeywordChange?: (value: string) => void;
+  onOpenCategoryMenu?: () => void;
+  onOpenListingModal?: () => void;
+  showMarquee?: boolean;
+};
 
 export function MarketplaceHeader({
   keyword = "",
   onKeywordChange,
   onOpenCategoryMenu,
   onOpenListingModal,
+  showMarquee = false,
 }: MarketplaceHeaderProps) {
-  const { user, isAuthenticated, isLoading } = useAuthUser()
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
+  const { user, isAuthenticated, isLoading } = useAuthUser();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await logoutUser()
+      await logoutUser();
     } catch (e) {
-      console.error(e)
+      console.error(e);
     } finally {
-      clearTokens()
-      queryClient.clear()
-      navigate({ to: "/auth/login", replace: true })
+      clearTokens();
+      queryClient.clear();
+      navigate({ to: "/auth/login", replace: true });
     }
-  }
+  };
+
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => getMyNotifications(),
+    enabled: isAuthenticated,
+  });
+  const unreadCountQuery = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => getUnreadNotificationsCount(),
+    enabled: isAuthenticated,
+  });
+  const markNotificationMutation = useMutation({
+    mutationFn: markNotificationAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "unread-count"],
+      });
+    },
+  });
+  const markAllNotificationsMutation = useMutation({
+    mutationFn: markAllNotificationsAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "unread-count"],
+      });
+    },
+  });
+  const unreadCount = unreadCountQuery.data ?? 0;
+
+  const handleNotificationClick = async (notification: NotificationRead) => {
+    if (!notification.is_read && !markNotificationMutation.isPending) {
+      try {
+        await markNotificationMutation.mutateAsync(notification.id);
+      } catch {}
+    }
+    const destination = getNotificationDestination(notification);
+    navigate(destination as never);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0 || markAllNotificationsMutation.isPending) return;
+    try {
+      await markAllNotificationsMutation.mutateAsync();
+    } catch {}
+  };
+
+  const tickerItems = [
+    { text: "Chào mừng đến ReHub Marketplace!", icon: FiHeart },
+    { text: "Hàng nghìn sản phẩm đang chờ bạn", icon: FiTrendingUp },
+    { text: "Thanh toán an toàn & bảo mật", icon: FiShield },
+    { text: "Giao hàng toàn quốc", icon: FiTruck },
+    { text: "Mua bán đồ cũ – Lan tỏa giá trị mới", icon: FiRefreshCw },
+    { text: "Bảo vệ người mua với hệ thống escrow", icon: FiCheckCircle },
+    { text: "Hàng triệu người tin dùng mỗi ngày", icon: FiStar },
+  ];
+  // Duplicate the items so the marquee loops seamlessly
+  const allItems = [...tickerItems, ...tickerItems];
 
   return (
     <Box
       as="header"
       w="100%"
-      h={{ base: "auto", md: "5.5rem" }}
-      bg="rgba(255, 255, 255, 0.75)"
-      backdropFilter="blur(1.25rem)"
-      css={{ WebkitBackdropFilter: "blur(1.25rem)" }}
-      borderBottom="1px solid"
-      borderColor="gray.200"
       position="fixed"
       top={0}
       left={0}
       right={0}
       zIndex={1000}
-      boxShadow="0 4px 20px rgba(0, 0, 0, 0.03)"
-      py={{ base: "0.75rem", md: 0 }}
     >
-      <Container maxW="1440px" h="100%" px="2%" mx="auto">
-        <Flex 
-          align="center" 
-          justify="space-between" 
-          h="100%" 
-          gap={{ base: "0.5rem", md: "2%" }}
-          direction="row"
-          wrap="nowrap"
-        >
-          <HStack gap={{ base: "0.5rem", md: "1.5rem" }} flexShrink={0}>
-            <IconButton
-              variant="ghost"
-              onClick={onOpenCategoryMenu}
-              aria-label="Menu"
-              borderRadius="0.75rem"
-              h="2.5rem"
-              w="2.5rem"
-              border="1px solid"
-              borderColor="gray.200"
-              bg="white"
-            >
-              <FiMenu size={20} />
-            </IconButton>
-
-            <ChakraLink asChild _hover={{ textDecoration: "none" }}>
-              <Link to="/">
-                <Heading
-                  fontSize={{ base: "1.3rem", md: "1.75rem" }}
-                  fontWeight="900"
-                  bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
-                  bgClip="text"
-                  color="transparent"
-                  letterSpacing="-0.02em"
-                >
-                  ReHub
-                </Heading>
-              </Link>
-            </ChakraLink>
-          </HStack>
-
-          <Box flex="1" maxW={{ base: "100%", md: "45%" }}>
-            <InputGroup
-              w="100%"
-              startElement={<FiSearch color="#9CA3AF" />}
-              endElement={
-                keyword ? (
-                  <IconButton
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => onKeywordChange?.("")}
-                  >
-                    <FiX />
-                  </IconButton>
-                ) : null
-              }
-            >
-              <Input
-                placeholder="Bạn đang tìm gì?"
-                value={keyword}
-                onChange={(e) => onKeywordChange?.(e.target.value)}
-                bg="white"
+      {/* Main header */}
+      <Box
+        w="100%"
+        h={{ base: "auto", md: "5.5rem" }}
+        bg="rgba(221, 237, 250, 1)"
+        backdropFilter="blur(1.25rem)"
+        css={{ WebkitBackdropFilter: "blur(1.25rem)" }}
+        borderBottom="1px solid"
+        borderColor="gray.200"
+        boxShadow="0 2px 20px rgba(0, 0, 0, 0.05)"
+        py={{ base: "0.75rem", md: 0 }}
+      >
+        <Container maxW="1440px" h="100%" px="2%" mx="auto">
+          <Flex
+            align="center"
+            justify="space-between"
+            h="100%"
+            gap={{ base: "0.5rem", md: "2%" }}
+            direction="row"
+            wrap="nowrap"
+          >
+            <HStack gap={{ base: "0.5rem", md: "1.5rem" }} flexShrink={0}>
+              <IconButton
+                variant="ghost"
+                onClick={onOpenCategoryMenu}
+                aria-label="Menu"
+                borderRadius="0.75rem"
+                h="2.5rem"
+                w="2.5rem"
                 border="1px solid"
-                borderColor="gray.300"
-                borderRadius="2rem"
-                _focus={{ 
-                  borderColor: "blue.400", 
-                  boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.1)" 
-                }}
-                transition="all 0.2s ease"
-                ps={{ base: "2.5rem", md: "3rem" }}
-                h={{ base: "2.4rem", md: "2.75rem" }}
-                fontSize={{ base: "0.85rem", md: "1rem" }}
-              />
-            </InputGroup>
-          </Box>
+                borderColor="gray.200"
+                bg="white"
+                display={{ base: "flex", lg: "none" }}
+              >
+                <FiMenu size={20} />
+              </IconButton>
 
-          <HStack gap="1rem" flexShrink={0} display={{ base: "none", md: "flex" }}>
-            <Button
-              onClick={(e) => {
-                if (onOpenListingModal) {
-                  e.preventDefault()
-                  onOpenListingModal()
+              <ChakraLink asChild _hover={{ textDecoration: "none" }}>
+                <Link to="/">
+                  <Heading
+                    fontSize={{ base: "1.3rem", md: "1.75rem" }}
+                    fontWeight="900"
+                    bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
+                    bgClip="text"
+                    color="transparent"
+                    letterSpacing="-0.02em"
+                  >
+                    ReHub
+                  </Heading>
+                </Link>
+              </ChakraLink>
+            </HStack>
+
+            <Box flex="1" maxW={{ base: "100%", md: "45%" }}>
+              <InputGroup
+                w="100%"
+                startElement={
+                  <Box pl="0.85rem">
+                    <FiSearch color="#9CA3AF" />
+                  </Box>
                 }
-              }}
-              borderRadius="2rem"
-              bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
-              color="white"
-              px="1.5rem"
-              h="2.75rem"
-              fontSize="0.9rem"
-              fontWeight="700"
-              _hover={{ transform: "translateY(-1px)", boxShadow: "0 4px 15px rgba(2, 69, 122, 0.3)" }}
-            >
-              <FiPlusCircle style={{ marginRight: "0.5rem" }} />
-              Đăng tin
-            </Button>
+                endElement={
+                  keyword ? (
+                    <IconButton
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => onKeywordChange?.("")}
+                    >
+                      <FiX />
+                    </IconButton>
+                  ) : null
+                }
+              >
+                <Input
+                  placeholder="Bạn đang tìm gì?"
+                  value={keyword}
+                  onChange={(e) => onKeywordChange?.(e.target.value)}
+                  bg="white"
+                  border="1px solid"
+                  borderColor="gray.300"
+                  borderRadius="2rem"
+                  _focus={{
+                    borderColor: "blue.400",
+                    boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.1)",
+                  }}
+                  transition="all 0.2s ease"
+                  ps={{ base: "2.75rem", md: "2.75rem" }}
+                  h={{ base: "2.4rem", md: "2.75rem" }}
+                  fontSize={{ base: "0.85rem", md: "1rem" }}
+                />
+              </InputGroup>
+            </Box>
 
-            {isLoading ? (
-              <Box w="2.5rem" h="2.5rem" bg="gray.100" borderRadius="50%" />
-            ) : isAuthenticated && user ? (
-              <UserDropdownMenu user={user} onLogout={handleLogout} />
-            ) : (
-              <AuthButtons />
-            )}
-          </HStack>
-        </Flex>
-      </Container>
+            <HStack
+              gap="0.75rem"
+              flexShrink={0}
+              display={{ base: "none", md: "flex" }}
+            >
+              {/* Notification Bell */}
+              {isAuthenticated ? (
+                <Menu.Root>
+                  <Menu.Trigger asChild>
+                    <IconButton
+                      aria-label="Thông báo"
+                      position="relative"
+                      borderRadius="full"
+                      variant="ghost"
+                      color="gray.700"
+                      bg="whiteAlpha.700"
+                      _hover={{ bg: "whiteAlpha.900" }}
+                      h="2.5rem"
+                      w="2.5rem"
+                    >
+                      <FiBell size={20} />
+                      {unreadCount > 0 && (
+                        <Box
+                          position="absolute"
+                          right="6px"
+                          top="6px"
+                          minW={4}
+                          h={4}
+                          px={1}
+                          borderRadius="full"
+                          bg="red.500"
+                          color="white"
+                          fontSize="10px"
+                          fontWeight="bold"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          lineHeight={1}
+                        >
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </Box>
+                      )}
+                    </IconButton>
+                  </Menu.Trigger>
+                  <Portal>
+                    <Menu.Positioner>
+                      <Menu.Content
+                        minW="360px"
+                        bg="white"
+                        boxShadow="xl"
+                        borderRadius="lg"
+                        border="1px"
+                        borderColor="gray.200"
+                        overflow="hidden"
+                        zIndex={2000}
+                      >
+                        <Flex
+                          align="center"
+                          justify="space-between"
+                          px={4}
+                          py={3}
+                        >
+                          <Text fontWeight="700" color="gray.900" fontSize="sm">
+                            Thông báo
+                          </Text>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            colorPalette="blue"
+                            onClick={handleMarkAllAsRead}
+                            loading={markAllNotificationsMutation.isPending}
+                            disabled={unreadCount === 0}
+                          >
+                            Đánh dấu tất cả
+                          </Button>
+                        </Flex>
+                        <Separator />
+                        <Box maxH="340px" overflowY="auto">
+                          {notificationsQuery.isLoading ? (
+                            <Flex py={6} justify="center">
+                              <Spinner size="sm" color="blue.500" />
+                            </Flex>
+                          ) : notificationsQuery.data &&
+                            notificationsQuery.data.length > 0 ? (
+                            notificationsQuery.data.map((notification) => (
+                              <Menu.Item
+                                key={notification.id}
+                                value={`notification-${notification.id}`}
+                                py={0}
+                                px={0}
+                                onClick={() =>
+                                  handleNotificationClick(notification)
+                                }
+                              >
+                                <Box
+                                  w="full"
+                                  px={4}
+                                  py={3}
+                                  bg={
+                                    notification.is_read ? "white" : "blue.50"
+                                  }
+                                  borderBottom="1px"
+                                  borderColor="gray.100"
+                                >
+                                  <Text
+                                    fontSize="sm"
+                                    fontWeight="semibold"
+                                    color="gray.900"
+                                    lineClamp={1}
+                                  >
+                                    {notification.title}
+                                  </Text>
+                                  <Text
+                                    fontSize="xs"
+                                    color="gray.600"
+                                    mt={0.5}
+                                    lineClamp={2}
+                                  >
+                                    {notification.message}
+                                  </Text>
+                                  <Text fontSize="xs" color="gray.500" mt={1}>
+                                    {new Date(
+                                      notification.created_at,
+                                    ).toLocaleString("vi-VN")}
+                                  </Text>
+                                </Box>
+                              </Menu.Item>
+                            ))
+                          ) : (
+                            <Box px={4} py={8} textAlign="center">
+                              <Text fontSize="sm" color="gray.500">
+                                Bạn chưa có thông báo nào.
+                              </Text>
+                            </Box>
+                          )}
+                        </Box>
+                        <Separator />
+                        <Menu.Item value="notifications-page" asChild>
+                          <ChakraLink asChild w="full" px={4} py={3}>
+                            <Link to="/notifications">
+                              Xem tất cả thông báo
+                            </Link>
+                          </ChakraLink>
+                        </Menu.Item>
+                      </Menu.Content>
+                    </Menu.Positioner>
+                  </Portal>
+                </Menu.Root>
+              ) : (
+                <IconButton
+                  aria-label="Thông báo"
+                  borderRadius="full"
+                  variant="ghost"
+                  color="gray.700"
+                  bg="whiteAlpha.700"
+                  _hover={{ bg: "whiteAlpha.900" }}
+                  h="2.5rem"
+                  w="2.5rem"
+                >
+                  <FiBell size={20} />
+                </IconButton>
+              )}
+
+              {/* Offers Button */}
+              {isAuthenticated && (
+                <ChakraLink asChild _hover={{ textDecoration: "none" }}>
+                  <Link to="/offers">
+                    <Button
+                      borderRadius="2rem"
+                      variant="outline"
+                      bg="whiteAlpha.700"
+                      borderColor="gray.300"
+                      color="gray.800"
+                      px="1rem"
+                      h="2.5rem"
+                      fontSize="0.875rem"
+                      fontWeight="600"
+                      _hover={{
+                        bg: "whiteAlpha.900",
+                        transform: "translateY(-1px)",
+                      }}
+                    >
+                      Offers
+                    </Button>
+                  </Link>
+                </ChakraLink>
+              )}
+
+              {/* Post Listing button */}
+              <Button
+                onClick={(e) => {
+                  if (onOpenListingModal) {
+                    e.preventDefault();
+                    onOpenListingModal();
+                  }
+                }}
+                borderRadius="2rem"
+                bg="linear-gradient(135deg, #02457A 0%, #018ABE 100%)"
+                color="white"
+                px="1.5rem"
+                h="2.75rem"
+                fontSize="0.9rem"
+                fontWeight="700"
+                className="animate-pulse-ring"
+                _hover={{
+                  transform: "translateY(-1px)",
+                  boxShadow: "0 4px 15px rgba(2, 69, 122, 0.4)",
+                }}
+              >
+                <FiPlusCircle style={{ marginRight: "0.5rem" }} />
+                Đăng tin
+              </Button>
+
+              {isLoading ? (
+                <Box w="2.5rem" h="2.5rem" bg="gray.100" borderRadius="50%" />
+              ) : isAuthenticated && user ? (
+                <UserDropdownMenu user={user} onLogout={handleLogout} />
+              ) : (
+                <AuthButtons />
+              )}
+            </HStack>
+          </Flex>
+        </Container>
+      </Box>
+
+      {/* Marquee Ticker Bar */}
+      {showMarquee && (
+        <Box
+          w="100%"
+          bg="linear-gradient(90deg, #F97316 0%, #FB923C 50%, #F97316 100%)"
+          py="0.35rem"
+          overflow="hidden"
+          boxShadow="0 2px 8px rgba(249,115,22,0.3)"
+        >
+          <Box
+            className="marquee-wrapper"
+            overflow="hidden"
+            position="relative"
+            w="100%"
+          >
+            <Box
+              className="marquee-track"
+              display="flex"
+              gap="0"
+              as="div"
+              w="max-content"
+              animation="marquee 30s linear infinite"
+              _hover={{ animationPlayState: "paused" }}
+            >
+              {allItems.map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <Box
+                    key={i}
+                    as="span"
+                    fontSize={{ base: "0.7rem", md: "0.78rem" }}
+                    fontWeight="600"
+                    color="white"
+                    whiteSpace="nowrap"
+                    px="2rem"
+                    display="inline-flex"
+                    alignItems="center"
+                    gap="0.5rem"
+                  >
+                    <Icon opacity={0.9} />
+                    {item.text}
+                    <Box as="span" opacity={0.6} mx="0.5rem">
+                      •
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+        </Box>
+      )}
     </Box>
-  )
+  );
 }

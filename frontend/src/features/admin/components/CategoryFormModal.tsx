@@ -1,31 +1,39 @@
-import { Dialog, Flex, Input, Portal, Stack } from "@chakra-ui/react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
-import { useForm } from "react-hook-form"
-import { FiLink, FiSlash, FiTag } from "react-icons/fi"
-import { z } from "zod"
-import type { CategoryRead } from "@/client"
-import { Button } from "@/components/ui/button"
-import { Field } from "@/components/ui/field"
-import { InputGroup } from "@/components/ui/input-group"
+import {
+  Dialog,
+  Flex,
+  Input,
+  Portal,
+  Stack,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { FiEdit3, FiLink, FiPlus, FiSlash, FiTag } from "react-icons/fi";
+import { z } from "zod";
+import type { CategoryRead } from "@/client";
+import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
+import { InputGroup } from "@/components/ui/input-group";
 import {
   useAdminCategoryDetail,
   useCreateCategory,
   useUpdateCategory,
-} from "../hooks/useAdminCategories"
+} from "../hooks/useAdminCategories";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Tên danh mục là bắt buộc").max(100),
   slug: z.string().optional(),
   icon_url: z.string().url("URL không hợp lệ").optional().or(z.literal("")),
-})
+});
 
-type CategoryFormData = z.infer<typeof categorySchema>
+type CategoryFormData = z.infer<typeof categorySchema>;
 
 interface CategoryFormModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  category?: CategoryRead | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  category?: CategoryRead | null;
 }
 
 export function CategoryFormModal({
@@ -33,10 +41,10 @@ export function CategoryFormModal({
   onOpenChange,
   category,
 }: CategoryFormModalProps) {
-  const isEdit = !!category
-  const categoryDetailQuery = useAdminCategoryDetail(category?.id)
-  const createMutation = useCreateCategory()
-  const updateMutation = useUpdateCategory()
+  const isEdit = !!category;
+  const categoryDetailQuery = useAdminCategoryDetail(category?.id);
+  const createMutation = useCreateCategory();
+  const updateMutation = useUpdateCategory();
 
   const {
     register,
@@ -45,26 +53,21 @@ export function CategoryFormModal({
     formState: { errors },
   } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema) as any,
-    defaultValues: {
-      name: "",
-      slug: "",
-      icon_url: "",
-    },
-  })
+    defaultValues: { name: "", slug: "", icon_url: "" },
+  });
 
-  // Reset form when category changes
   useEffect(() => {
-    const latestCategory = categoryDetailQuery.data ?? category
+    const latestCategory = categoryDetailQuery.data ?? category;
     if (latestCategory) {
       reset({
         name: latestCategory.name,
         slug: latestCategory.slug || "",
         icon_url: latestCategory.icon_url || "",
-      })
+      });
     } else {
-      reset({ name: "", slug: "", icon_url: "" })
+      reset({ name: "", slug: "", icon_url: "" });
     }
-  }, [category, categoryDetailQuery.data, reset])
+  }, [category, categoryDetailQuery.data, reset]);
 
   const onSubmit = (data: CategoryFormData) => {
     const payload = {
@@ -72,55 +75,90 @@ export function CategoryFormModal({
       slug: data.slug || null,
       icon_url: data.icon_url || null,
       parent_id: null,
-    }
+    };
 
     if (isEdit && category) {
       updateMutation.mutate(
         { categoryId: category.id, data: payload },
         {
           onSuccess: () => {
-            onOpenChange(false)
-            reset()
+            onOpenChange(false);
+            reset();
           },
         },
-      )
+      );
     } else {
       createMutation.mutate(payload, {
         onSuccess: () => {
-          onOpenChange(false)
-          reset()
+          onOpenChange(false);
+          reset();
         },
-      })
+      });
     }
-  }
+  };
 
-  const isPending = createMutation.isPending || updateMutation.isPending
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Dialog.Root
       open={open}
       onOpenChange={(e) => {
-        onOpenChange(e.open)
-        if (!e.open) reset()
+        onOpenChange(e.open);
+        if (!e.open) reset();
       }}
+      placement="center"
     >
       <Portal>
-        <Dialog.Backdrop bg="blackAlpha.600" />
+        <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(4px)" />
         <Dialog.Positioner>
-          <Dialog.Content maxW="xl" borderRadius="xl">
-            <Dialog.Header>
-              <Dialog.Title
-                fontSize="lg"
-                fontWeight="semibold"
-                color="gray.900"
+          <Dialog.Content
+            maxW="lg"
+            borderRadius="1.5rem"
+            overflow="hidden"
+            boxShadow="0 25px 60px rgba(0,0,0,0.15)"
+            border="1px solid"
+            borderColor="gray.100"
+            p={0}
+          >
+            {/* Gradient Header */}
+            <Flex
+              px={7}
+              py={5}
+              align="center"
+              gap={3}
+              style={{
+                background: "linear-gradient(135deg, #02457A 0%, #018ABE 100%)",
+              }}
+            >
+              <Flex
+                w={9}
+                h={9}
+                align="center"
+                justify="center"
+                borderRadius="lg"
+                bg="whiteAlpha.200"
               >
-                {isEdit ? "Sửa danh mục" : "Thêm danh mục mới"}
-              </Dialog.Title>
-            </Dialog.Header>
-            <Dialog.Body>
+                {isEdit ? (
+                  <FiEdit3 color="white" size={18} />
+                ) : (
+                  <FiPlus color="white" size={18} />
+                )}
+              </Flex>
+              <VStack align="start" gap={0}>
+                <Dialog.Title fontSize="md" fontWeight="700" color="white">
+                  {isEdit ? "Chỉnh sửa danh mục" : "Thêm danh mục mới"}
+                </Dialog.Title>
+                <Text fontSize="xs" color="whiteAlpha.800">
+                  {isEdit
+                    ? "Cập nhật thông tin danh mục"
+                    : "Điền thông tin để tạo danh mục"}
+                </Text>
+              </VStack>
+            </Flex>
+
+            <Dialog.Body bg="white" px={7} py={6}>
               <form onSubmit={handleSubmit(onSubmit)}>
-                <Stack gap={4}>
-                  {/* Name */}
+                <Stack gap={5}>
                   <Field
                     label="Tên danh mục *"
                     invalid={!!errors.name}
@@ -132,13 +170,13 @@ export function CategoryFormModal({
                     >
                       <Input
                         {...register("name")}
-                        placeholder="Điện thoại, Laptop, ..."
+                        placeholder="Điện thoại, Laptop, Thời trang..."
                         ps="10"
+                        borderRadius="xl"
                       />
                     </InputGroup>
                   </Field>
 
-                  {/* Slug */}
                   <Field
                     label="Slug (tùy chọn)"
                     helperText="Để trống để tự động tạo từ tên"
@@ -149,15 +187,15 @@ export function CategoryFormModal({
                     >
                       <Input
                         {...register("slug")}
-                        placeholder="dien-thoai, laptop, ..."
+                        placeholder="dien-thoai, laptop, thoi-trang..."
                         ps="10"
+                        borderRadius="xl"
                       />
                     </InputGroup>
                   </Field>
 
-                  {/* Icon URL */}
                   <Field
-                    label="Icon URL (tùy chọn)"
+                    label="Đường dẫn icon (tùy chọn)"
                     invalid={!!errors.icon_url}
                     errorText={errors.icon_url?.message}
                   >
@@ -169,19 +207,27 @@ export function CategoryFormModal({
                         {...register("icon_url")}
                         placeholder="https://example.com/icon.png"
                         ps="10"
+                        borderRadius="xl"
                       />
                     </InputGroup>
                   </Field>
                 </Stack>
               </form>
             </Dialog.Body>
-            <Dialog.Footer>
+
+            <Dialog.Footer
+              bg="gray.50"
+              borderTop="1px solid"
+              borderColor="gray.100"
+              px={7}
+              py={4}
+            >
               <Flex gap={3} justify="flex-end" w="full">
                 <Button
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isPending}
-                  borderRadius="lg"
+                  borderRadius="xl"
                 >
                   Hủy
                 </Button>
@@ -190,7 +236,8 @@ export function CategoryFormModal({
                   onClick={handleSubmit(onSubmit)}
                   loading={isPending}
                   loadingText={isEdit ? "Đang cập nhật..." : "Đang tạo..."}
-                  borderRadius="lg"
+                  borderRadius="xl"
+                  px={6}
                 >
                   {isEdit ? "Cập nhật" : "Tạo mới"}
                 </Button>
@@ -200,5 +247,5 @@ export function CategoryFormModal({
         </Dialog.Positioner>
       </Portal>
     </Dialog.Root>
-  )
+  );
 }
