@@ -56,9 +56,9 @@ class Settings(BaseSettings):
     OFFER_EXPIRY_JOB_INTERVAL_MINUTES: int = 5
 
     # Frontend host for generated links (email verification, password reset, ...)
-    FRONTEND_HOST: str = "http://localhost:5173"
-    BACKEND_PUBLIC_BASE_URL: str = "http://localhost:8000"
-    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    FRONTEND_HOST: str = "https://happiness-eaten-flashy.ngrok-free.dev"
+    BACKEND_PUBLIC_BASE_URL: str = "https://enduring-pope-urethane.ngrok-free.dev"
+    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://happiness-eaten-flashy.ngrok-free.dev"
 
     # SMS / OTP
     SMS_DEBUG_MODE: bool = True

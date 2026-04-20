@@ -96,11 +96,16 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ):
     """Register a new user account."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"🟢 [REGISTER] Endpoint called for {data.email}")
+    
     # Check if email exists
     existing_user = await get_user_by_email(db, data.email)
     if existing_user:
         if not existing_user.is_email_verified:
             verification_token = create_email_verification_token(existing_user.email)
+            logger.info(f"🟢 [REGISTER] Calling send_verify_email for existing unverified user {data.email}")
             await send_verify_email(
                 to_email=existing_user.email,
                 full_name=existing_user.full_name,
@@ -117,13 +122,16 @@ async def register(
 
     # Create user
     user = await create_user(db, data)
+    logger.info(f"🟢 [REGISTER] User created: {user.email}")
 
     verification_token = create_email_verification_token(user.email)
+    logger.info(f"🟢 [REGISTER] About to call send_verify_email for new user {user.email}")
     await send_verify_email(
         to_email=user.email,
         full_name=user.full_name,
         verification_token=verification_token,
     )
+    logger.info(f"🟢 [REGISTER] send_verify_email completed for {user.email}")
 
     return RegisterResponse(
         message="Register successful. Please verify your email before logging in.",

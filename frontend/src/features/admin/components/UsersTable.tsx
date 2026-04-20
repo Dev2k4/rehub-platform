@@ -6,48 +6,50 @@ import {
   Spinner,
   Table,
   Text,
-} from "@chakra-ui/react"
-import { useState } from "react"
-import { FiUserCheck, FiUserX } from "react-icons/fi"
-import type { UserMe } from "@/client"
-import { useUpdateUserStatus } from "../hooks/useAdminUsers"
-import { ConfirmDialog } from "./ConfirmDialog"
+  Link as ChakraLink,
+} from "@chakra-ui/react";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { FiUserCheck, FiUserX, FiCheckCircle, FiXCircle } from "react-icons/fi";
+import type { UserMe } from "@/client";
+import { useUpdateUserStatus } from "../hooks/useAdminUsers";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface UsersTableProps {
-  users: UserMe[]
-  isLoading: boolean
+  users: UserMe[];
+  isLoading: boolean;
 }
 
 export function UsersTable({ users, isLoading }: UsersTableProps) {
-  const [selectedUser, setSelectedUser] = useState<UserMe | null>(null)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const updateStatus = useUpdateUserStatus()
+  const [selectedUser, setSelectedUser] = useState<UserMe | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const updateStatus = useUpdateUserStatus();
 
   const handleToggleStatus = (user: UserMe) => {
-    setSelectedUser(user)
-    setConfirmOpen(true)
-  }
+    setSelectedUser(user);
+    setConfirmOpen(true);
+  };
 
   const handleConfirm = () => {
-    if (!selectedUser) return
+    if (!selectedUser) return;
 
     updateStatus.mutate(
       { userId: selectedUser.id, isActive: !selectedUser.is_active },
       {
         onSuccess: () => {
-          setConfirmOpen(false)
-          setSelectedUser(null)
+          setConfirmOpen(false);
+          setSelectedUser(null);
         },
       },
-    )
-  }
+    );
+  };
 
   if (isLoading) {
     return (
       <Flex justify="center" py={12}>
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   if (users.length === 0) {
@@ -55,7 +57,7 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
       <Flex justify="center" py={12}>
         <Text color="gray.500">Không có người dùng nào</Text>
       </Flex>
-    )
+    );
   }
 
   return (
@@ -63,58 +65,88 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
       <Box overflowX="auto">
         <Table.Root size="md">
           <Table.Header>
-            <Table.Row bg="gray.100">
+            <Table.Row bg="gray.50">
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
+                whiteSpace="nowrap"
               >
-                Tên
+                Họ tên
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
+                whiteSpace="nowrap"
               >
                 Email
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
+                whiteSpace="nowrap"
               >
                 Vai trò
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
+                whiteSpace="nowrap"
+              >
+                Xác thực Email
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                px={5}
+                py={3}
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
+                whiteSpace="nowrap"
               >
                 Trạng thái
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
+                whiteSpace="nowrap"
               >
-                Điểm tin cậy
+                Độ tin cậy
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                px={6}
+                px={5}
                 py={3}
-                fontSize="sm"
-                fontWeight="semibold"
-                color="gray.900"
+                fontSize="xs"
+                fontWeight="700"
+                textTransform="uppercase"
+                color="gray.500"
+                letterSpacing="wide"
+                whiteSpace="nowrap"
               >
                 Hành động
               </Table.ColumnHeader>
@@ -127,14 +159,17 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
                 _hover={{ bg: "gray.50" }}
                 transition="all 0.2s"
               >
-                <Table.Cell
-                  px={6}
-                  py={4}
-                  fontSize="sm"
-                  fontWeight="medium"
-                  color="gray.900"
-                >
-                  {user.full_name}
+                <Table.Cell px={6} py={4} fontSize="sm" fontWeight="medium">
+                  <ChakraLink
+                    asChild
+                    color="blue.600"
+                    fontWeight="600"
+                    _hover={{ textDecoration: "underline", color: "blue.700" }}
+                  >
+                    <Link to="/sellers/$id" params={{ id: user.id }}>
+                      {user.full_name}
+                    </Link>
+                  </ChakraLink>
                 </Table.Cell>
                 <Table.Cell px={6} py={4} fontSize="sm" color="gray.600">
                   {user.email}
@@ -159,6 +194,21 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
                         ? "Kiểm duyệt"
                         : "Thành viên"}
                   </Badge>
+                </Table.Cell>
+                <Table.Cell px={6} py={4}>
+                  <Flex align="center" gap={2}>
+                    <Box
+                      as={user.is_email_verified ? FiCheckCircle : FiXCircle}
+                      color={user.is_email_verified ? "green.500" : "red.500"}
+                    />
+                    <Text
+                      fontSize="xs"
+                      fontWeight="500"
+                      color={user.is_email_verified ? "green.700" : "red.700"}
+                    >
+                      {user.is_email_verified ? "Đã xác thực" : "Chưa xác thực"}
+                    </Text>
+                  </Flex>
                 </Table.Cell>
                 <Table.Cell px={6} py={4}>
                   <Badge
@@ -216,5 +266,5 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
         isLoading={updateStatus.isPending}
       />
     </>
-  )
+  );
 }

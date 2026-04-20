@@ -11,9 +11,9 @@ import {
   SimpleGrid,
   Spinner,
   Text,
-} from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
-import { useNavigate, useParams } from "@tanstack/react-router"
+} from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import {
   FiAlertCircle,
   FiArrowLeft,
@@ -24,22 +24,22 @@ import {
   FiShoppingBag,
   FiStar,
   FiUser,
-} from "react-icons/fi"
-import type { CategoryTree } from "@/client"
-import { getCategoriesTree } from "@/features/home/api/marketplace.api"
-import { flattenCategories } from "@/features/home/utils/marketplace.utils"
-import { ReviewsList } from "@/features/reviews/components/ReviewsList"
-import { useUserReviews } from "@/features/reviews/hooks/useReviews"
-import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
+} from "react-icons/fi";
+import type { CategoryTree } from "@/client";
+import { getCategoriesTree } from "@/features/home/api/marketplace.api";
+import { flattenCategories } from "@/features/home/utils/marketplace.utils";
+import { ReviewsList } from "@/features/reviews/components/ReviewsList";
+import { useUserReviews } from "@/features/reviews/hooks/useReviews";
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 import {
   getSellerListings,
   getUserPublicProfile,
-} from "@/features/users/api/users.api"
-import { ListingCard } from "@/features/users/components/ListingCard"
+} from "@/features/users/api/users.api";
+import { ListingCard } from "@/features/users/components/ListingCard";
 
 function StarRating({ score }: { score: number }) {
-  const maxStars = 5
-  const filledStars = Math.round(score)
+  const maxStars = 5;
+  const filledStars = Math.round(score);
   return (
     <HStack gap={1}>
       {Array.from({ length: maxStars }).map((_, i) => (
@@ -56,25 +56,25 @@ function StarRating({ score }: { score: number }) {
         {score.toFixed(1)} / 5
       </Text>
     </HStack>
-  )
+  );
 }
 
 function TrustScoreBadge({ score }: { score: number }) {
-  let color = "gray"
-  let label = "Chưa xác định"
+  let color = "gray";
+  let label = "Chưa xác định";
 
   if (score >= 80) {
-    color = "green"
-    label = "Rất uy tín"
+    color = "green";
+    label = "Rất uy tín";
   } else if (score >= 60) {
-    color = "teal"
-    label = "Uy tín"
+    color = "teal";
+    label = "Uy tín";
   } else if (score >= 40) {
-    color = "yellow"
-    label = "Bình thường"
+    color = "yellow";
+    label = "Bình thường";
   } else if (score > 0) {
-    color = "orange"
-    label = "Cần cải thiện"
+    color = "orange";
+    label = "Cần cải thiện";
   }
 
   return (
@@ -87,54 +87,59 @@ function TrustScoreBadge({ score }: { score: number }) {
     >
       {label} ({score}%)
     </Badge>
-  )
+  );
 }
 
 export function SellerProfilePage() {
-  const navigate = useNavigate()
-  const { id } = useParams({ from: "/sellers/$id" })
+  const navigate = useNavigate();
+  const { id } = useParams({ from: "/sellers/$id" });
 
   const profileQuery = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: () => getUserPublicProfile(id),
     enabled: !!id,
-  })
+  });
 
   const listingsQuery = useQuery({
     queryKey: ["seller-listings", id],
     queryFn: () => getSellerListings({ sellerId: id, limit: 12 }),
     enabled: !!id,
-  })
+  });
 
-  const reviewsQuery = useUserReviews(id)
+  const reviewsQuery = useUserReviews(id);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
     queryFn: () => getCategoriesTree(),
-  })
+  });
 
-  const categoryMap = new Map<string, CategoryTree>()
+  const categoryMap = new Map<string, CategoryTree>();
   if (categoriesQuery.data) {
     flattenCategories(categoriesQuery.data).forEach((cat) => {
-      categoryMap.set(cat.id, cat)
-    })
+      categoryMap.set(cat.id, cat);
+    });
   }
 
-  const profile = profileQuery.data
-  const isSellerOnline = useIsUserOnline(profile?.id ?? "")
+  const profile = profileQuery.data;
+  const isSellerOnline = useIsUserOnline(profile?.id ?? "");
 
   if (profileQuery.isLoading) {
     return (
       <Flex minH="100vh" align="center" justify="center" bg="gray.50">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   if (profileQuery.isError || !profile) {
     return (
       <Box minH="100vh" bg="gray.50">
-        <Container maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={8}>
+        <Container
+          maxW="1440px"
+          mx="auto"
+          px={{ base: "1rem", md: "2%" }}
+          py={8}
+        >
           <Button
             variant="ghost"
             onClick={() => navigate({ to: "/" })}
@@ -169,17 +174,17 @@ export function SellerProfilePage() {
           </Box>
         </Container>
       </Box>
-    )
+    );
   }
 
-  const listings = listingsQuery.data?.items ?? []
+  const listings = listingsQuery.data?.items ?? [];
 
-  const locationParts = [profile.district, profile.province].filter(Boolean)
-  const location = locationParts.length > 0 ? locationParts.join(", ") : null
+  const locationParts = [profile.district, profile.province].filter(Boolean);
+  const location = locationParts.length > 0 ? locationParts.join(", ") : null;
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={8}>
+      <Container maxW="1440px" mx="auto" px={{ base: "1rem", md: "2%" }} py={8}>
         {/* Back Button */}
         <Button
           variant="ghost"
@@ -407,5 +412,5 @@ export function SellerProfilePage() {
         </Box>
       </Container>
     </Box>
-  )
+  );
 }

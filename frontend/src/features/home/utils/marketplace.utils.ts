@@ -32,8 +32,10 @@ export function formatCurrencyVnd(value: string | number): string {
 }
 
 export function formatPostedTime(value: string): string {
-  const date = new Date(value)
-  const diffMs = Date.now() - date.getTime()
+  // If the backend returns a naive datetime string (no timezone info), treat it as UTC.
+  const dateString = value.endsWith('Z') || value.includes('+') ? value : `${value}Z`;
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
 
   if (Number.isNaN(diffMs) || diffMs < 0) {
     return "Vừa đăng"

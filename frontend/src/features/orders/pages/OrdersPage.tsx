@@ -9,46 +9,46 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import { useNavigate } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
-import { FiArrowLeft } from "react-icons/fi"
-import type { OrderRead } from "@/client"
-import { toaster } from "@/components/ui/toaster"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import { useEscrow } from "@/features/escrow/hooks/useEscrow"
-import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
+} from "@chakra-ui/react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { FiArrowLeft } from "react-icons/fi";
+import type { OrderRead } from "@/client";
+import { toaster } from "@/components/ui/toaster";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
+import { useEscrow } from "@/features/escrow/hooks/useEscrow";
+import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils";
 import {
   useCancelOrder,
   useCompleteOrder,
   useMyOrders,
-} from "@/features/orders/hooks/useOrders"
-import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
+} from "@/features/orders/hooks/useOrders";
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 
-type OrderTab = "buying" | "selling"
+type OrderTab = "buying" | "selling";
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
     case "pending":
-      return { label: "Chờ xử lý", color: "yellow" }
+      return { label: "Chờ xử lý", color: "yellow" };
     case "completed":
-      return { label: "Hoàn thành", color: "green" }
+      return { label: "Hoàn thành", color: "green" };
     case "cancelled":
-      return { label: "Đã hủy", color: "red" }
+      return { label: "Đã hủy", color: "red" };
     default:
-      return { label: status, color: "gray" }
+      return { label: status, color: "gray" };
   }
 }
 
 type OrderListItemProps = {
-  order: OrderRead
-  userId: string
-  navigate: ReturnType<typeof useNavigate>
-  completePending: boolean
-  cancelPending: boolean
-  onComplete: (orderId: string) => Promise<void>
-  onCancel: (orderId: string) => Promise<void>
-}
+  order: OrderRead;
+  userId: string;
+  navigate: ReturnType<typeof useNavigate>;
+  completePending: boolean;
+  cancelPending: boolean;
+  onComplete: (orderId: string) => Promise<void>;
+  onCancel: (orderId: string) => Promise<void>;
+};
 
 function OrderListItem({
   order,
@@ -59,17 +59,17 @@ function OrderListItem({
   onComplete,
   onCancel,
 }: OrderListItemProps) {
-  const status = statusMeta(order.status)
-  const isBuyer = order.buyer_id === userId
-  const counterpartyId = isBuyer ? order.seller_id : order.buyer_id
-  const isCounterpartyOnline = useIsUserOnline(counterpartyId)
-  const escrowQuery = useEscrow(order.id)
-  const escrow = escrowQuery.data
+  const status = statusMeta(order.status);
+  const isBuyer = order.buyer_id === userId;
+  const counterpartyId = isBuyer ? order.seller_id : order.buyer_id;
+  const isCounterpartyOnline = useIsUserOnline(counterpartyId);
+  const escrowQuery = useEscrow(order.id);
+  const escrow = escrowQuery.data;
 
-  const canComplete = order.status === "pending" && isBuyer && !escrow
+  const canComplete = order.status === "pending" && isBuyer && !escrow;
   const canCancel =
     order.status === "pending" &&
-    (!escrow || escrow.status === "awaiting_funding")
+    (!escrow || escrow.status === "awaiting_funding");
 
   return (
     <Box
@@ -186,26 +186,26 @@ function OrderListItem({
         </HStack>
       </Flex>
     </Box>
-  )
+  );
 }
 
 export function OrdersPage() {
-  const navigate = useNavigate()
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
-  const [tab, setTab] = useState<OrderTab>("buying")
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser();
+  const [tab, setTab] = useState<OrderTab>("buying");
 
-  const ordersQuery = useMyOrders()
-  const completeMutation = useCompleteOrder()
-  const cancelMutation = useCancelOrder()
+  const ordersQuery = useMyOrders();
+  const completeMutation = useCompleteOrder();
+  const cancelMutation = useCancelOrder();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate({ to: "/auth/login" })
+      navigate({ to: "/auth/login" });
     }
-  }, [authLoading, isAuthenticated, navigate])
+  }, [authLoading, isAuthenticated, navigate]);
 
   if (!authLoading && !isAuthenticated) {
-    return null
+    return null;
   }
 
   if (authLoading || !user) {
@@ -213,47 +213,52 @@ export function OrdersPage() {
       <Flex minH="100vh" align="center" justify="center">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
-  const allOrders = ordersQuery.data ?? []
+  const allOrders = ordersQuery.data ?? [];
   const filteredOrders = (() => {
     if (tab === "buying") {
-      return allOrders.filter((order) => order.buyer_id === user.id)
+      return allOrders.filter((order) => order.buyer_id === user.id);
     }
     if (tab === "selling") {
-      return allOrders.filter((order) => order.seller_id === user.id)
+      return allOrders.filter((order) => order.seller_id === user.id);
     }
-    return allOrders
-  })()
+    return allOrders;
+  })();
 
   const handleComplete = async (orderId: string) => {
     try {
-      await completeMutation.mutateAsync(orderId)
-      toaster.create({ title: "Đã hoàn thành đơn hàng", type: "success" })
+      await completeMutation.mutateAsync(orderId);
+      toaster.create({ title: "Đã hoàn thành đơn hàng", type: "success" });
     } catch (e: any) {
       toaster.create({
         title: e?.message || "Lỗi hoàn thành đơn hàng",
         type: "error",
-      })
+      });
     }
-  }
+  };
 
   const handleCancel = async (orderId: string) => {
     try {
-      await cancelMutation.mutateAsync(orderId)
-      toaster.create({ title: "Đã hủy đơn hàng", type: "info" })
+      await cancelMutation.mutateAsync(orderId);
+      toaster.create({ title: "Đã hủy đơn hàng", type: "info" });
     } catch (e: any) {
       toaster.create({
         title: e?.message || "Lỗi hủy đơn hàng",
         type: "error",
-      })
+      });
     }
-  }
+  };
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="5xl" py={10} mx="auto">
+      <Container
+        maxW="1440px"
+        mx="auto"
+        px={{ base: "1rem", md: "2%" }}
+        py={10}
+      >
         <Flex align="center" justify="space-between" mb={6}>
           <HStack gap={3}>
             <Button
@@ -367,11 +372,11 @@ export function OrdersPage() {
                   onComplete={handleComplete}
                   onCancel={handleCancel}
                 />
-              )
+              );
             })}
           </VStack>
         )}
       </Container>
     </Box>
-  )
+  );
 }

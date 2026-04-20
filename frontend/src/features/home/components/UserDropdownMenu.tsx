@@ -6,8 +6,8 @@ import {
   Portal,
   Separator,
   Text,
-} from "@chakra-ui/react"
-import { Link } from "@tanstack/react-router"
+} from "@chakra-ui/react";
+import { Link } from "@tanstack/react-router";
 import {
   FiCreditCard,
   FiList,
@@ -16,13 +16,13 @@ import {
   FiShield,
   FiShoppingBag,
   FiUser,
-} from "react-icons/fi"
-import type { UserMe } from "@/client"
-import { openChatWidget } from "@/features/chat/chat-widget.events"
+} from "react-icons/fi";
+import type { UserMe } from "@/client";
+import { openChatWidget } from "@/features/chat/chat-widget.events";
 
 interface UserDropdownMenuProps {
-  user: UserMe
-  onLogout: () => void
+  user: UserMe;
+  onLogout: () => void;
 }
 
 export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
@@ -58,7 +58,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
             borderRadius="xl"
             border="1px"
             borderColor="whiteAlpha.400"
-            zIndex={50}
+            zIndex={1200}
           >
             {/* User Info Section */}
             <Box px={4} py={3} borderBottom="1px" borderColor="whiteAlpha.400">
@@ -213,5 +213,5 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
         </Menu.Positioner>
       </Portal>
     </Menu.Root>
-  )
+  );
 }

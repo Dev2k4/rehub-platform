@@ -10,36 +10,38 @@ import {
   Portal,
   Spinner,
   Text,
-} from "@chakra-ui/react"
-import { useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
-import { FiArrowLeft, FiPlus, FiSearch } from "react-icons/fi"
-import type { ListingRead } from "@/client"
-import { ApiError } from "@/client"
-import { Button } from "@/components/ui/button"
-import { InputGroup } from "@/components/ui/input-group"
-import { toaster } from "@/components/ui/toaster"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
-import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm"
-import { ListingModal } from "@/features/listings/components/ListingModal"
-import { ListingsTable } from "@/features/listings/components/ListingsTable"
+} from "@chakra-ui/react";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { FiArrowLeft, FiPlus, FiSearch } from "react-icons/fi";
+import type { ListingRead } from "@/client";
+import { ApiError } from "@/client";
+import { Button } from "@/components/ui/button";
+import { InputGroup } from "@/components/ui/input-group";
+import { toaster } from "@/components/ui/toaster";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
+import { ListingModal } from "@/features/listings/components/ListingModal";
+import { ListingsTable } from "@/features/listings/components/ListingsTable";
 import {
   useCreateListingWithImagesAtomic,
   useDeleteListing,
   useMyListings,
   useUpdateListing,
   useUploadListingImage,
-} from "@/features/listings/hooks/useMyListings"
+} from "@/features/listings/hooks/useMyListings";
 
 export function MyListingsPage() {
-  const navigate = useNavigate()
-  const { isAuthenticated, isLoading: authLoading } = useAuthUser()
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuthUser();
 
-  const [searchKeyword, setSearchKeyword] = useState("")
-  const [selectedStatus, setSelectedStatus] = useState<string>("")
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingListing, setEditingListing] = useState<ListingRead | null>(null)
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingListing, setEditingListing] = useState<ListingRead | null>(
+    null,
+  );
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Queries and mutations
   const { data: listingsData, isLoading: isLoadingListings } = useMyListings({
@@ -47,36 +49,36 @@ export function MyListingsPage() {
     status: selectedStatus,
     skip: 0,
     limit: 50,
-  })
+  });
 
-  const createWithImagesAtomicMutation = useCreateListingWithImagesAtomic()
-  const updateMutation = useUpdateListing()
-  const deleteMutation = useDeleteListing()
-  const uploadImageMutation = useUploadListingImage()
+  const createWithImagesAtomicMutation = useCreateListingWithImagesAtomic();
+  const updateMutation = useUpdateListing();
+  const deleteMutation = useDeleteListing();
+  const uploadImageMutation = useUploadListingImage();
 
   // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
-    navigate({ to: "/auth/login" })
-    return null
+    navigate({ to: "/auth/login" });
+    return null;
   }
 
   const handleCreateClick = () => {
-    setEditingListing(null)
-    setIsFormOpen(true)
-  }
+    setEditingListing(null);
+    setIsFormOpen(true);
+  };
 
   const handleEditClick = (listing: ListingRead) => {
-    setEditingListing(listing)
-    setIsFormOpen(true)
-  }
+    setEditingListing(listing);
+    setIsFormOpen(true);
+  };
 
   const handleDeleteClick = (listing: ListingRead) => {
-    setDeleteConfirmId(listing.id)
-  }
+    setDeleteConfirmId(listing.id);
+  };
 
   const handleViewClick = (listing: ListingRead) => {
-    navigate({ to: `/listings/${listing.id}` })
-  }
+    navigate({ to: `/listings/${listing.id}` });
+  };
 
   const handleFormSubmit = async ({
     data,
@@ -87,7 +89,7 @@ export function MyListingsPage() {
         await updateMutation.mutateAsync({
           listingId: editingListing.id,
           data,
-        })
+        });
 
         // For edit mode, keep existing incremental image upload behavior.
         for (const [index, file] of files.entries()) {
@@ -95,11 +97,11 @@ export function MyListingsPage() {
             listingId: editingListing.id,
             file,
             isPrimary: index === 0,
-          })
+          });
         }
       } else {
         // Atomic create: backend guarantees rollback if any image upload fails.
-        await createWithImagesAtomicMutation.mutateAsync({ data, files })
+        await createWithImagesAtomicMutation.mutateAsync({ data, files });
       }
 
       toaster.create({
@@ -107,47 +109,52 @@ export function MyListingsPage() {
         title: editingListing
           ? "Cập nhật tin đăng thành công"
           : "Tạo tin đăng thành công",
-      })
-      setIsFormOpen(false)
+      });
+      setIsFormOpen(false);
     } catch (error) {
-      let message = "Tạo tin đăng thất bại. Vui lòng thử lại."
+      let message = "Tạo tin đăng thất bại. Vui lòng thử lại.";
       if (error instanceof ApiError) {
         if (error.status === 409) {
-          message = "Ảnh bị trùng với tin khác. Vui lòng chọn ảnh khác."
+          message = "Ảnh bị trùng với tin khác. Vui lòng chọn ảnh khác.";
         } else if (error.status === 429) {
-          message = "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít giây."
+          message = "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít giây.";
         } else if (error.status >= 500) {
-          message = "Lỗi máy chủ khi tạo tin/ảnh. Tin chưa được tạo."
+          message = "Lỗi máy chủ khi tạo tin/ảnh. Tin chưa được tạo.";
         }
       }
 
-      toaster.create({ type: "error", title: message })
-      return
+      toaster.create({ type: "error", title: message });
+      return;
     }
-  }
+  };
 
   const handleConfirmDelete = async () => {
     if (deleteConfirmId) {
       try {
-        await deleteMutation.mutateAsync(deleteConfirmId)
-        setDeleteConfirmId(null)
+        await deleteMutation.mutateAsync(deleteConfirmId);
+        setDeleteConfirmId(null);
       } catch (error) {
-        console.error("Error deleting listing:", error)
+        console.error("Error deleting listing:", error);
       }
     }
-  }
+  };
 
   if (authLoading) {
     return (
       <Flex minH="100vh" align="center" justify="center">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="7xl" mx="auto" px={{ base: 4, sm: 6, lg: 8 }} py={10}>
+      <Container
+        maxW="1440px"
+        mx="auto"
+        px={{ base: "1rem", md: "2%" }}
+        py={10}
+      >
         {/* Back button */}
         <Button
           variant="ghost"
@@ -353,5 +360,5 @@ export function MyListingsPage() {
         </Portal>
       </Dialog.Root>
     </Box>
-  )
+  );
 }
