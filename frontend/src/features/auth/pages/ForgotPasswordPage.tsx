@@ -1,23 +1,23 @@
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { FiMail, FiSend } from "react-icons/fi";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
-import { InputGroup } from "@/components/ui/input-group";
-import { toaster } from "@/components/ui/toaster";
-import { useForgotPasswordMutation } from "@/features/auth/hooks/useForgotPasswordMutation";
-import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout";
+import { Box, Heading, Text, VStack } from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { FiMail, FiSend } from "react-icons/fi"
+import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
+import { toaster } from "@/components/ui/toaster"
+import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout"
+import { useForgotPasswordMutation } from "@/features/auth/hooks/useForgotPasswordMutation"
 
 const schema = z.object({
   email: z.string().email("Email không hợp lệ"),
-});
+})
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.infer<typeof schema>
 
 export function ForgotPasswordPage() {
-  const forgotPasswordMutation = useForgotPasswordMutation();
+  const forgotPasswordMutation = useForgotPasswordMutation()
   const {
     register,
     handleSubmit,
@@ -25,7 +25,7 @@ export function ForgotPasswordPage() {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { email: "" },
-  });
+  })
 
   const onSubmit = (data: FormData) => {
     forgotPasswordMutation.mutate(data.email, {
@@ -34,16 +34,16 @@ export function ForgotPasswordPage() {
           title: "Đã gửi email đặt lại mật khẩu",
           description: "Vui lòng kiểm tra hộp thư của bạn.",
           type: "success",
-        });
+        })
       },
       onError: (error: any) => {
         toaster.create({
           title: error?.message || "Không thể gửi yêu cầu",
           type: "error",
-        });
+        })
       },
-    });
-  };
+    })
+  }
 
   return (
     <AuthPageLayout backTo="/auth/login" backLabel="Về đăng nhập">
@@ -125,5 +125,5 @@ export function ForgotPasswordPage() {
         </VStack>
       </Box>
     </AuthPageLayout>
-  );
+  )
 }

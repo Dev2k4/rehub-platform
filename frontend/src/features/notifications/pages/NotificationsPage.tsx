@@ -10,62 +10,63 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
-import { FiArrowLeft, FiFilter } from "react-icons/fi"
-import type { NotificationRead } from "@/client"
+} from "@chakra-ui/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { FiArrowLeft, FiFilter } from "react-icons/fi";
+import type { NotificationRead } from "@/client";
 import {
   MenuContent,
   MenuItem,
   MenuRoot,
   MenuTrigger,
-} from "@/components/ui/menu"
-import { toaster } from "@/components/ui/toaster"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+} from "@/components/ui/menu";
+import { toaster } from "@/components/ui/toaster";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
 import {
   getMyNotificationsHistory,
   getUnreadNotificationsCount,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-} from "@/features/notifications/api/notifications.api"
-import { getNotificationDestination } from "@/features/notifications/utils/notificationNavigation"
+} from "@/features/notifications/api/notifications.api";
+import { getNotificationDestination } from "@/features/notifications/utils/notificationNavigation";
+import { translateNotification } from "@/features/notifications/utils/notificationTranslation";
 
-type ReadFilter = "all" | "unread" | "read"
-type TypeFilter = "all" | "offer" | "order" | "escrow" | "listing" | "review"
+type ReadFilter = "all" | "unread" | "read";
+type TypeFilter = "all" | "offer" | "order" | "escrow" | "listing" | "review";
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilter; label: string }> = [
-  { value: "all", label: "Tat ca loai" },
-  { value: "offer", label: "Offer" },
-  { value: "order", label: "Order" },
-  { value: "escrow", label: "Escrow" },
-  { value: "listing", label: "Listing" },
-  { value: "review", label: "Review" },
-]
+  { value: "all", label: "Tất cả" },
+  { value: "offer", label: "Đề xuất giá" },
+  { value: "order", label: "Đơn hàng" },
+  { value: "escrow", label: "Giao dịch Escrow" },
+  { value: "listing", label: "Tin đăng" },
+  { value: "review", label: "Đánh giá" },
+];
 
 function getTypeBadge(type: NotificationRead["type"]): string {
-  if (type.startsWith("offer_")) return "offer"
-  if (type.startsWith("order_")) return "order"
-  if (type.startsWith("escrow_")) return "escrow"
-  if (type.startsWith("listing_")) return "listing"
-  if (type.startsWith("review_")) return "review"
-  return "other"
+  if (type.startsWith("offer_")) return "Đề xuất giá";
+  if (type.startsWith("order_")) return "Đơn hàng";
+  if (type.startsWith("escrow_")) return "Escrow";
+  if (type.startsWith("listing_")) return "Tin đăng";
+  if (type.startsWith("review_")) return "Đánh giá";
+  return "Khác";
 }
 
 export function NotificationsPage() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser();
 
-  const [readFilter, setReadFilter] = useState<ReadFilter>("all")
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
-  const [page, setPage] = useState(1)
-  const pageSize = 20
+  const [readFilter, setReadFilter] = useState<ReadFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   useEffect(() => {
-    setPage(1)
-  }, [])
+    setPage(1);
+  }, []);
 
   const notificationsQuery = useQuery({
     queryKey: [
@@ -84,49 +85,52 @@ export function NotificationsPage() {
         limit: pageSize,
       }),
     enabled: isAuthenticated,
-  })
+  });
 
   const unreadCountQuery = useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: () => getUnreadNotificationsCount(),
     enabled: isAuthenticated,
-  })
+  });
 
   const markOneMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications", "history"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications", "history"] });
       queryClient.invalidateQueries({
         queryKey: ["notifications", "unread-count"],
-      })
+      });
     },
-  })
+  });
 
   const markAllMutation = useMutation({
     mutationFn: markAllNotificationsAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications", "history"] })
+      queryClient.invalidateQueries({ queryKey: ["notifications", "history"] });
       queryClient.invalidateQueries({
         queryKey: ["notifications", "unread-count"],
-      })
-      toaster.create({ title: "Da danh dau tat ca la da doc", type: "success" })
+      });
+      toaster.create({
+        title: "Da danh dau tat ca la da doc",
+        type: "success",
+      });
     },
-  })
+  });
 
-  const historyItems = notificationsQuery.data?.items ?? []
-  const total = notificationsQuery.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const unreadCount = unreadCountQuery.data ?? 0
+  const historyItems = notificationsQuery.data?.items ?? [];
+  const total = notificationsQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const unreadCount = unreadCountQuery.data ?? 0;
 
   useEffect(() => {
     if (page > totalPages) {
-      setPage(totalPages)
+      setPage(totalPages);
     }
-  }, [page, totalPages])
+  }, [page, totalPages]);
 
   if (!authLoading && !isAuthenticated) {
-    navigate({ to: "/auth/login" })
-    return null
+    navigate({ to: "/auth/login" });
+    return null;
   }
 
   if (authLoading || !user) {
@@ -134,41 +138,41 @@ export function NotificationsPage() {
       <Flex minH="100vh" align="center" justify="center" bg="gray.50">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   const handleMarkRead = async (notificationId: string) => {
     if (markOneMutation.isPending) {
-      return
+      return;
     }
 
     try {
-      await markOneMutation.mutateAsync(notificationId)
+      await markOneMutation.mutateAsync(notificationId);
     } catch {
-      toaster.create({ title: "Khong the cap nhat thong bao", type: "error" })
+      toaster.create({ title: "Khong the cap nhat thong bao", type: "error" });
     }
-  }
+  };
 
   const handleOpenNotification = async (notification: NotificationRead) => {
     if (!notification.is_read) {
-      await handleMarkRead(notification.id)
+      await handleMarkRead(notification.id);
     }
 
-    const destination = getNotificationDestination(notification)
-    navigate(destination as never)
-  }
+    const destination = getNotificationDestination(notification);
+    navigate(destination as never);
+  };
 
   const handleMarkAllRead = async () => {
     if (unreadCount === 0 || markAllMutation.isPending) {
-      return
+      return;
     }
 
     try {
-      await markAllMutation.mutateAsync()
+      await markAllMutation.mutateAsync();
     } catch {
-      toaster.create({ title: "Khong the danh dau tat ca", type: "error" })
+      toaster.create({ title: "Khong the danh dau tat ca", type: "error" });
     }
-  }
+  };
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -239,8 +243,8 @@ export function NotificationsPage() {
               size="sm"
               variant="ghost"
               onClick={() => {
-                setReadFilter("all")
-                setTypeFilter("all")
+                setReadFilter("all");
+                setTypeFilter("all");
               }}
               disabled={readFilter === "all" && typeFilter === "all"}
             >
@@ -367,8 +371,8 @@ export function NotificationsPage() {
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  setReadFilter("all")
-                  setTypeFilter("all")
+                  setReadFilter("all");
+                  setTypeFilter("all");
                 }}
               >
                 Tro ve tat ca thong bao
@@ -377,7 +381,11 @@ export function NotificationsPage() {
           ) : (
             <VStack align="stretch" gap={4}>
               {historyItems.map((notification) => {
-                const typeLabel = getTypeBadge(notification.type)
+                const typeLabel = getTypeBadge(notification.type);
+                const { title, message } = translateNotification(
+                  notification.title,
+                  notification.message,
+                );
 
                 return (
                   <Box
@@ -416,7 +424,7 @@ export function NotificationsPage() {
                         </HStack>
 
                         <Text fontWeight="bold" color="gray.900" lineClamp={1}>
-                          {notification.title}
+                          {title}
                         </Text>
                         <Text
                           mt={1}
@@ -424,7 +432,7 @@ export function NotificationsPage() {
                           fontSize="sm"
                           lineClamp={2}
                         >
-                          {notification.message}
+                          {message}
                         </Text>
                         <Text mt={2} fontSize="xs" color="gray.500">
                           {new Date(notification.created_at).toLocaleString(
@@ -456,7 +464,7 @@ export function NotificationsPage() {
                       </HStack>
                     </Flex>
                   </Box>
-                )
+                );
               })}
 
               <Flex mt={2} align="center" justify="center" gap={3}>
@@ -492,5 +500,5 @@ export function NotificationsPage() {
         </Box>
       </Container>
     </Box>
-  )
+  );
 }

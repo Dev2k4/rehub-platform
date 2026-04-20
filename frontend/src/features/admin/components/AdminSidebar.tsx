@@ -1,5 +1,5 @@
-import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react"
-import { Link, useLocation } from "@tanstack/react-router"
+import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -8,7 +8,7 @@ import {
   FiShield,
   FiShoppingBag,
   FiUsers,
-} from "react-icons/fi"
+} from "react-icons/fi";
 
 const menuItems = [
   { id: "dashboard", label: "Tổng quan", path: "/admin", icon: FiHome },
@@ -42,10 +42,10 @@ const menuItems = [
     path: "/admin/escrows",
     icon: FiShield,
   },
-]
+];
 
 export function AdminSidebar() {
-  const location = useLocation()
+  const location = useLocation();
 
   return (
     <Box
@@ -66,12 +66,12 @@ export function AdminSidebar() {
         boxShadow="0 10px 40px rgba(0,0,0,0.06)"
       >
         <Heading as="h2" size="md" mb={4} color="gray.900">
-          Admin Panel
+          Bảng Quản Trị
         </Heading>
 
         <VStack gap={1} align="stretch">
           {menuItems.map((item) => {
-            const active = location.pathname === item.path
+            const active = location.pathname === item.path;
             return (
               <Link key={item.id} to={item.path}>
                 <Flex
@@ -100,7 +100,7 @@ export function AdminSidebar() {
                   </Text>
                 </Flex>
               </Link>
-            )
+            );
           })}
 
           <Box my={2} borderTop="1px" borderColor="gray.100" />
@@ -126,5 +126,5 @@ export function AdminSidebar() {
         </VStack>
       </Box>
     </Box>
-  )
+  );
 }

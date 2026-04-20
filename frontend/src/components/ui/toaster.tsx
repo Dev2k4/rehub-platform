@@ -1,157 +1,100 @@
+"use client";
+
 import {
-  Toaster as ChakraToaster,
-  Portal,
-  Spinner,
-  Stack,
-  Toast,
-  createToaster,
-  Box,
-} from "@chakra-ui/react";
+  CircleCheckIcon,
+  InfoIcon,
+  Loader2Icon,
+  OctagonXIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import {
+  Toaster as Sonner,
+  type ToasterProps,
+  toast as sonnerToast,
+} from "sonner";
 
-export const toaster = createToaster({
-  placement: "top-end",
-  pauseOnPageIdle: true,
-});
+const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme = "system" } = useTheme();
 
-// Map palette token sang màu CSS thực tế (dùng cho boxShadow & bgGradient)
-const GLOW_COLORS: Record<
-  string,
-  { glow: string; gradFrom: string; gradTo: string; bar: string }
-> = {
-  success: {
-    glow: "rgba(34,197,94,0.35)",
-    gradFrom: "#4ade80",
-    gradTo: "#16a34a",
-    bar: "#22c55e",
-  },
-  error: {
-    glow: "rgba(239,68,68,0.35)",
-    gradFrom: "#f87171",
-    gradTo: "#dc2626",
-    bar: "#ef4444",
-  },
-  warning: {
-    glow: "rgba(249,115,22,0.35)",
-    gradFrom: "#fb923c",
-    gradTo: "#ea580c",
-    bar: "#f97316",
-  },
-  info: {
-    glow: "rgba(59,130,246,0.35)",
-    gradFrom: "#60a5fa",
-    gradTo: "#2563eb",
-    bar: "#3b82f6",
-  },
-  loading: {
-    glow: "rgba(59,130,246,0.35)",
-    gradFrom: "#60a5fa",
-    gradTo: "#2563eb",
-    bar: "#3b82f6",
-  },
-};
-
-const INDICATOR_COLORS: Record<string, string> = {
-  success: "green.300",
-  error: "red.300",
-  warning: "orange.300",
-  info: "blue.300",
-  loading: "blue.300",
-};
-
-export const Toaster = () => {
   return (
-    <Portal>
-      <ChakraToaster toaster={toaster} insetInline={{ mdDown: "4" }}>
-        {(toast) => {
-          const type = toast.type || "info";
-          const colors = GLOW_COLORS[type] || GLOW_COLORS.info;
-
-          return (
-            <Toast.Root
-              width={{ md: "sm" }}
-              position="relative"
-              overflow="hidden"
-              display="flex"
-              alignItems="flex-start"
-              gap={3}
-              bg="rgba(10, 15, 30, 0.88)"
-              backdropFilter="blur(20px)"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="rgba(255,255,255,0.10)"
-              p={4}
-              pl={5}
-              boxShadow={`0 12px 32px -8px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 24px ${colors.glow}`}
-              transition="all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)"
-            >
-              {/* Thanh màu bên trái — neon bar */}
-              <Box
-                position="absolute"
-                left={0}
-                top={0}
-                bottom={0}
-                w="4px"
-                borderRadius="full"
-                background={`linear-gradient(to bottom, ${colors.gradFrom}, ${colors.gradTo})`}
-                boxShadow={`0 0 10px ${colors.bar}`}
-              />
-
-              {/* Icon */}
-              {toast.type === "loading" ? (
-                <Spinner size="sm" color={INDICATOR_COLORS[type]} mt="2px" />
-              ) : (
-                <Toast.Indicator color={INDICATOR_COLORS[type]} mt="2px" />
-              )}
-
-              {/* Nội dung */}
-              <Stack gap="0.5" flex="1" maxWidth="100%">
-                {toast.title && (
-                  <Toast.Title fontWeight="bold" color="white" fontSize="sm">
-                    {toast.title}
-                  </Toast.Title>
-                )}
-                {toast.description && (
-                  <Toast.Description
-                    color="whiteAlpha.700"
-                    fontSize="xs"
-                    lineHeight="1.5"
-                  >
-                    {toast.description}
-                  </Toast.Description>
-                )}
-              </Stack>
-
-              {/* Action label */}
-              {toast.action && (
-                <Toast.ActionTrigger asChild>
-                  <Box
-                    as="button"
-                    fontSize="xs"
-                    fontWeight="bold"
-                    color={INDICATOR_COLORS[type]}
-                    _hover={{ textDecoration: "underline" }}
-                    flexShrink={0}
-                  >
-                    {toast.action.label}
-                  </Box>
-                </Toast.ActionTrigger>
-              )}
-
-              {/* Close button */}
-              {toast.meta?.closable && (
-                <Toast.CloseTrigger
-                  color="whiteAlpha.500"
-                  _hover={{ color: "white", bg: "whiteAlpha.200" }}
-                  position="absolute"
-                  top={2}
-                  right={2}
-                  borderRadius="md"
-                />
-              )}
-            </Toast.Root>
-          );
-        }}
-      </ChakraToaster>
-    </Portal>
+    <Sonner
+      theme={theme as ToasterProps["theme"]}
+      className="toaster group"
+      position="bottom-right"
+      visibleToasts={1}
+      icons={{
+        success: (
+          <CircleCheckIcon
+            style={{ width: 18, height: 18, color: "#34d399" }}
+          />
+        ),
+        info: <InfoIcon style={{ width: 18, height: 18, color: "#60a5fa" }} />,
+        warning: (
+          <TriangleAlertIcon
+            style={{ width: 18, height: 18, color: "#fbbf24" }}
+          />
+        ),
+        error: (
+          <OctagonXIcon style={{ width: 18, height: 18, color: "#fb7185" }} />
+        ),
+        loading: (
+          <Loader2Icon
+            style={{ width: 18, height: 18, color: "#94a3b8" }}
+            className="animate-spin"
+          />
+        ),
+      }}
+      style={
+        {
+          "--normal-bg": "rgba(15, 23, 42, 0.88)",
+          "--normal-text": "#ffffff",
+          "--muted-text": "rgba(255, 255, 255, 0.9)",
+          "--normal-border": "rgba(255, 255, 255, 0.15)",
+          "--border-radius": "14px",
+        } as React.CSSProperties
+      }
+      toastOptions={{
+        style: {
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          boxShadow: "0 20px 50px -15px rgba(0,0,0,0.5)",
+          padding: "1rem 1.25rem",
+          fontWeight: 500,
+          color: "#ffffff",
+        },
+      }}
+      {...props}
+    />
   );
 };
+
+// Wrapper to keep compatibility with existing `toaster.create()` calls across the app
+export const toaster = {
+  create: (options: {
+    title?: string;
+    description?: string;
+    type?: "success" | "error" | "info" | "warning" | "loading";
+  }) => {
+    const { title, description, type = "info" } = options;
+    const message = title || "";
+    const toastOpts = description ? { description } : undefined;
+
+    switch (type) {
+      case "success":
+        return sonnerToast.success(message, toastOpts);
+      case "error":
+        return sonnerToast.error(message, toastOpts);
+      case "warning":
+        return sonnerToast.warning(message, toastOpts);
+      case "loading":
+        return sonnerToast.loading(message, toastOpts);
+      case "info":
+      default:
+        return sonnerToast.info(message, toastOpts);
+    }
+  },
+};
+
+export { Toaster };

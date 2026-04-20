@@ -10,52 +10,52 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+} from "@chakra-ui/react"
+import { useMemo, useState } from "react"
 import {
   FiAlertCircle,
   FiDollarSign,
   FiHash,
   FiSearch,
   FiShield,
-} from "react-icons/fi";
-import { toaster } from "@/components/ui/toaster";
-import {
-  useAdminResolveEscrow,
-  useDisputedEscrows,
-} from "@/features/admin/hooks/useAdminEscrows";
-import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils";
+} from "react-icons/fi"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
+import { toaster } from "@/components/ui/toaster"
+import {
+  useAdminResolveEscrow,
+  useDisputedEscrows,
+} from "@/features/admin/hooks/useAdminEscrows"
+import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
 
 export function AdminEscrowsPage() {
-  const [note, setNote] = useState("");
-  const [searchOrderId, setSearchOrderId] = useState("");
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [note, setNote] = useState("")
+  const [searchOrderId, setSearchOrderId] = useState("")
+  const [page, setPage] = useState(1)
+  const pageSize = 10
   const {
     data: escrows = [],
     isLoading,
     isError,
-  } = useDisputedEscrows({ limit: 100 });
-  const resolveMutation = useAdminResolveEscrow();
+  } = useDisputedEscrows({ limit: 100 })
+  const resolveMutation = useAdminResolveEscrow()
 
   const filteredEscrows = useMemo(() => {
-    const keyword = searchOrderId.trim().toLowerCase();
-    if (!keyword) return escrows;
+    const keyword = searchOrderId.trim().toLowerCase()
+    if (!keyword) return escrows
     return escrows.filter((escrow) =>
       escrow.order_id.toLowerCase().includes(keyword),
-    );
-  }, [escrows, searchOrderId]);
+    )
+  }, [escrows, searchOrderId])
 
   const paginatedEscrows = filteredEscrows.slice(
     (page - 1) * pageSize,
     page * pageSize,
-  );
+  )
 
   const handleResolve = async (
     orderId: string,
@@ -66,21 +66,21 @@ export function AdminEscrowsPage() {
         orderId,
         result,
         note: note.trim() || undefined,
-      });
+      })
       toaster.create({
         title:
           result === "release"
             ? "Đã giải phóng tiền cho người bán"
             : "Đã hoàn tiền cho người mua",
         type: "success",
-      });
+      })
     } catch (e: any) {
       toaster.create({
         title: e?.message || "Lỗi xử lý tranh chấp",
         type: "error",
-      });
+      })
     }
-  };
+  }
 
   return (
     <Container maxW="7xl" px={0}>
@@ -136,8 +136,8 @@ export function AdminEscrowsPage() {
               placeholder="Tìm theo Mã đơn hàng..."
               value={searchOrderId}
               onChange={(e) => {
-                setSearchOrderId(e.target.value);
-                setPage(1);
+                setSearchOrderId(e.target.value)
+                setPage(1)
               }}
               pl={9}
               borderRadius="xl"
@@ -159,7 +159,7 @@ export function AdminEscrowsPage() {
               placeholder="Ghi chú khi xử lý (tùy chọn)..."
               value={note}
               onChange={(e) => {
-                setNote(e.target.value);
+                setNote(e.target.value)
               }}
               pl={9}
               borderRadius="xl"
@@ -332,5 +332,5 @@ export function AdminEscrowsPage() {
         </PaginationRoot>
       </Flex>
     </Container>
-  );
+  )
 }

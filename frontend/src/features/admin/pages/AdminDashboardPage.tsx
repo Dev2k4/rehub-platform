@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Container,
   Flex,
   Grid,
@@ -10,21 +9,20 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { useNavigate } from "@tanstack/react-router";
+} from "@chakra-ui/react"
+import { useNavigate } from "@tanstack/react-router"
 import {
   FiActivity,
   FiCheckCircle,
   FiGrid,
   FiShoppingBag,
-  FiShield,
   FiTrendingUp,
   FiUsers,
-} from "react-icons/fi";
-import { useAdminCategories } from "../hooks/useAdminCategories";
-import { usePendingListings } from "../hooks/useAdminListings";
-import { useAdminOrders } from "../hooks/useAdminOrders";
-import { useAdminUsers } from "../hooks/useAdminUsers";
+} from "react-icons/fi"
+import { useAdminCategories } from "../hooks/useAdminCategories"
+import { usePendingListings } from "../hooks/useAdminListings"
+import { useAdminOrders } from "../hooks/useAdminOrders"
+import { useAdminUsers } from "../hooks/useAdminUsers"
 
 // Simple CSS donut chart
 function DonutChart({
@@ -32,13 +30,13 @@ function DonutChart({
   color,
   size = 80,
 }: {
-  percent: number;
-  color: string;
-  size?: number;
+  percent: number
+  color: string
+  size?: number
 }) {
-  const radius = (size - 12) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDash = (percent / 100) * circumference;
+  const radius = (size - 12) / 2
+  const circumference = 2 * Math.PI * radius
+  const strokeDash = (percent / 100) * circumference
   return (
     <Box position="relative" w={`${size}px`} h={`${size}px`} flexShrink={0}>
       <svg width={size} height={size} style={{ display: "block" }}>
@@ -80,18 +78,18 @@ function DonutChart({
         {percent}%
       </div>
     </Box>
-  );
+  )
 }
 
 interface QuickActionCardProps {
-  icon: React.ElementType;
-  title: string;
-  subtitle: string;
-  value: number | string;
-  valueColor: string;
-  bgGradient: string;
-  to: string;
-  loading?: boolean;
+  icon: React.ElementType
+  title: string
+  subtitle: string
+  value: number | string
+  valueColor: string
+  bgGradient: string
+  to: string
+  loading?: boolean
 }
 
 function QuickActionCard({
@@ -104,7 +102,7 @@ function QuickActionCard({
   to,
   loading,
 }: QuickActionCardProps) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   return (
     <Box
       bg="white"
@@ -148,46 +146,44 @@ function QuickActionCard({
         {subtitle}
       </Text>
     </Box>
-  );
+  )
 }
 
 export function AdminDashboardPage() {
-  const navigate = useNavigate();
+  const _navigate = useNavigate()
   const { data: users = [], isLoading: usersLoading } = useAdminUsers({
     limit: 200,
-  });
+  })
   const { data: pendingListings = [], isLoading: listingsLoading } =
-    usePendingListings({ limit: 200 });
+    usePendingListings({ limit: 200 })
   const { data: categories = [], isLoading: categoriesLoading } =
-    useAdminCategories();
+    useAdminCategories()
   const { data: orders = [], isLoading: ordersLoading } = useAdminOrders({
     limit: 200,
-  });
+  })
 
   const isLoading =
-    usersLoading || listingsLoading || categoriesLoading || ordersLoading;
+    usersLoading || listingsLoading || categoriesLoading || ordersLoading
 
-  const totalUsers = users.length;
-  const activeUsers = users.filter((u: any) => !u.is_banned).length;
-  const bannedUsers = totalUsers - activeUsers;
-  const pendingCount = pendingListings.length;
+  const totalUsers = users.length
+  const activeUsers = users.filter((u: any) => !u.is_banned).length
+  const bannedUsers = totalUsers - activeUsers
+  const pendingCount = pendingListings.length
   const completedOrders = orders.filter(
     (o: any) => o.status === "completed",
-  ).length;
-  const pendingOrders = orders.filter(
-    (o: any) => o.status === "pending",
-  ).length;
+  ).length
+  const pendingOrders = orders.filter((o: any) => o.status === "pending").length
   const activeUserRate =
-    totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
+    totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0
   const approvalRate =
-    totalUsers > 0 ? Math.round((pendingCount / (totalUsers || 1)) * 100) : 0;
+    totalUsers > 0 ? Math.round((pendingCount / (totalUsers || 1)) * 100) : 0
 
   const now = new Date().toLocaleString("vi-VN", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
-  });
+  })
 
   return (
     <Container maxW="7xl" px={0}>
@@ -367,7 +363,7 @@ export function AdminDashboardPage() {
                 const pct =
                   orders.length > 0
                     ? Math.round((s.count / orders.length) * 100)
-                    : 0;
+                    : 0
                 return (
                   <Box key={s.label}>
                     <Flex justify="space-between" mb={1}>
@@ -397,7 +393,7 @@ export function AdminDashboardPage() {
                       />
                     </Box>
                   </Box>
-                );
+                )
               })}
               <Box mt={2} pt={3} borderTop="1px solid" borderColor="gray.300">
                 <Text fontSize="xs" color="gray.500">
@@ -410,7 +406,6 @@ export function AdminDashboardPage() {
       </Grid>
 
       {/* Quick Links */}
-     
     </Container>
-  );
+  )
 }

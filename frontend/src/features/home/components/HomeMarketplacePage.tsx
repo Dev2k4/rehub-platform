@@ -404,38 +404,38 @@ import {
   Container,
   Flex,
   Heading,
+  HStack,
   Input,
   SimpleGrid,
   Text,
-  HStack,
-} from "@chakra-ui/react";
-import { useMemo, useState } from "react";
-import { toaster } from "@/components/ui/toaster";
-import { CategoryOverlay } from "@/features/home/components/CategoryOverlay";
-import { CategorySidebar } from "@/features/home/components/CategorySidebar";
-import { CategoryQuickAccess } from "@/features/home/components/CategoryQuickAccess";
-import { HeroBannerCarousel } from "@/features/home/components/HeroBannerCarousel";
-import { ListingGrid } from "@/features/home/components/ListingGrid";
-import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader";
-import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData";
-import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
-import { ListingModal } from "@/features/listings/components/ListingModal";
-import {
-  useCreateListing,
-  useUploadListingImage,
-} from "@/features/listings/hooks/useMyListings";
+} from "@chakra-ui/react"
+import { useMemo, useState } from "react"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
+import { toaster } from "@/components/ui/toaster"
+import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
+import { CategoryQuickAccess } from "@/features/home/components/CategoryQuickAccess"
+import { CategorySidebar } from "@/features/home/components/CategorySidebar"
+import { HeroBannerCarousel } from "@/features/home/components/HeroBannerCarousel"
+import { ListingGrid } from "@/features/home/components/ListingGrid"
+import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
+import { useMarketplaceData } from "@/features/home/hooks/useMarketplaceData"
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm"
+import { ListingModal } from "@/features/listings/components/ListingModal"
+import {
+  useCreateListing,
+  useUploadListingImage,
+} from "@/features/listings/hooks/useMyListings"
 
-type ListingSortBy = "newest" | "price_asc" | "price_desc";
+type ListingSortBy = "newest" | "price_asc" | "price_desc"
 
 export function HomeMarketplacePage() {
-  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false);
-  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
+  const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false)
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false)
 
   const {
     selectedCategoryId,
@@ -460,42 +460,42 @@ export function HomeMarketplacePage() {
     categoryMap,
     sellerMap,
     flatCategories,
-  } = useMarketplaceData();
+  } = useMarketplaceData()
 
-  const listings = listingsQuery.data?.items ?? [];
-  const totalListings = listingsQuery.data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalListings / pageSize));
-  const isLoading = categoriesQuery.isLoading || listingsQuery.isLoading;
+  const listings = listingsQuery.data?.items ?? []
+  const totalListings = listingsQuery.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalListings / pageSize))
+  const isLoading = categoriesQuery.isLoading || listingsQuery.isLoading
 
   const selectedCategoryName = useMemo(() => {
-    if (!selectedCategoryId) return "Tất cả sản phẩm";
-    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục";
-  }, [selectedCategoryId, categoryMap]);
+    if (!selectedCategoryId) return "Tất cả sản phẩm"
+    return categoryMap.get(selectedCategoryId)?.name ?? "Danh mục"
+  }, [selectedCategoryId, categoryMap])
 
-  const createMutation = useCreateListing();
-  const uploadImageMutation = useUploadListingImage();
+  const createMutation = useCreateListing()
+  const uploadImageMutation = useUploadListingImage()
 
   const handleCreateListing = async (payload: ListingFormSubmitPayload) => {
     try {
-      const created = await createMutation.mutateAsync(payload.data);
+      const created = await createMutation.mutateAsync(payload.data)
       if (payload.files.length > 0) {
         for (let i = 0; i < payload.files.length; i++) {
           await uploadImageMutation.mutateAsync({
             listingId: created.id,
             file: payload.files[i],
             isPrimary: i === 0,
-          });
+          })
         }
       }
-      setIsListingModalOpen(false);
-      toaster.create({ title: "Đăng tin thành công!", type: "success" });
+      setIsListingModalOpen(false)
+      toaster.create({ title: "Đăng tin thành công!", type: "success" })
     } catch (error: any) {
       toaster.create({
         title: error?.message || "Đăng tin thất bại",
         type: "error",
-      });
+      })
     }
-  };
+  }
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -513,8 +513,8 @@ export function HomeMarketplacePage() {
         selectedCategoryId={selectedCategoryId}
         onClose={() => setCategoryOverlayOpen(false)}
         onSelectCategory={(id) => {
-          setSelectedCategoryId(id);
-          setCategoryOverlayOpen(false);
+          setSelectedCategoryId(id)
+          setCategoryOverlayOpen(false)
         }}
         onOpenListingModal={() => setIsListingModalOpen(true)}
       />
@@ -737,5 +737,5 @@ export function HomeMarketplacePage() {
         isLoading={createMutation.isPending || uploadImageMutation.isPending}
       />
     </Box>
-  );
+  )
 }

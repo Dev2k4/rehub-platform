@@ -1,15 +1,15 @@
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useParams } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
-import { FiCheck, FiLock } from "react-icons/fi";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
-import { InputGroup } from "@/components/ui/input-group";
-import { toaster } from "@/components/ui/toaster";
-import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation";
-import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout";
+import { Box, Heading, Text, VStack } from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useNavigate, useParams } from "@tanstack/react-router"
+import { useForm } from "react-hook-form"
+import { FiCheck, FiLock } from "react-icons/fi"
+import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
+import { toaster } from "@/components/ui/toaster"
+import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout"
+import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation"
 
 const schema = z.object({
   newPassword: z
@@ -18,14 +18,14 @@ const schema = z.object({
     .regex(/[A-Z]/, "Mật khẩu phải chứa ít nhất một chữ hoa")
     .regex(/[a-z]/, "Mật khẩu phải chứa ít nhất một chữ thường")
     .regex(/[0-9]/, "Mật khẩu phải chứa ít nhất một chữ số"),
-});
+})
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.infer<typeof schema>
 
 export function ResetPasswordPage() {
-  const navigate = useNavigate();
-  const { token } = useParams({ from: "/auth/reset-password/$token" });
-  const resetPasswordMutation = useResetPasswordMutation();
+  const navigate = useNavigate()
+  const { token } = useParams({ from: "/auth/reset-password/$token" })
+  const resetPasswordMutation = useResetPasswordMutation()
   const {
     register,
     handleSubmit,
@@ -33,7 +33,7 @@ export function ResetPasswordPage() {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { newPassword: "" },
-  });
+  })
 
   const onSubmit = (data: FormData) => {
     resetPasswordMutation.mutate(
@@ -44,18 +44,18 @@ export function ResetPasswordPage() {
             title: "Đặt lại mật khẩu thành công! 🎉",
             description: "Bạn có thể đăng nhập với mật khẩu mới.",
             type: "success",
-          });
-          setTimeout(() => navigate({ to: "/auth/login" }), 1200);
+          })
+          setTimeout(() => navigate({ to: "/auth/login" }), 1200)
         },
         onError: (error: any) => {
           toaster.create({
             title: error?.message || "Không thể đặt lại mật khẩu",
             type: "error",
-          });
+          })
         },
       },
-    );
-  };
+    )
+  }
 
   return (
     <AuthPageLayout backTo="/auth/login" backLabel="Về đăng nhập">
@@ -155,5 +155,5 @@ export function ResetPasswordPage() {
         </VStack>
       </Box>
     </AuthPageLayout>
-  );
+  )
 }

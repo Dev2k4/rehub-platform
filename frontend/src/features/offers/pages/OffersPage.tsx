@@ -6,13 +6,22 @@ import {
   Flex,
   Heading,
   HStack,
+  SimpleGrid,
   Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useNavigate } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
-import { FiArrowLeft, FiFilter } from "react-icons/fi"
+import {
+  FiArrowLeft,
+  FiCheckCircle,
+  FiClock,
+  FiFilter,
+  FiMessageSquare,
+  FiTag,
+  FiTrendingDown,
+} from "react-icons/fi"
 import type { OfferStatus } from "@/client"
 import {
   MenuContent,
@@ -120,6 +129,16 @@ export function OffersPage() {
       ? (sentPage + 1) * PAGE_SIZE
       : sentPage * PAGE_SIZE
 
+  const pendingReceived = (receivedOffersQuery.data ?? []).filter(
+    (o) => o.status === "pending",
+  ).length
+  const acceptedReceived = (receivedOffersQuery.data ?? []).filter(
+    (o) => o.status === "accepted",
+  ).length
+  const pendingSent = (sentOffersQuery.data ?? []).filter(
+    (o) => o.status === "pending",
+  ).length
+
   return (
     <Box minH="100vh" bg="gray.50">
       <Container maxW="6xl" py={10} mx="auto">
@@ -136,15 +155,52 @@ export function OffersPage() {
           </Button>
         </Flex>
 
-        <Box mb={10}>
-          <Heading size="3xl" mb={3} color="gray.900" fontWeight="extrabold">
-            Quản lý Thương lượng
-          </Heading>
-          <Text color="gray.500" fontSize="lg">
-            Xem và quản lý các yêu cầu thương lượng giá từ người mua và người
-            bán.
-          </Text>
-        </Box>
+        <Heading
+          size="3xl"
+          mb={2}
+          color="gray.900"
+          fontWeight="extrabold"
+          display="flex"
+          alignItems="center"
+        >
+          <FiMessageSquare
+            size={32}
+            style={{ display: "inline", marginRight: "12px" }}
+          />
+          Quản lý Thương lượng
+        </Heading>
+        <Text color="gray.500" fontSize="md" mb={6}>
+          Xem và quản lý các yêu cầu thương lượng giá từ người mua và người bán.
+        </Text>
+
+        {/* Summary stats */}
+        <SimpleGrid columns={{ base: 3 }} gap={4} mb={8}>
+          <div className="stat-card animate-fadeinup delay-0">
+            <div className="stat-card-icon" style={{ background: "#FFFBEB" }}>
+              <FiClock size={18} color="#f59e0b" />
+            </div>
+            <div className="stat-card-value" style={{ color: "#f59e0b" }}>
+              {pendingReceived}
+            </div>
+            <div className="stat-card-label">Chờ phản hồi</div>
+          </div>
+          <div className="stat-card animate-fadeinup delay-1">
+            <div className="stat-card-icon" style={{ background: "#F0FDF4" }}>
+              <FiCheckCircle size={18} color="#10b981" />
+            </div>
+            <div className="stat-card-value" style={{ color: "#10b981" }}>
+              {acceptedReceived}
+            </div>
+            <div className="stat-card-label">Đã chấp nhận</div>
+          </div>
+          <div className="stat-card animate-fadeinup delay-2">
+            <div className="stat-card-icon" style={{ background: "#EFF6FF" }}>
+              <FiTrendingDown size={18} color="#2563eb" />
+            </div>
+            <div className="stat-card-value">{pendingSent}</div>
+            <div className="stat-card-label">Offer đã gửi</div>
+          </div>
+        </SimpleGrid>
 
         <HStack
           mb={10}
@@ -253,18 +309,20 @@ export function OffersPage() {
                     return (
                       <Box
                         key={offer.id}
-                        bg="whiteAlpha.600"
-                        border="1px"
-                        borderColor="whiteAlpha.400"
+                        bg="white"
+                        className={`offer-card-border-${offer.status}`}
                         borderRadius="2xl"
                         p={6}
                         _hover={{
                           borderColor: "blue.200",
                           bg: "white",
-                          boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-                          transform: "translateY(-1px)",
+                          boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+                          transform: "translateY(-2px)",
                         }}
                         transition="all 0.3s"
+                        border="1px solid"
+                        borderColor="gray.100"
+                        boxShadow="0 2px 8px rgba(0,0,0,0.04)"
                       >
                         <Flex
                           justify="space-between"
@@ -273,12 +331,11 @@ export function OffersPage() {
                           gap={4}
                         >
                           <Box>
-                            <Flex align="center" gap={3} mb={3}>
+                            <Flex align="center" gap={3} mb={2}>
                               <Text
-                                fontWeight="bold"
-                                fontSize="2xl"
+                                fontWeight="800"
+                                fontSize="xl"
                                 color="blue.600"
-                                letterSpacing="tight"
                               >
                                 {formatCurrencyVnd(
                                   Math.floor(Number(offer.offer_price)),
@@ -287,32 +344,48 @@ export function OffersPage() {
                               <Badge
                                 colorPalette={status.color as any}
                                 variant="surface"
-                                size="lg"
+                                size="md"
                                 borderRadius="full"
-                                px={4}
+                                px={3}
                               >
                                 {status.label}
                               </Badge>
-                            </Flex>
-                            <HStack fontSize="sm" color="gray.500" gap={4}>
-                              <Text>
-                                Mã:{" "}
-                                <Text
-                                  as="span"
-                                  fontFamily="mono"
-                                  color="gray.400"
+                              {/* Price difference badge */}
+                              {(offer as any).listing_price && (
+                                <Badge
+                                  colorPalette="green"
+                                  variant="subtle"
+                                  borderRadius="full"
+                                  px={2}
+                                  size="sm"
                                 >
-                                  {offer.id.slice(0, 8)}
-                                </Text>
-                              </Text>
+                                  <FiTrendingDown
+                                    size={10}
+                                    style={{
+                                      display: "inline",
+                                      marginRight: "2px",
+                                    }}
+                                  />
+                                  {Math.round(
+                                    (1 -
+                                      Number(offer.offer_price) /
+                                        Number((offer as any).listing_price)) *
+                                      100,
+                                  )}
+                                  % giảm
+                                </Badge>
+                              )}
+                            </Flex>
+                            <HStack fontSize="xs" color="gray.500" gap={3}>
+                              <Flex align="center" gap={1}>
+                                <FiTag size={10} />
+                                <Text>Mã: {offer.id.slice(0, 8)}</Text>
+                              </Flex>
                               <Text>•</Text>
                               <Text>
                                 {new Date(offer.created_at).toLocaleDateString(
                                   "vi-VN",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  },
+                                  { hour: "2-digit", minute: "2-digit" },
                                 )}
                               </Text>
                             </HStack>
@@ -493,18 +566,19 @@ export function OffersPage() {
                     return (
                       <Box
                         key={offer.id}
-                        bg="whiteAlpha.600"
-                        border="1px"
-                        borderColor="whiteAlpha.400"
+                        bg="white"
+                        className={`offer-card-border-${offer.status}`}
                         borderRadius="2xl"
                         p={6}
                         _hover={{
                           borderColor: "blue.200",
-                          bg: "white",
-                          boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-                          transform: "translateY(-1px)",
+                          boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+                          transform: "translateY(-2px)",
                         }}
                         transition="all 0.3s"
+                        border="1px solid"
+                        borderColor="gray.100"
+                        boxShadow="0 2px 8px rgba(0,0,0,0.04)"
                       >
                         <Flex
                           justify="space-between"
@@ -513,12 +587,11 @@ export function OffersPage() {
                           gap={4}
                         >
                           <Box>
-                            <Flex align="center" gap={3} mb={3}>
+                            <Flex align="center" gap={3} mb={2}>
                               <Text
-                                fontWeight="bold"
-                                fontSize="2xl"
+                                fontWeight="800"
+                                fontSize="xl"
                                 color="blue.600"
-                                letterSpacing="tight"
                               >
                                 {formatCurrencyVnd(
                                   Math.floor(Number(offer.offer_price)),
@@ -527,32 +600,23 @@ export function OffersPage() {
                               <Badge
                                 colorPalette={status.color as any}
                                 variant="surface"
-                                size="lg"
+                                size="md"
                                 borderRadius="full"
-                                px={4}
+                                px={3}
                               >
                                 {status.label}
                               </Badge>
                             </Flex>
-                            <HStack fontSize="sm" color="gray.500" gap={4}>
-                              <Text>
-                                Mã:{" "}
-                                <Text
-                                  as="span"
-                                  fontFamily="mono"
-                                  color="gray.400"
-                                >
-                                  {offer.id.slice(0, 8)}
-                                </Text>
-                              </Text>
+                            <HStack fontSize="xs" color="gray.500" gap={3}>
+                              <Flex align="center" gap={1}>
+                                <FiTag size={10} />
+                                <Text>Mã: {offer.id.slice(0, 8)}</Text>
+                              </Flex>
                               <Text>•</Text>
                               <Text>
                                 {new Date(offer.created_at).toLocaleDateString(
                                   "vi-VN",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  },
+                                  { hour: "2-digit", minute: "2-digit" },
                                 )}
                               </Text>
                             </HStack>

@@ -6,34 +6,34 @@ import {
   Stack,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { FiEdit3, FiLink, FiPlus, FiSlash, FiTag } from "react-icons/fi";
-import { z } from "zod";
-import type { CategoryRead } from "@/client";
-import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
-import { InputGroup } from "@/components/ui/input-group";
+} from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
+import { useForm } from "react-hook-form"
+import { FiEdit3, FiLink, FiPlus, FiSlash, FiTag } from "react-icons/fi"
+import { z } from "zod"
+import type { CategoryRead } from "@/client"
+import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
 import {
   useAdminCategoryDetail,
   useCreateCategory,
   useUpdateCategory,
-} from "../hooks/useAdminCategories";
+} from "../hooks/useAdminCategories"
 
 const categorySchema = z.object({
   name: z.string().min(1, "Tên danh mục là bắt buộc").max(100),
   slug: z.string().optional(),
   icon_url: z.string().url("URL không hợp lệ").optional().or(z.literal("")),
-});
+})
 
-type CategoryFormData = z.infer<typeof categorySchema>;
+type CategoryFormData = z.infer<typeof categorySchema>
 
 interface CategoryFormModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  category?: CategoryRead | null;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  category?: CategoryRead | null
 }
 
 export function CategoryFormModal({
@@ -41,10 +41,10 @@ export function CategoryFormModal({
   onOpenChange,
   category,
 }: CategoryFormModalProps) {
-  const isEdit = !!category;
-  const categoryDetailQuery = useAdminCategoryDetail(category?.id);
-  const createMutation = useCreateCategory();
-  const updateMutation = useUpdateCategory();
+  const isEdit = !!category
+  const categoryDetailQuery = useAdminCategoryDetail(category?.id)
+  const createMutation = useCreateCategory()
+  const updateMutation = useUpdateCategory()
 
   const {
     register,
@@ -54,20 +54,20 @@ export function CategoryFormModal({
   } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema) as any,
     defaultValues: { name: "", slug: "", icon_url: "" },
-  });
+  })
 
   useEffect(() => {
-    const latestCategory = categoryDetailQuery.data ?? category;
+    const latestCategory = categoryDetailQuery.data ?? category
     if (latestCategory) {
       reset({
         name: latestCategory.name,
         slug: latestCategory.slug || "",
         icon_url: latestCategory.icon_url || "",
-      });
+      })
     } else {
-      reset({ name: "", slug: "", icon_url: "" });
+      reset({ name: "", slug: "", icon_url: "" })
     }
-  }, [category, categoryDetailQuery.data, reset]);
+  }, [category, categoryDetailQuery.data, reset])
 
   const onSubmit = (data: CategoryFormData) => {
     const payload = {
@@ -75,36 +75,36 @@ export function CategoryFormModal({
       slug: data.slug || null,
       icon_url: data.icon_url || null,
       parent_id: null,
-    };
+    }
 
     if (isEdit && category) {
       updateMutation.mutate(
         { categoryId: category.id, data: payload },
         {
           onSuccess: () => {
-            onOpenChange(false);
-            reset();
+            onOpenChange(false)
+            reset()
           },
         },
-      );
+      )
     } else {
       createMutation.mutate(payload, {
         onSuccess: () => {
-          onOpenChange(false);
-          reset();
+          onOpenChange(false)
+          reset()
         },
-      });
+      })
     }
-  };
+  }
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = createMutation.isPending || updateMutation.isPending
 
   return (
     <Dialog.Root
       open={open}
       onOpenChange={(e) => {
-        onOpenChange(e.open);
-        if (!e.open) reset();
+        onOpenChange(e.open)
+        if (!e.open) reset()
       }}
       placement="center"
     >
@@ -247,5 +247,5 @@ export function CategoryFormModal({
         </Dialog.Positioner>
       </Portal>
     </Dialog.Root>
-  );
+  )
 }

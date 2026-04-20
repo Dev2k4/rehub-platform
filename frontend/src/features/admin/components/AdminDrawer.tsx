@@ -1,5 +1,5 @@
-import { Box, Button, Drawer, Flex, Portal, Text } from "@chakra-ui/react"
-import { Link } from "@tanstack/react-router"
+import { Box, Button, Drawer, Flex, Portal, Text } from "@chakra-ui/react";
+import { Link } from "@tanstack/react-router";
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -9,7 +9,7 @@ import {
   FiShoppingBag,
   FiUsers,
   FiX,
-} from "react-icons/fi"
+} from "react-icons/fi";
 
 const menuItems = [
   { id: "dashboard", label: "Tổng quan", path: "/admin", icon: FiHome },
@@ -43,11 +43,11 @@ const menuItems = [
     path: "/admin/escrows",
     icon: FiShield,
   },
-]
+];
 
 interface AdminDrawerProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function AdminDrawer({ open, onOpenChange }: AdminDrawerProps) {
@@ -73,7 +73,7 @@ export function AdminDrawer({ open, onOpenChange }: AdminDrawerProps) {
                   fontWeight="semibold"
                   color="gray.900"
                 >
-                  Admin Panel
+                  Bảng Quản Trị
                 </Drawer.Title>
                 <Button
                   variant="ghost"
@@ -137,5 +137,5 @@ export function AdminDrawer({ open, onOpenChange }: AdminDrawerProps) {
         </Drawer.Positioner>
       </Portal>
     </Drawer.Root>
-  )
+  );
 }
