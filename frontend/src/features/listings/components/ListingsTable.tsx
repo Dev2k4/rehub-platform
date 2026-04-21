@@ -10,6 +10,7 @@ import {
 } from "@chakra-ui/react"
 import { FiEdit2, FiEye, FiTrash2 } from "react-icons/fi"
 import type { ListingRead } from "@/client"
+import { Tooltip } from "@/components/ui/tooltip"
 
 interface ListingsTableProps {
   listings: ListingRead[]
@@ -68,8 +69,8 @@ export function ListingsTable({
   }
 
   return (
-    <Box overflowX="auto">
-      <Table.Root size="md">
+    <Box w="100%" overflowX="hidden">
+      <Table.Root size="md" tableLayout="fixed" w="100%">
         <Table.Header>
           <Table.Row bg="gray.100">
             <Table.ColumnHeader
@@ -78,6 +79,7 @@ export function ListingsTable({
               fontSize="sm"
               fontWeight="semibold"
               color="gray.900"
+              w="35%"
             >
               Tiêu đề
             </Table.ColumnHeader>
@@ -145,10 +147,11 @@ export function ListingsTable({
                 transition="all 0.2s"
               >
                 <Table.Cell px={6} py={4} fontSize="sm" color="gray.900">
-                  <Text fontWeight="medium">{listing.title}</Text>
-                  <Text fontSize="xs" color="gray.500" lineClamp={1}>
-                    {listing.description}
-                  </Text>
+                  <Tooltip content={listing.title}>
+                    <Text fontWeight="medium" truncate>
+                      {listing.title}
+                    </Text>
+                  </Tooltip>
                 </Table.Cell>
                 <Table.Cell
                   px={6}

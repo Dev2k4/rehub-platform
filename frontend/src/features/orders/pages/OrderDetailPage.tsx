@@ -9,13 +9,13 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
-import { useNavigate, useParams } from "@tanstack/react-router"
-import { FiArrowLeft, FiCreditCard, FiShield } from "react-icons/fi"
-import { Button } from "@/components/ui/button"
-import { toaster } from "@/components/ui/toaster"
-import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+} from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { FiArrowLeft, FiCreditCard, FiShield } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
+import { toaster } from "@/components/ui/toaster";
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
 import {
   useConfirmEscrowRelease,
   useDemoTopupWallet,
@@ -24,89 +24,89 @@ import {
   useOpenEscrowDispute,
   useRequestEscrowRelease,
   useWallet,
-} from "@/features/escrow/hooks/useEscrow"
-import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
+} from "@/features/escrow/hooks/useEscrow";
+import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils";
 import {
   useCancelOrder,
   useCompleteOrder,
   useOrder,
-} from "@/features/orders/hooks/useOrders"
-import { ReviewForm } from "@/features/reviews/components/ReviewForm"
-import { ReviewsList } from "@/features/reviews/components/ReviewsList"
-import { useOrderReviews } from "@/features/reviews/hooks/useReviews"
-import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
-import { getUserPublicProfile } from "@/features/users/api/users.api"
+} from "@/features/orders/hooks/useOrders";
+import { ReviewForm } from "@/features/reviews/components/ReviewForm";
+import { ReviewsList } from "@/features/reviews/components/ReviewsList";
+import { useOrderReviews } from "@/features/reviews/hooks/useReviews";
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
+import { getUserPublicProfile } from "@/features/users/api/users.api";
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
     case "pending":
-      return { label: "Chờ xử lý", color: "yellow" }
+      return { label: "Chờ xử lý", color: "yellow" };
     case "completed":
-      return { label: "Hoàn thành", color: "green" }
+      return { label: "Hoàn thành", color: "green" };
     case "cancelled":
-      return { label: "Đã hủy", color: "red" }
+      return { label: "Đã hủy", color: "red" };
     default:
-      return { label: status, color: "gray" }
+      return { label: status, color: "gray" };
   }
 }
 
 function escrowStatusLabel(status: string): string {
   switch (status) {
     case "awaiting_funding":
-      return "Chờ nạp tiền"
+      return "Chờ nạp tiền";
     case "held":
-      return "Đang giữ"
+      return "Đang giữ";
     case "release_pending":
-      return "Chờ xác nhận"
+      return "Chờ xác nhận";
     case "released":
-      return "Đã thanh toán"
+      return "Đã thanh toán";
     case "disputed":
-      return "Tranh chấp"
+      return "Tranh chấp";
     case "refunded":
-      return "Đã hoàn tiền"
+      return "Đã hoàn tiền";
     default:
-      return status
+      return status;
   }
 }
 
 export function OrderDetailPage() {
-  const navigate = useNavigate()
-  const { id } = useParams({ from: "/orders/$id" })
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
+  const navigate = useNavigate();
+  const { id } = useParams({ from: "/orders/$id" });
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthUser();
 
-  const orderQuery = useOrder(id)
-  const orderReviewsQuery = useOrderReviews(id)
-  const completeMutation = useCompleteOrder()
-  const cancelMutation = useCancelOrder()
-  const escrowQuery = useEscrow(id)
-  const walletQuery = useWallet()
-  const topupMutation = useDemoTopupWallet()
-  const fundEscrowMutation = useFundEscrow()
-  const releaseRequestMutation = useRequestEscrowRelease()
-  const confirmReleaseMutation = useConfirmEscrowRelease()
-  const disputeMutation = useOpenEscrowDispute()
+  const orderQuery = useOrder(id);
+  const orderReviewsQuery = useOrderReviews(id);
+  const completeMutation = useCompleteOrder();
+  const cancelMutation = useCancelOrder();
+  const escrowQuery = useEscrow(id);
+  const walletQuery = useWallet();
+  const topupMutation = useDemoTopupWallet();
+  const fundEscrowMutation = useFundEscrow();
+  const releaseRequestMutation = useRequestEscrowRelease();
+  const confirmReleaseMutation = useConfirmEscrowRelease();
+  const disputeMutation = useOpenEscrowDispute();
   const counterpartyId =
     orderQuery.data && user
       ? orderQuery.data.buyer_id === user.id
         ? orderQuery.data.seller_id
         : orderQuery.data.buyer_id
-      : ""
+      : "";
   const counterpartyProfileQuery = useQuery({
     queryKey: ["seller-profile", counterpartyId],
     queryFn: () => getUserPublicProfile(counterpartyId),
     enabled: !!counterpartyId,
-  })
+  });
   const isCounterpartyOnline = useIsUserOnline(
     orderQuery.data
       ? orderQuery.data.buyer_id === user?.id
         ? orderQuery.data.seller_id
         : orderQuery.data.buyer_id
       : null,
-  )
+  );
 
   if (!authLoading && !isAuthenticated) {
-    navigate({ to: "/auth/login" })
-    return null
+    navigate({ to: "/auth/login" });
+    return null;
   }
 
   if (authLoading || !user || orderQuery.isLoading) {
@@ -114,7 +114,7 @@ export function OrderDetailPage() {
       <Flex minH="100vh" align="center" justify="center">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    )
+    );
   }
 
   if (orderQuery.isError || !orderQuery.data) {
@@ -122,72 +122,72 @@ export function OrderDetailPage() {
       <Container py={10}>
         <Text color="red.600">Không thể tải chi tiết đơn hàng.</Text>
       </Container>
-    )
+    );
   }
 
-  const order = orderQuery.data
-  const status = statusMeta(order.status)
-  const isBuyer = order.buyer_id === user.id
-  const isSeller = order.seller_id === user.id
+  const order = orderQuery.data;
+  const status = statusMeta(order.status);
+  const isBuyer = order.buyer_id === user.id;
+  const isSeller = order.seller_id === user.id;
   const counterpartyName =
-    counterpartyProfileQuery.data?.full_name?.trim() || counterpartyId
-  const escrow = escrowQuery.data
-  const hasEscrow = !!escrow
-  const canComplete = !hasEscrow && order.status === "pending" && isBuyer
-  const canCancel = !hasEscrow && order.status === "pending"
+    counterpartyProfileQuery.data?.full_name?.trim() || counterpartyId;
+  const escrow = escrowQuery.data;
+  const hasEscrow = !!escrow;
+  const canComplete = !hasEscrow && order.status === "pending" && isBuyer;
+  const canCancel = !hasEscrow && order.status === "pending";
 
-  const walletAvailable = Number(walletQuery.data?.available_balance ?? 0)
-  const escrowAmount = Number(escrow?.amount ?? 0)
+  const walletAvailable = Number(walletQuery.data?.available_balance ?? 0);
+  const escrowAmount = Number(escrow?.amount ?? 0);
   const topupAmountNeeded = Math.max(
     0,
     Number((escrowAmount - walletAvailable).toFixed(2)),
-  )
+  );
 
   const canFundEscrow =
-    hasEscrow && isBuyer && escrow?.status === "awaiting_funding"
-  const canRequestRelease = hasEscrow && isSeller && escrow?.status === "held"
+    hasEscrow && isBuyer && escrow?.status === "awaiting_funding";
+  const canRequestRelease = hasEscrow && isSeller && escrow?.status === "held";
   const canConfirmRelease =
-    hasEscrow && isBuyer && escrow?.status === "release_pending"
+    hasEscrow && isBuyer && escrow?.status === "release_pending";
   const canOpenDispute =
     hasEscrow &&
-    (escrow?.status === "held" || escrow?.status === "release_pending")
+    (escrow?.status === "held" || escrow?.status === "release_pending");
   const alreadyReviewed = (orderReviewsQuery.data ?? []).some(
     (review) => review.reviewer_id === user.id,
-  )
-  const hasCounterparty = counterpartyId !== user.id
+  );
+  const hasCounterparty = counterpartyId !== user.id;
   const canReview =
     order.status === "completed" &&
     hasCounterparty &&
     isBuyer &&
-    !alreadyReviewed
+    !alreadyReviewed;
   const paymentModeLabel = hasEscrow
     ? "Escrow bảo chứng"
-    : "Thanh toán trực tiếp"
+    : "Thanh toán trực tiếp";
   const buyerActionHint = (() => {
     if (!isBuyer) {
-      return null
+      return null;
     }
 
     if (hasEscrow && escrow?.status === "awaiting_funding") {
-      return "Bạn cần nạp tiền vào escrow để người bán có thể bắt đầu giao hàng."
+      return "Bạn cần nạp tiền vào escrow để người bán có thể bắt đầu giao hàng.";
     }
     if (hasEscrow && escrow?.status === "held") {
-      return "Người bán đang xử lý đơn. Chờ bên bán đánh dấu đã giao."
+      return "Người bán đang xử lý đơn. Chờ bên bán đánh dấu đã giao.";
     }
     if (hasEscrow && escrow?.status === "release_pending") {
-      return "Hãy xác nhận nhận hàng để giải ngân tiền cho người bán."
+      return "Hãy xác nhận nhận hàng để giải ngân tiền cho người bán.";
     }
     if (order.status === "pending") {
-      return "Đơn hàng đang xử lý. Bạn có thể theo dõi tiến độ theo thời gian thực."
+      return "Đơn hàng đang xử lý. Bạn có thể theo dõi tiến độ theo thời gian thực.";
     }
     if (order.status === "completed") {
-      return "Đơn hàng đã hoàn tất. Bạn có thể để lại đánh giá cho người bán."
+      return "Đơn hàng đã hoàn tất. Bạn có thể để lại đánh giá cho người bán.";
     }
     if (order.status === "cancelled") {
-      return "Đơn hàng đã bị hủy. Bạn có thể quay lại marketplace để chọn sản phẩm khác."
+      return "Đơn hàng đã bị hủy. Bạn có thể quay lại marketplace để chọn sản phẩm khác.";
     }
-    return "Theo dõi cập nhật trạng thái để biết bước tiếp theo của giao dịch."
-  })()
+    return "Theo dõi cập nhật trạng thái để biết bước tiếp theo của giao dịch.";
+  })();
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -398,7 +398,7 @@ export function OrderDetailPage() {
               <HStack mb={4} gap={2}>
                 <FiShield color="#2563EB" size={20} />
                 <Heading size="md" color="blue.900">
-                  Escrow Demo Flow
+                  Quy trình Escrow
                 </Heading>
               </HStack>
 
@@ -447,16 +447,16 @@ export function OrderDetailPage() {
                     borderRadius="xl"
                     onClick={async () => {
                       try {
-                        await topupMutation.mutateAsync(topupAmountNeeded)
+                        await topupMutation.mutateAsync(topupAmountNeeded);
                         toaster.create({
                           title: `Nạp thành công ${formatCurrencyVnd(String(topupAmountNeeded))}`,
                           type: "success",
-                        })
+                        });
                       } catch (e: any) {
                         toaster.create({
                           title: e?.message || "Lỗi nạp ví",
                           type: "error",
-                        })
+                        });
                       }
                     }}
                     loading={topupMutation.isPending}
@@ -472,22 +472,22 @@ export function OrderDetailPage() {
                     borderRadius="xl"
                     onClick={async () => {
                       try {
-                        await fundEscrowMutation.mutateAsync(order.id)
+                        await fundEscrowMutation.mutateAsync(order.id);
                         toaster.create({
                           title: "Đã nạp tiền vào Escrow",
                           type: "success",
-                        })
+                        });
                       } catch (e: any) {
                         toaster.create({
                           title: e?.message || "Lỗi nạp tiền Escrow",
                           type: "error",
-                        })
+                        });
                       }
                     }}
                     loading={fundEscrowMutation.isPending}
                     disabled={walletAvailable < escrowAmount}
                   >
-                    Fund Escrow
+                    Nạp tiền Escrow
                   </Button>
                 )}
 
@@ -498,16 +498,16 @@ export function OrderDetailPage() {
                     borderRadius="xl"
                     onClick={async () => {
                       try {
-                        await releaseRequestMutation.mutateAsync(order.id)
+                        await releaseRequestMutation.mutateAsync(order.id);
                         toaster.create({
                           title: "Đã yêu cầu thả tiền",
                           type: "success",
-                        })
+                        });
                       } catch (e: any) {
                         toaster.create({
                           title: e?.message || "Lỗi yêu cầu thả tiền",
                           type: "error",
-                        })
+                        });
                       }
                     }}
                     loading={releaseRequestMutation.isPending}
@@ -523,13 +523,13 @@ export function OrderDetailPage() {
                     borderRadius="xl"
                     onClick={async () => {
                       try {
-                        await confirmReleaseMutation.mutateAsync(order.id)
+                        await confirmReleaseMutation.mutateAsync(order.id);
                         toaster.create({
                           title: "Đã xác nhận thanh toán",
                           type: "success",
-                        })
+                        });
                       } catch (e: any) {
-                        const message = String(e?.message || "")
+                        const message = String(e?.message || "");
                         if (
                           message.includes(
                             "Cannot confirm release in released state",
@@ -539,18 +539,18 @@ export function OrderDetailPage() {
                             escrowQuery.refetch(),
                             orderQuery.refetch(),
                             walletQuery.refetch(),
-                          ])
+                          ]);
                           toaster.create({
                             title: "Escrow đã được xác nhận trước đó",
                             type: "info",
-                          })
-                          return
+                          });
+                          return;
                         }
 
                         toaster.create({
                           title: message || "Lỗi xác nhận",
                           type: "error",
-                        })
+                        });
                       }
                     }}
                     loading={confirmReleaseMutation.isPending}
@@ -570,16 +570,16 @@ export function OrderDetailPage() {
                         await disputeMutation.mutateAsync({
                           orderId: order.id,
                           note: "Opened from order detail page",
-                        })
+                        });
                         toaster.create({
                           title: "Đã mở tranh chấp",
                           type: "warning",
-                        })
+                        });
                       } catch (e: any) {
                         toaster.create({
                           title: e?.message || "Lỗi tạo tranh chấp",
                           type: "error",
-                        })
+                        });
                       }
                     }}
                     loading={disputeMutation.isPending}
@@ -606,16 +606,16 @@ export function OrderDetailPage() {
                   borderRadius="xl"
                   onClick={async () => {
                     try {
-                      await completeMutation.mutateAsync(order.id)
+                      await completeMutation.mutateAsync(order.id);
                       toaster.create({
                         title: "Hoàn thành đơn thành công",
                         type: "success",
-                      })
+                      });
                     } catch (e: any) {
                       toaster.create({
                         title: e?.message || "Lỗi hoàn thành",
                         type: "error",
-                      })
+                      });
                     }
                   }}
                   loading={completeMutation.isPending}
@@ -630,16 +630,16 @@ export function OrderDetailPage() {
                   borderRadius="xl"
                   onClick={async () => {
                     try {
-                      await cancelMutation.mutateAsync(order.id)
+                      await cancelMutation.mutateAsync(order.id);
                       toaster.create({
                         title: "Hủy đơn thành công",
                         type: "info",
-                      })
+                      });
                     } catch (e: any) {
                       toaster.create({
                         title: e?.message || "Lỗi hủy đơn",
                         type: "error",
-                      })
+                      });
                     }
                   }}
                   loading={cancelMutation.isPending}
@@ -687,5 +687,5 @@ export function OrderDetailPage() {
         </Box>
       </Container>
     </Box>
-  )
+  );
 }

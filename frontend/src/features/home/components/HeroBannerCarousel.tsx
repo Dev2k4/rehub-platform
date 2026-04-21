@@ -1,5 +1,5 @@
-import { Box, Flex, Text, Heading } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { Box, Flex, Heading, Text } from "@chakra-ui/react"
+import { useEffect, useState } from "react"
 
 const slides = [
   {
@@ -27,33 +27,33 @@ const slides = [
     emoji: "🌿",
     decorEmojis: ["🌍", "♻️", "💚"],
   },
-];
+]
 
 export function HeroBannerCarousel() {
-  const [current, setCurrent] = useState(0);
-  const [animating, setAnimating] = useState(false);
+  const [current, setCurrent] = useState(0)
+  const [animating, setAnimating] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setAnimating(true);
+      setAnimating(true)
       setTimeout(() => {
-        setCurrent((prev) => (prev + 1) % slides.length);
-        setAnimating(false);
-      }, 300);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
+        setCurrent((prev) => (prev + 1) % slides.length)
+        setAnimating(false)
+      }, 300)
+    }, 4500)
+    return () => clearInterval(timer)
+  }, [])
 
   const goTo = (idx: number) => {
-    if (idx === current) return;
-    setAnimating(true);
+    if (idx === current) return
+    setAnimating(true)
     setTimeout(() => {
-      setCurrent(idx);
-      setAnimating(false);
-    }, 300);
-  };
+      setCurrent(idx)
+      setAnimating(false)
+    }, 300)
+  }
 
-  const slide = slides[current];
+  const slide = slides[current]
 
   return (
     <Box
@@ -196,5 +196,5 @@ export function HeroBannerCarousel() {
         ))}
       </Flex>
     </Box>
-  );
+  )
 }

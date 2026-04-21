@@ -131,11 +131,22 @@
 //   )
 // }
 
-import { Box, Flex, Heading, Image, Text, Badge, HStack } from "@chakra-ui/react"
+import {
+  Badge,
+  Box,
+  Flex,
+  Heading,
+  HStack,
+  Image,
+  Text,
+} from "@chakra-ui/react"
 import { Link } from "@tanstack/react-router"
-import { FiStar, FiTag, FiMapPin } from "react-icons/fi"
-import type { CategoryTree, ListingWithImages, UserPublicProfile } from "@/client"
-import { Tooltip } from "@/components/ui/tooltip"
+import { FiStar, FiTag } from "react-icons/fi"
+import type {
+  CategoryTree,
+  ListingWithImages,
+  UserPublicProfile,
+} from "@/client"
 import {
   formatCurrencyVnd,
   formatPostedTime,
@@ -148,7 +159,11 @@ type ListingCardProps = {
   seller?: UserPublicProfile
 }
 
-export function ListingCard({ listing, categoryMap, seller }: ListingCardProps) {
+export function ListingCard({
+  listing,
+  categoryMap,
+  seller,
+}: ListingCardProps) {
   const category = categoryMap.get(listing.category_id)
   const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
 
@@ -165,7 +180,7 @@ export function ListingCard({ listing, categoryMap, seller }: ListingCardProps) 
         bg="white"
         // SỬA TẠI ĐÂY: Thêm viền rõ rệt để tách biệt với nền xám nhạt
         border="1px solid"
-        borderColor="gray.200" 
+        borderColor="gray.200"
         transition="all 0.2s ease-in-out"
         _hover={{
           transform: "translateY(-4px)",
@@ -176,7 +191,12 @@ export function ListingCard({ listing, categoryMap, seller }: ListingCardProps) 
         display="flex"
         flexDirection="column"
       >
-        <Box position="relative" aspectRatio={1} overflow="hidden" bg="gray.100">
+        <Box
+          position="relative"
+          aspectRatio={1}
+          overflow="hidden"
+          bg="gray.100"
+        >
           <Image
             src={firstImageUrl}
             alt={listing.title}
@@ -209,18 +229,28 @@ export function ListingCard({ listing, categoryMap, seller }: ListingCardProps) 
           </Text>
 
           <Flex align="center" gap="0.5rem" mt="auto">
-             <HStack gap="0.25rem" color="gray.500" fontSize="0.7rem">
-                <FiTag size={12} />
-                <Text  >{category?.name ?? "Đồ cũ"}</Text>
-             </HStack>
+            <HStack gap="0.25rem" color="gray.500" fontSize="0.7rem">
+              <FiTag size={12} />
+              <Text>{category?.name ?? "Đồ cũ"}</Text>
+            </HStack>
           </Flex>
-          
-          <Flex justify="space-between" align="center" pt="0.5rem" borderTop="1px solid" borderColor="gray.100">
-             <Text fontSize="0.65rem" color="gray.400">{formatPostedTime(listing.created_at)}</Text>
-             <HStack gap="0.25rem" color="orange.500">
-                <FiStar fill="currentColor" size={10} />
-                <Text fontSize="0.7rem" fontWeight="bold">{seller?.rating_avg.toFixed(1) ?? "5.0"}</Text>
-             </HStack>
+
+          <Flex
+            justify="space-between"
+            align="center"
+            pt="0.5rem"
+            borderTop="1px solid"
+            borderColor="gray.100"
+          >
+            <Text fontSize="0.65rem" color="gray.400">
+              {formatPostedTime(listing.created_at)}
+            </Text>
+            <HStack gap="0.25rem" color="orange.500">
+              <FiStar fill="currentColor" size={10} />
+              <Text fontSize="0.7rem" fontWeight="bold">
+                {seller?.rating_avg.toFixed(1) ?? "5.0"}
+              </Text>
+            </HStack>
           </Flex>
         </Flex>
       </Box>

@@ -1,22 +1,23 @@
-import { Box } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react"
 import {
   createRootRoute,
   Outlet,
   useMatchRoute,
   useRouterState,
-} from "@tanstack/react-router";
-import { ChatFloatingWidget } from "@/features/chat/components/ChatFloatingWidget";
-import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader";
-import { Footer } from "@/components/layout/Footer";
+} from "@tanstack/react-router"
+import { FloatingActions } from "@/components/FloatingActions"
+import { Footer } from "@/components/layout/Footer"
+import { ChatFloatingWidget } from "@/features/chat/components/ChatFloatingWidget"
+import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
 
 function AppLayout() {
-  const matchRoute = useMatchRoute();
+  const matchRoute = useMatchRoute()
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
-  });
-  const isHome = Boolean(matchRoute({ to: "/", fuzzy: false }));
-  const isAuthFlow = pathname.startsWith("/auth");
-  const isAdmin = pathname.startsWith("/admin");
+  })
+  const isHome = Boolean(matchRoute({ to: "/", fuzzy: false }))
+  const isAuthFlow = pathname.startsWith("/auth")
+  const isAdmin = pathname.startsWith("/admin")
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -29,11 +30,12 @@ function AppLayout() {
         <Outlet />
       </Box>
       <ChatFloatingWidget />
+      {!isAdmin && !isAuthFlow && <FloatingActions />}
       {!isAdmin && !isAuthFlow && <Footer />}
     </Box>
-  );
+  )
 }
 
 export const Route = createRootRoute({
   component: AppLayout,
-});
+})

@@ -1,23 +1,23 @@
-import { useState } from "react";
-import { Box, Container, Heading, Text, Flex, HStack } from "@chakra-ui/react";
-import { PendingListingsTable } from "../components/PendingListingsTable";
-import { usePendingListings } from "../hooks/useAdminListings";
+import { Box, Container, Flex, Heading, HStack, Text } from "@chakra-ui/react"
+import { useState } from "react"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
+import { PendingListingsTable } from "../components/PendingListingsTable"
+import { usePendingListings } from "../hooks/useAdminListings"
 
 export function AdminListingsPage() {
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const { data: listings = [], isLoading } = usePendingListings({ limit: 100 });
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+  const { data: listings = [], isLoading } = usePendingListings({ limit: 100 })
 
   const paginatedListings = listings.slice(
     (page - 1) * pageSize,
     page * pageSize,
-  );
+  )
 
   return (
     <Container maxW="7xl" px={0}>
@@ -73,5 +73,5 @@ export function AdminListingsPage() {
         </PaginationRoot>
       </Flex>
     </Container>
-  );
+  )
 }

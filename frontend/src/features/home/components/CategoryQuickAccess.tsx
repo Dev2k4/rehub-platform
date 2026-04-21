@@ -1,23 +1,23 @@
-import { Box, Flex } from "@chakra-ui/react";
-import type { CategoryTree } from "@/client";
+import { Box, Flex } from "@chakra-ui/react"
+import type React from "react"
 import {
-  FiSmartphone,
-  FiMonitor,
-  FiTv,
-  FiPackage,
-  FiBox,
-  FiShoppingBag,
-  FiBook,
-  FiSmile,
-  FiHome,
-  FiWatch,
-  FiCamera,
-  FiMusic,
   FiActivity,
+  FiBook,
+  FiBox,
+  FiCamera,
   FiHeart,
+  FiHome,
+  FiMonitor,
+  FiMusic,
+  FiPackage,
+  FiShoppingBag,
+  FiSmartphone,
+  FiSmile,
   FiTag,
-} from "react-icons/fi";
-import React from "react";
+  FiTv,
+  FiWatch,
+} from "react-icons/fi"
+import type { CategoryTree } from "@/client"
 
 // Icon mappings by category name keywords
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -50,7 +50,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "thú cưng": FiHeart,
   garden: FiHome,
   "cây cảnh": FiHome,
-};
+}
 
 const CATEGORY_COLORS: string[] = [
   "#DBEAFE", // blue-100
@@ -61,31 +61,31 @@ const CATEGORY_COLORS: string[] = [
   "#FFEDD5", // orange-100
   "#CFFAFE", // cyan-100
   "#F3F4F6", // gray-100
-];
+]
 
 function getCategoryIcon(name: string): React.ElementType {
-  const lowerName = name.toLowerCase();
+  const lowerName = name.toLowerCase()
   for (const [key, icon] of Object.entries(CATEGORY_ICONS)) {
-    if (lowerName.includes(key)) return icon;
+    if (lowerName.includes(key)) return icon
   }
-  return FiTag; // fallback
+  return FiTag // fallback
 }
 
 type CategoryQuickAccessProps = {
-  categories: CategoryTree[];
-  selectedCategoryId: string;
-  onSelectCategory: (id: string) => void;
-};
+  categories: CategoryTree[]
+  selectedCategoryId: string
+  onSelectCategory: (id: string) => void
+}
 
 export function CategoryQuickAccess({
   categories,
   selectedCategoryId,
   onSelectCategory,
 }: CategoryQuickAccessProps) {
-  if (!categories || categories.length === 0) return null;
+  if (!categories || categories.length === 0) return null
 
   // Show root categories only (max 12)
-  const rootCats = categories.filter((c) => !c.parent_id).slice(0, 12);
+  const rootCats = categories.filter((c) => !c.parent_id).slice(0, 12)
 
   return (
     <Box mb="1.75rem">
@@ -121,7 +121,7 @@ export function CategoryQuickAccess({
         ))}
       </Flex>
     </Box>
-  );
+  )
 }
 
 function CategoryPill({
@@ -131,11 +131,11 @@ function CategoryPill({
   isActive,
   onClick,
 }: {
-  name: string;
-  icon: React.ElementType;
-  color: string;
-  isActive: boolean;
-  onClick: () => void;
+  name: string
+  icon: React.ElementType
+  color: string
+  isActive: boolean
+  onClick: () => void
 }) {
   return (
     <Box
@@ -169,5 +169,5 @@ function CategoryPill({
       </Box>
       <Box as="span">{name}</Box>
     </Box>
-  );
+  )
 }

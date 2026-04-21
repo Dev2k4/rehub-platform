@@ -1,14 +1,14 @@
 import {
   Box,
-  Heading,
   Link as ChakraLink,
+  Heading,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
-import { FiMail } from "react-icons/fi";
-import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout";
-import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm";
+} from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
+import { FiMail } from "react-icons/fi"
+import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout"
+import { VerifyEmailForm } from "@/features/auth/components/VerifyEmailForm"
 
 export function VerifyEmailPage() {
   return (
@@ -68,5 +68,5 @@ export function VerifyEmailPage() {
         </Text>
       </Box>
     </AuthPageLayout>
-  );
+  )
 }

@@ -5,21 +5,21 @@ import {
   SimpleGrid,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
+} from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
 import {
   FiFacebook,
   FiInstagram,
   FiMessageSquare,
   FiRefreshCcw,
-} from "react-icons/fi";
+} from "react-icons/fi"
 
 const linkStyle = {
   fontSize: "0.875rem",
   color: "rgba(255,255,255,0.65)",
   textDecoration: "none",
   transition: "color 0.2s",
-};
+}
 
 export function Footer() {
   return (
@@ -183,5 +183,5 @@ export function Footer() {
         </Box>
       </Container>
     </Box>
-  );
+  )
 }

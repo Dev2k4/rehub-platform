@@ -11,124 +11,76 @@ import {
   SimpleGrid,
   Spinner,
   Text,
-} from "@chakra-ui/react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useParams } from "@tanstack/react-router";
+} from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import { useNavigate, useParams } from "@tanstack/react-router"
 import {
   FiAlertCircle,
   FiArrowLeft,
+  FiAward,
   FiCalendar,
-  FiCheckCircle,
   FiFileText,
+  FiHeart,
   FiMapPin,
+  FiMessageCircle,
+  FiPhone,
+  FiShield,
   FiShoppingBag,
   FiStar,
   FiUser,
-} from "react-icons/fi";
-import type { CategoryTree } from "@/client";
-import { getCategoriesTree } from "@/features/home/api/marketplace.api";
-import { flattenCategories } from "@/features/home/utils/marketplace.utils";
-import { ReviewsList } from "@/features/reviews/components/ReviewsList";
-import { useUserReviews } from "@/features/reviews/hooks/useReviews";
-import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
+  FiZap,
+} from "react-icons/fi"
+import type { CategoryTree } from "@/client"
+import { getCategoriesTree } from "@/features/home/api/marketplace.api"
+import { flattenCategories } from "@/features/home/utils/marketplace.utils"
+import { ReviewsList } from "@/features/reviews/components/ReviewsList"
+import { useUserReviews } from "@/features/reviews/hooks/useReviews"
+import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 import {
   getSellerListings,
   getUserPublicProfile,
-} from "@/features/users/api/users.api";
-import { ListingCard } from "@/features/users/components/ListingCard";
-
-function StarRating({ score }: { score: number }) {
-  const maxStars = 5;
-  const filledStars = Math.round(score);
-  return (
-    <HStack gap={1}>
-      {Array.from({ length: maxStars }).map((_, i) => (
-        <Box
-          key={i}
-          as={FiStar}
-          w={4}
-          h={4}
-          color={i < filledStars ? "yellow.400" : "gray.300"}
-          fill={i < filledStars ? "currentColor" : "none"}
-        />
-      ))}
-      <Text fontSize="sm" color="gray.600" ml={1}>
-        {score.toFixed(1)} / 5
-      </Text>
-    </HStack>
-  );
-}
-
-function TrustScoreBadge({ score }: { score: number }) {
-  let color = "gray";
-  let label = "Chưa xác định";
-
-  if (score >= 80) {
-    color = "green";
-    label = "Rất uy tín";
-  } else if (score >= 60) {
-    color = "teal";
-    label = "Uy tín";
-  } else if (score >= 40) {
-    color = "yellow";
-    label = "Bình thường";
-  } else if (score > 0) {
-    color = "orange";
-    label = "Cần cải thiện";
-  }
-
-  return (
-    <Badge
-      colorPalette={color as any}
-      variant="subtle"
-      px={2}
-      py={0.5}
-      borderRadius="full"
-    >
-      {label} ({score}%)
-    </Badge>
-  );
-}
+} from "@/features/users/api/users.api"
+import { ListingCard } from "@/features/users/components/ListingCard"
 
 export function SellerProfilePage() {
-  const navigate = useNavigate();
-  const { id } = useParams({ from: "/sellers/$id" });
+  const navigate = useNavigate()
+  const { id } = useParams({ from: "/sellers/$id" })
 
   const profileQuery = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: () => getUserPublicProfile(id),
     enabled: !!id,
-  });
+  })
 
   const listingsQuery = useQuery({
     queryKey: ["seller-listings", id],
     queryFn: () => getSellerListings({ sellerId: id, limit: 12 }),
     enabled: !!id,
-  });
+  })
 
-  const reviewsQuery = useUserReviews(id);
+  const reviewsQuery = useUserReviews(id)
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
     queryFn: () => getCategoriesTree(),
-  });
+  })
 
-  const categoryMap = new Map<string, CategoryTree>();
+  const categoryMap = new Map<string, CategoryTree>()
   if (categoriesQuery.data) {
     flattenCategories(categoriesQuery.data).forEach((cat) => {
-      categoryMap.set(cat.id, cat);
-    });
+      categoryMap.set(cat.id, cat)
+    })
   }
 
-  const profile = profileQuery.data;
-  const isSellerOnline = useIsUserOnline(profile?.id ?? "");
+  const profile = profileQuery.data
+  const isSellerOnline = useIsUserOnline(profile?.id ?? "")
 
   if (profileQuery.isLoading) {
     return (
       <Flex minH="100vh" align="center" justify="center" bg="gray.50">
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    );
+    )
   }
 
   if (profileQuery.isError || !profile) {
@@ -174,13 +126,13 @@ export function SellerProfilePage() {
           </Box>
         </Container>
       </Box>
-    );
+    )
   }
 
-  const listings = listingsQuery.data?.items ?? [];
+  const listings = listingsQuery.data?.items ?? []
 
-  const locationParts = [profile.district, profile.province].filter(Boolean);
-  const location = locationParts.length > 0 ? locationParts.join(", ") : null;
+  const locationParts = [profile.district, profile.province].filter(Boolean)
+  const location = locationParts.length > 0 ? locationParts.join(", ") : null
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -200,13 +152,44 @@ export function SellerProfilePage() {
         {/* Profile Card */}
         <Box
           bg="white"
-          borderRadius="xl"
-          boxShadow="sm"
+          borderRadius="2xl"
+          boxShadow="0 8px 32px rgba(0,0,0,0.07)"
           overflow="hidden"
           mb={8}
+          border="1px solid"
+          borderColor="gray.100"
         >
-          {/* Cover */}
-          <Box bg="blue.600" h={24} />
+          {/* Cover — gradient */}
+          <Box
+            h={32}
+            position="relative"
+            overflow="hidden"
+            style={{
+              background:
+                "linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #0891b2 100%)",
+            }}
+          >
+            <Box
+              position="absolute"
+              top="-40px"
+              left="-40px"
+              w="180px"
+              h="180px"
+              borderRadius="full"
+              bg="whiteAlpha.100"
+              filter="blur(30px)"
+            />
+            <Box
+              position="absolute"
+              top="10px"
+              right="20%"
+              w="100px"
+              h="100px"
+              borderRadius="full"
+              bg="whiteAlpha.50"
+              filter="blur(20px)"
+            />
+          </Box>
 
           {/* Profile Header */}
           <Box px={8} mt={-11} pb={6} position="relative" zIndex={10}>
@@ -240,9 +223,9 @@ export function SellerProfilePage() {
                 )}
               </Box>
 
-              {/* Name & Trust */}
+              {/* Name & Trust & Seller Badges */}
               <Box pb={1} flex={1}>
-                <HStack gap={4} align="center" flexWrap="wrap">
+                <HStack gap={3} align="center" flexWrap="wrap" mb={1}>
                   <Heading as="h1" size="lg" color="gray.900">
                     {profile.full_name}
                   </Heading>
@@ -253,9 +236,82 @@ export function SellerProfilePage() {
                     py={0.5}
                     borderRadius="full"
                   >
-                    {isSellerOnline ? "Đang online" : "Đang offline"}
+                    {isSellerOnline ? (
+                      <>
+                        <Box
+                          as="span"
+                          display="inline-block"
+                          w={2}
+                          h={2}
+                          bg="green.500"
+                          borderRadius="full"
+                          mr={1.5}
+                        />{" "}
+                        Online
+                      </>
+                    ) : (
+                      <>
+                        <Box
+                          as="span"
+                          display="inline-block"
+                          w={2}
+                          h={2}
+                          bg="gray.400"
+                          borderRadius="full"
+                          mr={1.5}
+                        />{" "}
+                        Offline
+                      </>
+                    )}
                   </Badge>
-                  <TrustScoreBadge score={profile.trust_score} />
+                  {profile.trust_score >= 60 && (
+                    <Badge
+                      colorPalette="blue"
+                      variant="subtle"
+                      px={2}
+                      py={0.5}
+                      borderRadius="full"
+                      fontSize="xs"
+                    >
+                      <FiShield
+                        size={12}
+                        style={{ display: "inline", marginRight: "4px" }}
+                      />
+                      Đã xác minh
+                    </Badge>
+                  )}
+                  {profile.trust_score >= 80 && (
+                    <Badge
+                      colorPalette="yellow"
+                      variant="subtle"
+                      px={2}
+                      py={0.5}
+                      borderRadius="full"
+                      fontSize="xs"
+                    >
+                      <FiAward
+                        size={12}
+                        style={{ display: "inline", marginRight: "4px" }}
+                      />
+                      Top Seller
+                    </Badge>
+                  )}
+                  {profile.completed_orders >= 10 && (
+                    <Badge
+                      colorPalette="purple"
+                      variant="subtle"
+                      px={2}
+                      py={0.5}
+                      borderRadius="full"
+                      fontSize="xs"
+                    >
+                      <FiZap
+                        size={12}
+                        style={{ display: "inline", marginRight: "4px" }}
+                      />
+                      Phản hồi nhanh
+                    </Badge>
+                  )}
                 </HStack>
                 {location && (
                   <HStack gap={1} mt={1}>
@@ -265,52 +321,155 @@ export function SellerProfilePage() {
                     </Text>
                   </HStack>
                 )}
+
+                {/* Action Buttons */}
+                <HStack gap={3} mt={4} flexWrap="wrap">
+                  <Button
+                    colorPalette="blue"
+                    borderRadius="xl"
+                    px={6}
+                    className="btn-shine"
+                    style={{ position: "relative", overflow: "hidden" }}
+                    onClick={() => navigate({ to: "/chat" })}
+                  >
+                    <FiMessageCircle size={16} style={{ marginRight: "6px" }} />
+                    Nhắn tin ngay
+                  </Button>
+                  <Button
+                    variant="outline"
+                    colorPalette="gray"
+                    borderRadius="xl"
+                    px={5}
+                  >
+                    <FiHeart size={16} style={{ marginRight: "6px" }} />
+                    Theo dõi
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    colorPalette="gray"
+                    borderRadius="xl"
+                    px={5}
+                  >
+                    <FiPhone size={16} style={{ marginRight: "6px" }} />
+                    Xem SĐT
+                  </Button>
+                </HStack>
               </Box>
             </Flex>
 
-            {/* Stats Row */}
-            <Flex gap={6} bg="gray.50" borderRadius="lg" p={4} wrap="wrap">
-              <Box textAlign="center" minW="80px">
-                <Text fontSize="xl" fontWeight="bold" color="gray.800">
-                  {profile.completed_orders}
-                </Text>
-                <Text fontSize="xs" color="gray.500" mt={0.5}>
-                  Đơn hoàn thành
-                </Text>
-              </Box>
-              <Separator orientation="vertical" h="auto" />
+            {/* Safe Trading Trust Box */}
+            <div className="trust-box" style={{ marginTop: "1rem" }}>
+              <div className="trust-box-icon">
+                <FiShield size={20} />
+              </div>
               <Box>
-                <StarRating score={profile.rating_avg} />
-                <Text fontSize="xs" color="gray.500" mt={1}>
-                  Đánh giá ({profile.rating_count})
+                <Text fontWeight="700" fontSize="sm" color="gray.800">
+                  Giao dịch an toàn với ReHub Escrow
                 </Text>
-              </Box>
-              <Separator orientation="vertical" h="auto" />
-              <Box textAlign="center" minW="80px">
-                <HStack gap={1} justify="center">
-                  <Box as={FiCheckCircle} w={5} h={5} color="green.500" />
-                  <Text fontSize="xl" fontWeight="bold" color="gray.800">
-                    {profile.trust_score}%
-                  </Text>
-                </HStack>
                 <Text fontSize="xs" color="gray.500" mt={0.5}>
-                  Độ tin cậy
+                  Tiền của bạn được bảo vệ cho đến khi nhận hàng thành công.
+                  Điều khoản giao dịch rõ ràng và minh bạch.
                 </Text>
               </Box>
-              <Separator orientation="vertical" h="auto" />
-              <Box textAlign="center" minW="80px">
-                <HStack gap={1} justify="center">
-                  <Box as={FiCalendar} w={4} h={4} color="gray.400" />
-                </HStack>
-                <Text fontSize="xs" color="gray.500" mt={1}>
-                  Thành viên từ{" "}
+            </div>
+
+            {/* Stat Cards */}
+            <SimpleGrid columns={{ base: 2, md: 4 }} gap={3} mt={4}>
+              <div
+                className="stat-card animate-fadeinup delay-0"
+                style={{ padding: "0.85rem" }}
+              >
+                <div
+                  className="stat-card-icon"
+                  style={{
+                    background: "#EFF6FF",
+                    width: "1.75rem",
+                    height: "1.75rem",
+                  }}
+                >
+                  <FiShoppingBag size={14} color="#2563eb" />
+                </div>
+                <div className="stat-card-value" style={{ fontSize: "1.3rem" }}>
+                  {profile.completed_orders}
+                </div>
+                <div className="stat-card-label">Đơn hoàn thành</div>
+              </div>
+              <div
+                className="stat-card animate-fadeinup delay-1"
+                style={{ padding: "0.85rem" }}
+              >
+                <div
+                  className="stat-card-icon"
+                  style={{
+                    background: "#FFFBEB",
+                    width: "1.75rem",
+                    height: "1.75rem",
+                  }}
+                >
+                  <FiStar size={14} color="#f59e0b" />
+                </div>
+                <div
+                  className="stat-card-value"
+                  style={{ fontSize: "1.3rem", color: "#f59e0b" }}
+                >
+                  {profile.rating_avg.toFixed(1)}
+                </div>
+                <div className="stat-card-label">
+                  Đánh giá ({profile.rating_count})
+                </div>
+              </div>
+              <div
+                className="stat-card animate-fadeinup delay-2"
+                style={{ padding: "0.85rem" }}
+              >
+                <div
+                  className="stat-card-icon"
+                  style={{
+                    background: "#F0FDF4",
+                    width: "1.75rem",
+                    height: "1.75rem",
+                  }}
+                >
+                  <FiZap size={14} color="#10b981" />
+                </div>
+                <div
+                  className="stat-card-value"
+                  style={{ fontSize: "1.3rem", color: "#10b981" }}
+                >
+                  {profile.trust_score}%
+                </div>
+                <div className="stat-card-label">Độ tin cậy</div>
+              </div>
+              <div
+                className="stat-card animate-fadeinup delay-3"
+                style={{ padding: "0.85rem" }}
+              >
+                <div
+                  className="stat-card-icon"
+                  style={{
+                    background: "#F5F3FF",
+                    width: "1.75rem",
+                    height: "1.75rem",
+                  }}
+                >
+                  <FiCalendar size={14} color="#7c3aed" />
+                </div>
+                <div
+                  className="stat-card-value"
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#7c3aed",
+                    fontWeight: "700",
+                  }}
+                >
                   {new Date(profile.created_at).toLocaleDateString("vi-VN", {
                     month: "short",
                     year: "numeric",
                   })}
-                </Text>
-              </Box>
-            </Flex>
+                </div>
+                <div className="stat-card-label">Thành viên từ</div>
+              </div>
+            </SimpleGrid>
           </Box>
 
           {/* Bio Section */}
@@ -412,5 +571,5 @@ export function SellerProfilePage() {
         </Box>
       </Container>
     </Box>
-  );
+  )
 }

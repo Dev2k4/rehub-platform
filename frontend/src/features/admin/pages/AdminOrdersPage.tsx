@@ -9,52 +9,49 @@ import {
   Spinner,
   Table,
   Text,
-} from "@chakra-ui/react";
-import { useState } from "react";
-import { FiSearch, FiShoppingBag } from "react-icons/fi";
-import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils";
-import { useAdminOrders } from "../hooks/useAdminOrders";
+} from "@chakra-ui/react"
+import { useState } from "react"
+import { FiSearch, FiShoppingBag } from "react-icons/fi"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
+import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
+import { useAdminOrders } from "../hooks/useAdminOrders"
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
     case "pending":
-      return { label: "Chờ xử lý", color: "yellow" };
+      return { label: "Chờ xử lý", color: "yellow" }
     case "completed":
-      return { label: "Hoàn thành", color: "green" };
+      return { label: "Hoàn thành", color: "green" }
     case "cancelled":
-      return { label: "Đã hủy", color: "red" };
+      return { label: "Đã hủy", color: "red" }
     default:
-      return { label: status, color: "gray" };
+      return { label: status, color: "gray" }
   }
 }
 
 export function AdminOrdersPage() {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const pageSize = 10
   const {
     data: orders = [],
     isLoading,
     isError,
-  } = useAdminOrders({ limit: 200 });
+  } = useAdminOrders({ limit: 200 })
 
   const filtered = orders.filter(
     (o) =>
       !search ||
       o.id.toLowerCase().includes(search.toLowerCase()) ||
       o.buyer_id.toLowerCase().includes(search.toLowerCase()),
-  );
+  )
 
-  const paginatedOrders = filtered.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
-  );
+  const paginatedOrders = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   return (
     <Container maxW="7xl" px={0}>
@@ -224,7 +221,7 @@ export function AdminOrdersPage() {
               </Table.Header>
               <Table.Body>
                 {paginatedOrders.map((order) => {
-                  const status = statusMeta(order.status);
+                  const status = statusMeta(order.status)
                   return (
                     <Table.Row
                       key={order.id}
@@ -288,7 +285,7 @@ export function AdminOrdersPage() {
                         </Text>
                       </Table.Cell>
                     </Table.Row>
-                  );
+                  )
                 })}
               </Table.Body>
             </Table.Root>
@@ -329,5 +326,5 @@ export function AdminOrdersPage() {
         </PaginationRoot>
       </Flex>
     </Container>
-  );
+  )
 }

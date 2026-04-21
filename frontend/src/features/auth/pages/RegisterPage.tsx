@@ -1,25 +1,25 @@
 import {
   Box,
-  Heading,
   Link as ChakraLink,
+  Heading,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { FiArrowLeft } from "react-icons/fi";
-import { RegisterForm } from "@/features/auth/components/RegisterForm";
-import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout";
-import { getAccessToken } from "@/features/auth/utils/auth.storage";
+} from "@chakra-ui/react"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { useEffect } from "react"
+import { FiArrowLeft } from "react-icons/fi"
+import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout"
+import { RegisterForm } from "@/features/auth/components/RegisterForm"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export function RegisterPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (getAccessToken()) {
-      navigate({ to: "/" });
+      navigate({ to: "/" })
     }
-  }, [navigate]);
+  }, [navigate])
 
   return (
     <AuthPageLayout backTo="/" backLabel="Về trang chủ">
@@ -77,5 +77,5 @@ export function RegisterPage() {
         </Text>
       </Box>
     </AuthPageLayout>
-  );
+  )
 }

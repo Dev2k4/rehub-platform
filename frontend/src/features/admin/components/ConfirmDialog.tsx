@@ -1,16 +1,16 @@
-import { Dialog, Flex, Icon, Portal, Text, VStack } from "@chakra-ui/react";
-import { FiAlertTriangle } from "react-icons/fi";
-import { Button } from "@/components/ui/button";
+import { Dialog, Flex, Icon, Portal, Text, VStack } from "@chakra-ui/react"
+import { FiAlertTriangle } from "react-icons/fi"
+import { Button } from "@/components/ui/button"
 
 interface ConfirmDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  confirmText: string;
-  confirmColorPalette?: string;
-  onConfirm: () => void;
-  isLoading?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  confirmText: string
+  confirmColorPalette?: string
+  onConfirm: () => void
+  isLoading?: boolean
 }
 
 export function ConfirmDialog({
@@ -104,5 +104,5 @@ export function ConfirmDialog({
         </Dialog.Positioner>
       </Portal>
     </Dialog.Root>
-  );
+  )
 }

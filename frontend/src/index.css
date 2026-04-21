@@ -209,3 +209,477 @@ button,
   border: 2px solid var(--color-primary);
   animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
 }
+
+/* ============================================
+   LISTING CARD STYLES
+   ============================================ */
+
+.listing-card-root {
+  position: relative;
+}
+
+/* Hover Overlay — Quick View */
+.listing-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  border-radius: inherit;
+  z-index: 5;
+  pointer-events: none;
+}
+.listing-card-root:hover .listing-card-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+.listing-card-overlay-btn {
+  background: white;
+  color: #2563eb;
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+.listing-card-overlay-btn:hover {
+  transform: scale(1.06);
+}
+
+/* Condition badge in image */
+.listing-card-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.4rem;
+  letter-spacing: 0.02em;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Heart / save button */
+.listing-heart-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 3;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+.listing-heart-btn:hover {
+  transform: scale(1.2);
+  background: #fff0f0;
+  color: #e53e3e;
+}
+
+/* Quick Action Row */
+.listing-quick-actions {
+  display: flex;
+  gap: 0.3rem;
+  border-top: 1px solid #f3f4f6;
+  padding: 0.45rem 0.75rem;
+}
+.listing-quick-btn {
+  flex: 1;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.2rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  transition: all 0.18s ease;
+}
+.listing-quick-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #2563eb;
+}
+
+/* Image wrapper hover zoom */
+.listing-card-img-wrapper img {
+  transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+}
+.listing-card-root:hover .listing-card-img-wrapper img {
+  transform: scale(1.06);
+}
+
+/* Shimmer skeleton */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f3f4f6 0%, #e9ecef 50%, #f3f4f6 100%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+/* ============================================
+   FLOATING ACTION BUTTON STYLES
+   ============================================ */
+
+.floating-actions {
+  position: fixed;
+  bottom: 2rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  z-index: 9999;
+  animation: slideInRight 0.5s ease-out;
+}
+
+.fab-btn {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  font-size: 1.1rem;
+}
+.fab-btn:hover {
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.fab-btn-primary {
+  background: linear-gradient(135deg, #2563eb, #0369a1);
+  color: white;
+}
+.fab-btn-orange {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+}
+.fab-btn-white {
+  background: white;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+/* ============================================
+   STAT CARD STYLES
+   ============================================ */
+
+.stat-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+  cursor: default;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+.stat-card-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+.stat-card-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+.stat-card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* ============================================
+   STATUS TRACKER / TIMELINE
+   ============================================ */
+
+.status-tracker {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0.75rem 0;
+}
+.status-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+.status-step-dot {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 2px solid;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.status-step-dot.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+.status-step-dot.done {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+.status-step-dot.pending {
+  background: white;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+.status-step-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  margin-top: 0.3rem;
+  color: #6b7280;
+  text-align: center;
+  white-space: nowrap;
+}
+.status-step-label.active {
+  color: #2563eb;
+  font-weight: 700;
+}
+.status-step-label.done {
+  color: #10b981;
+}
+.status-connector {
+  flex: 1;
+  height: 2px;
+  margin-bottom: 1.2rem;
+}
+.status-connector.done {
+  background: #10b981;
+}
+.status-connector.pending {
+  background: #e5e7eb;
+}
+
+/* ============================================
+   TRUST BOX / SAFE TRADING
+   ============================================ */
+
+.trust-box {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.trust-box-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  background: linear-gradient(135deg, #2563eb, #10b981);
+  border-radius: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   OFFER CARD STYLES
+   ============================================ */
+
+.offer-card-border-pending {
+  border-left: 4px solid #f97316;
+}
+.offer-card-border-accepted {
+  border-left: 4px solid #10b981;
+}
+.offer-card-border-rejected {
+  border-left: 4px solid #ef4444;
+}
+.offer-card-border-countered {
+  border-left: 4px solid #8b5cf6;
+}
+.offer-card-border-expired {
+  border-left: 4px solid #9ca3af;
+}
+
+/* ============================================
+   NEW ANIMATIONS
+   ============================================ */
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-fadeinup {
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Delay utilities */
+.delay-0 {
+  animation-delay: 0ms;
+}
+.delay-1 {
+  animation-delay: 60ms;
+}
+.delay-2 {
+  animation-delay: 120ms;
+}
+.delay-3 {
+  animation-delay: 180ms;
+}
+.delay-4 {
+  animation-delay: 240ms;
+}
+.delay-5 {
+  animation-delay: 300ms;
+}
+.delay-6 {
+  animation-delay: 360ms;
+}
+.delay-7 {
+  animation-delay: 420ms;
+}
+
+/* Section: Sticky CTA bar */
+.sticky-cta-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  z-index: 9000;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.07);
+  animation: slideInRight 0.4s ease-out;
+}
+
+/* Shine button hover effect */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -75%;
+  width: 50%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(25deg);
+  transition: left 0.4s ease;
+  pointer-events: none;
+}
+.btn-shine:hover::after {
+  left: 125%;
+}
+
+/* Verification progress bar */
+.verify-bar-track {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.verify-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #10b981);
+  transition: width 0.8s ease;
+}

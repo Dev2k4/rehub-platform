@@ -1,55 +1,55 @@
 import {
   Badge,
   Box,
+  Link as ChakraLink,
   Flex,
   IconButton,
   Spinner,
   Table,
   Text,
-  Link as ChakraLink,
-} from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { FiUserCheck, FiUserX, FiCheckCircle, FiXCircle } from "react-icons/fi";
-import type { UserMe } from "@/client";
-import { useUpdateUserStatus } from "../hooks/useAdminUsers";
-import { ConfirmDialog } from "./ConfirmDialog";
+} from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
+import { useState } from "react"
+import { FiCheckCircle, FiUserCheck, FiUserX, FiXCircle } from "react-icons/fi"
+import type { UserMe } from "@/client"
+import { useUpdateUserStatus } from "../hooks/useAdminUsers"
+import { ConfirmDialog } from "./ConfirmDialog"
 
 interface UsersTableProps {
-  users: UserMe[];
-  isLoading: boolean;
+  users: UserMe[]
+  isLoading: boolean
 }
 
 export function UsersTable({ users, isLoading }: UsersTableProps) {
-  const [selectedUser, setSelectedUser] = useState<UserMe | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const updateStatus = useUpdateUserStatus();
+  const [selectedUser, setSelectedUser] = useState<UserMe | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const updateStatus = useUpdateUserStatus()
 
   const handleToggleStatus = (user: UserMe) => {
-    setSelectedUser(user);
-    setConfirmOpen(true);
-  };
+    setSelectedUser(user)
+    setConfirmOpen(true)
+  }
 
   const handleConfirm = () => {
-    if (!selectedUser) return;
+    if (!selectedUser) return
 
     updateStatus.mutate(
       { userId: selectedUser.id, isActive: !selectedUser.is_active },
       {
         onSuccess: () => {
-          setConfirmOpen(false);
-          setSelectedUser(null);
+          setConfirmOpen(false)
+          setSelectedUser(null)
         },
       },
-    );
-  };
+    )
+  }
 
   if (isLoading) {
     return (
       <Flex justify="center" py={12}>
         <Spinner size="lg" color="blue.500" />
       </Flex>
-    );
+    )
   }
 
   if (users.length === 0) {
@@ -57,7 +57,7 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
       <Flex justify="center" py={12}>
         <Text color="gray.500">Không có người dùng nào</Text>
       </Flex>
-    );
+    )
   }
 
   return (
@@ -266,5 +266,5 @@ export function UsersTable({ users, isLoading }: UsersTableProps) {
         isLoading={updateStatus.isPending}
       />
     </>
-  );
+  )
 }

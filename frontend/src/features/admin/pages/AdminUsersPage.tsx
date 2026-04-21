@@ -3,40 +3,40 @@ import {
   Container,
   Flex,
   Heading,
+  HStack,
   Input,
   Text,
-  HStack,
-} from "@chakra-ui/react";
-import { useState } from "react";
-import { UsersTable } from "../components/UsersTable";
-import { useAdminUsers } from "../hooks/useAdminUsers";
+} from "@chakra-ui/react"
+import { useState } from "react"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
+import { UsersTable } from "../components/UsersTable"
+import { useAdminUsers } from "../hooks/useAdminUsers"
 
 export function AdminUsersPage() {
-  const [searchKeyword, setSearchKeyword] = useState("");
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const { data: users = [], isLoading } = useAdminUsers({ limit: 100 });
+  const [searchKeyword, setSearchKeyword] = useState("")
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+  const { data: users = [], isLoading } = useAdminUsers({ limit: 100 })
 
   // Simple client-side filter
   const filteredUsers = users.filter((user) => {
-    const keyword = searchKeyword.toLowerCase();
+    const keyword = searchKeyword.toLowerCase()
     return (
       user.full_name.toLowerCase().includes(keyword) ||
       user.email.toLowerCase().includes(keyword)
-    );
-  });
+    )
+  })
 
   // Pagination processing
   const paginatedUsers = filteredUsers.slice(
     (page - 1) * pageSize,
     page * pageSize,
-  );
+  )
 
   return (
     <Container maxW="7xl" px={0}>
@@ -109,5 +109,5 @@ export function AdminUsersPage() {
         </PaginationRoot>
       </Flex>
     </Container>
-  );
+  )
 }

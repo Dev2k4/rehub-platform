@@ -4,9 +4,9 @@
  * Right panel: scrollable form panel with glassmorphism card
  * Includes a back button at the top-left of the form panel.
  */
-import { Box, Flex, Heading, Text } from "@chakra-ui/react";
-import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { Box, Flex, Heading, Text } from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
+import type { ReactNode } from "react"
 import {
   FiArrowLeft,
   FiShield,
@@ -14,7 +14,7 @@ import {
   FiStar,
   FiTrendingUp,
   FiUsers,
-} from "react-icons/fi";
+} from "react-icons/fi"
 
 const FEATURES = [
   { icon: FiShoppingBag, label: "Mua bán dễ dàng", emoji: "🛍️" },
@@ -23,7 +23,7 @@ const FEATURES = [
   { icon: FiTrendingUp, label: "Thương lượng linh hoạt", emoji: "💬" },
   { icon: FiUsers, label: "Cộng đồng lớn mạnh", emoji: "👥" },
   { icon: FiArrowLeft, label: "Tái sử dụng bền vững", emoji: "♻️" },
-];
+]
 
 const BADGE_POSITIONS: React.CSSProperties[] = [
   { top: "10%", left: "5%" },
@@ -32,14 +32,14 @@ const BADGE_POSITIONS: React.CSSProperties[] = [
   { top: "60%", right: "6%" },
   { bottom: "22%", left: "6%" },
   { bottom: "10%", right: "5%" },
-];
+]
 
 type AuthPageLayoutProps = {
-  children: ReactNode;
+  children: ReactNode
   /** Where the back button navigates to. Defaults to "/" */
-  backTo?: string;
-  backLabel?: string;
-};
+  backTo?: string
+  backLabel?: string
+}
 
 export function AuthPageLayout({
   children,
@@ -238,21 +238,21 @@ export function AuthPageLayout({
               transition: "all 0.2s ease",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = "#2563EB";
-              (e.currentTarget as HTMLAnchorElement).style.borderColor =
-                "#BFDBFE";
-              (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                "0 4px 12px rgba(59,130,246,0.15)";
-              (e.currentTarget as HTMLAnchorElement).style.transform =
-                "translateX(-2px)";
+              ;(e.currentTarget as HTMLAnchorElement).style.color = "#2563EB"
+              ;(e.currentTarget as HTMLAnchorElement).style.borderColor =
+                "#BFDBFE"
+              ;(e.currentTarget as HTMLAnchorElement).style.boxShadow =
+                "0 4px 12px rgba(59,130,246,0.15)"
+              ;(e.currentTarget as HTMLAnchorElement).style.transform =
+                "translateX(-2px)"
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = "#6B7280";
-              (e.currentTarget as HTMLAnchorElement).style.borderColor =
-                "#E5E7EB";
-              (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                "0 1px 4px rgba(0,0,0,0.06)";
-              (e.currentTarget as HTMLAnchorElement).style.transform = "none";
+              ;(e.currentTarget as HTMLAnchorElement).style.color = "#6B7280"
+              ;(e.currentTarget as HTMLAnchorElement).style.borderColor =
+                "#E5E7EB"
+              ;(e.currentTarget as HTMLAnchorElement).style.boxShadow =
+                "0 1px 4px rgba(0,0,0,0.06)"
+              ;(e.currentTarget as HTMLAnchorElement).style.transform = "none"
             }}
           >
             <FiArrowLeft size={14} />
@@ -327,5 +327,5 @@ export function AuthPageLayout({
         </Text>
       </Flex>
     </Flex>
-  );
+  )
 }

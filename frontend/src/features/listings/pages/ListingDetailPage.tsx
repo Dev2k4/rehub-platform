@@ -41,7 +41,10 @@ import { ApiError } from "@/client";
 import { toaster } from "@/components/ui/toaster";
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
 import { openChatWidget } from "@/features/chat/chat-widget.events";
-import { getCategoriesTree } from "@/features/home/api/marketplace.api";
+import {
+  getCategoriesTree,
+  getListings,
+} from "@/features/home/api/marketplace.api";
 import {
   flattenCategories,
   formatCurrencyVnd,
@@ -55,10 +58,9 @@ import { useOffersForListing } from "@/features/offers/hooks/useOffers";
 import { createOrder } from "@/features/orders/api/orders.api";
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 import {
-  getUserPublicProfile,
   getSellerListings,
+  getUserPublicProfile,
 } from "@/features/users/api/users.api";
-import { getListings } from "@/features/home/api/marketplace.api";
 import { ListingCard } from "@/features/users/components/ListingCard";
 
 const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
@@ -268,7 +270,7 @@ export function ListingDetailPage() {
   }
 
   const listing = listingQuery.data;
-  const category = categoryMap.get(listing.category_id);
+  const _category = categoryMap.get(listing.category_id);
   const conditionInfo = CONDITION_LABELS[listing.condition_grade] ?? {
     label: listing.condition_grade,
     color: "gray",
@@ -387,20 +389,19 @@ export function ListingDetailPage() {
           Quay lại trang chủ
         </Button>
 
-        <Flex direction={{ base: "column", lg: "row" }} gap={8} align="start">
+        <Flex direction={{ base: "column", lg: "row" }} gap={8} align="stretch">
           {/* Image Gallery */}
           <Box w={{ base: "full", lg: "520px" }} flexShrink={0}>
-            <Box
-              bg="whiteAlpha.800"
-              backdropFilter="blur(20px)"
-              borderRadius="xl"
-              overflow="hidden"
-              boxShadow="0 10px 40px rgba(0,0,0,0.06)"
-              border="1px"
-              borderColor="whiteAlpha.400"
-            >
+            <Flex direction="column" h="full" gap={4}>
               {/* Main Image */}
-              <Box aspectRatio={1} bg="gray.100" position="relative">
+              <Box
+                flex={1}
+                bg="transparent"
+                position="relative"
+                borderRadius="xl"
+                overflow="hidden"
+                boxShadow="sm"
+              >
                 {currentImage ? (
                   <Image
                     src={getListingImageUrl(currentImage.image_url)}
@@ -415,6 +416,7 @@ export function ListingDetailPage() {
                     align="center"
                     justify="center"
                     color="gray.400"
+                    bg="gray.100"
                   >
                     <Text>Chưa có ảnh</Text>
                   </Flex>
@@ -440,7 +442,7 @@ export function ListingDetailPage() {
 
               {/* Thumbnail Gallery */}
               {images.length > 1 && (
-                <SimpleGrid columns={5} gap={2} p={3}>
+                <SimpleGrid columns={5} gap={2}>
                   {images.map((img, index) => (
                     <Box
                       key={img.id}
@@ -448,13 +450,24 @@ export function ListingDetailPage() {
                       borderRadius="md"
                       overflow="hidden"
                       cursor="pointer"
-                      border="2px"
+                      borderWidth="2px"
+                      borderStyle="solid"
                       borderColor={
-                        index === selectedImageIndex ? "blue.500" : "gray.200"
+                        index === selectedImageIndex
+                          ? "blue.500"
+                          : "transparent"
                       }
+                      opacity={index === selectedImageIndex ? 1 : 0.6}
                       onClick={() => setSelectedImageIndex(index)}
-                      transition="border-color 0.2s"
-                      _hover={{ borderColor: "blue.300" }}
+                      transition="all 0.2s"
+                      _hover={{
+                        opacity: 1,
+                        borderColor:
+                          index === selectedImageIndex
+                            ? "blue.500"
+                            : "gray.300",
+                      }}
+                      bg="gray.100"
                     >
                       <Image
                         src={getListingImageUrl(img.image_url)}
@@ -467,7 +480,7 @@ export function ListingDetailPage() {
                   ))}
                 </SimpleGrid>
               )}
-            </Box>
+            </Flex>
           </Box>
 
           {/* Product Info */}
@@ -550,27 +563,45 @@ export function ListingDetailPage() {
                   <VStack gap={3}>
                     <Button
                       w="full"
-                      bg="blue.600"
-                      color="white"
                       size="lg"
-                      _hover={{ bg: "blue.700" }}
                       borderRadius="lg"
                       onClick={handleBuyNow}
                       loading={createOrderMutation.isPending}
                       disabled={!canTransact}
+                      className="btn-shine"
+                      boxShadow="0 4px 15px rgba(37,99,235,0.35)"
+                      style={{
+                        background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+                        color: "white",
+                        position: "relative",
+                        overflow: "hidden",
+                        border: "none",
+                      }}
+                      _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                      transition="all 0.2s"
                     >
                       Mua ngay
                     </Button>
                     {listing.is_negotiable && (
                       <Button
                         w="full"
-                        variant="outline"
-                        colorPalette="orange"
                         size="lg"
                         borderRadius="lg"
                         onClick={handleOpenOfferDialog}
                         loading={createOfferMutation.isPending}
                         disabled={!canTransact}
+                        className="btn-shine"
+                        boxShadow="0 4px 15px rgba(249,115,22,0.35)"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #f97316, #eab308)",
+                          color: "white",
+                          position: "relative",
+                          overflow: "hidden",
+                          border: "none",
+                        }}
+                        _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                        transition="all 0.2s"
                       >
                         Thương lượng
                       </Button>
@@ -579,10 +610,18 @@ export function ListingDetailPage() {
                     <HStack w="full" gap={3}>
                       <Button
                         flex={1}
-                        variant="outline"
-                        borderColor="blue.300"
-                        color="blue.700"
-                        _hover={{ bg: "blue.100" }}
+                        className="btn-shine"
+                        boxShadow="0 4px 15px rgba(6,182,212,0.35)"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                          color: "white",
+                          position: "relative",
+                          overflow: "hidden",
+                          border: "none",
+                        }}
+                        _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                        transition="all 0.2s"
                         onClick={() => {
                           if (!requireAuth()) {
                             return;

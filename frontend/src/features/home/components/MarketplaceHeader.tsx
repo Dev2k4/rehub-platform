@@ -483,12 +483,12 @@ import {
   Box,
   Button,
   Link as ChakraLink,
+  Container,
   Flex,
+  Heading,
+  HStack,
   IconButton,
   Input,
-  Container,
-  HStack,
-  Heading,
   Menu,
   Portal,
   Separator,
@@ -498,18 +498,18 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-  FiMenu,
-  FiPlusCircle,
-  FiSearch,
-  FiX,
+  FiBell,
   FiCheckCircle,
   FiHeart,
+  FiMenu,
+  FiPlusCircle,
   FiRefreshCw,
+  FiSearch,
   FiShield,
   FiStar,
   FiTrendingUp,
   FiTruck,
-  FiBell,
+  FiX,
 } from "react-icons/fi";
 import type { NotificationRead } from "@/client";
 import { InputGroup } from "@/components/ui/input-group";
@@ -523,6 +523,7 @@ import {
   markNotificationAsRead,
 } from "@/features/notifications/api/notifications.api";
 import { getNotificationDestination } from "@/features/notifications/utils/notificationNavigation";
+import { translateNotification } from "@/features/notifications/utils/notificationTranslation";
 import { AuthButtons } from "./AuthButtons";
 import { UserDropdownMenu } from "./UserDropdownMenu";
 
@@ -803,50 +804,57 @@ export function MarketplaceHeader({
                             </Flex>
                           ) : notificationsQuery.data &&
                             notificationsQuery.data.length > 0 ? (
-                            notificationsQuery.data.map((notification) => (
-                              <Menu.Item
-                                key={notification.id}
-                                value={`notification-${notification.id}`}
-                                py={0}
-                                px={0}
-                                onClick={() =>
-                                  handleNotificationClick(notification)
-                                }
-                              >
-                                <Box
-                                  w="full"
-                                  px={4}
-                                  py={3}
-                                  bg={
-                                    notification.is_read ? "white" : "blue.50"
+                            notificationsQuery.data.map((notification) => {
+                              const { title, message } = translateNotification(
+                                notification.title,
+                                notification.message,
+                              );
+
+                              return (
+                                <Menu.Item
+                                  key={notification.id}
+                                  value={`notification-${notification.id}`}
+                                  py={0}
+                                  px={0}
+                                  onClick={() =>
+                                    handleNotificationClick(notification)
                                   }
-                                  borderBottom="1px"
-                                  borderColor="gray.100"
                                 >
-                                  <Text
-                                    fontSize="sm"
-                                    fontWeight="semibold"
-                                    color="gray.900"
-                                    lineClamp={1}
+                                  <Box
+                                    w="full"
+                                    px={4}
+                                    py={3}
+                                    bg={
+                                      notification.is_read ? "white" : "blue.50"
+                                    }
+                                    borderBottom="1px"
+                                    borderColor="gray.100"
                                   >
-                                    {notification.title}
-                                  </Text>
-                                  <Text
-                                    fontSize="xs"
-                                    color="gray.600"
-                                    mt={0.5}
-                                    lineClamp={2}
-                                  >
-                                    {notification.message}
-                                  </Text>
-                                  <Text fontSize="xs" color="gray.500" mt={1}>
-                                    {new Date(
-                                      notification.created_at,
-                                    ).toLocaleString("vi-VN")}
-                                  </Text>
-                                </Box>
-                              </Menu.Item>
-                            ))
+                                    <Text
+                                      fontSize="sm"
+                                      fontWeight="semibold"
+                                      color="gray.900"
+                                      lineClamp={1}
+                                    >
+                                      {title}
+                                    </Text>
+                                    <Text
+                                      fontSize="xs"
+                                      color="gray.600"
+                                      mt={0.5}
+                                      lineClamp={2}
+                                    >
+                                      {message}
+                                    </Text>
+                                    <Text fontSize="xs" color="gray.500" mt={1}>
+                                      {new Date(
+                                        notification.created_at,
+                                      ).toLocaleString("vi-VN")}
+                                    </Text>
+                                  </Box>
+                                </Menu.Item>
+                              );
+                            })
                           ) : (
                             <Box px={4} py={8} textAlign="center">
                               <Text fontSize="sm" color="gray.500">
@@ -901,7 +909,7 @@ export function MarketplaceHeader({
                         transform: "translateY(-1px)",
                       }}
                     >
-                      Offers
+                      Đề xuất giá
                     </Button>
                   </Link>
                 </ChakraLink>
