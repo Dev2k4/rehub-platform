@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import OrderStatus
+from app.models.enums import FulfillmentStatus, OrderStatus
 
 
 class OrderBase(BaseModel):
@@ -28,6 +28,9 @@ class OrderRead(OrderBase):
 	seller_id: uuid.UUID
 	listing_id: uuid.UUID
 	status: OrderStatus
+	fulfillment_status: FulfillmentStatus
+	seller_marked_delivered_at: datetime | None
+	buyer_confirmed_received_at: datetime | None
 	created_at: datetime
 	updated_at: datetime
 

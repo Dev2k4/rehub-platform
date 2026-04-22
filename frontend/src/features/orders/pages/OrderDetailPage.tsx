@@ -31,6 +31,11 @@ import {
   useCompleteOrder,
   useOrder,
 } from "@/features/orders/hooks/useOrders";
+import {
+  deriveFulfillmentStatus,
+  fulfillmentStatusMeta,
+  type OrderWithFulfillment,
+} from "@/features/orders/utils/orderFulfillment";
 import { ReviewForm } from "@/features/reviews/components/ReviewForm";
 import { ReviewsList } from "@/features/reviews/components/ReviewsList";
 import { useOrderReviews } from "@/features/reviews/hooks/useReviews";
@@ -45,6 +50,8 @@ function statusMeta(status: string): { label: string; color: string } {
       return { label: "Hoàn thành", color: "green" };
     case "cancelled":
       return { label: "Đã hủy", color: "red" };
+    case "disputed":
+      return { label: "Tranh chấp", color: "red" };
     default:
       return { label: status, color: "gray" };
   }
@@ -125,7 +132,7 @@ export function OrderDetailPage() {
     );
   }
 
-  const order = orderQuery.data;
+  const order = orderQuery.data as OrderWithFulfillment;
   const status = statusMeta(order.status);
   const isBuyer = order.buyer_id === user.id;
   const isSeller = order.seller_id === user.id;
@@ -133,6 +140,8 @@ export function OrderDetailPage() {
     counterpartyProfileQuery.data?.full_name?.trim() || counterpartyId;
   const escrow = escrowQuery.data;
   const hasEscrow = !!escrow;
+  const fulfillmentStatus = deriveFulfillmentStatus(order, escrow);
+  const fulfillmentMeta = fulfillmentStatusMeta(fulfillmentStatus);
   const canComplete = !hasEscrow && order.status === "pending" && isBuyer;
   const canCancel = !hasEscrow && order.status === "pending";
 
@@ -168,14 +177,20 @@ export function OrderDetailPage() {
       return null;
     }
 
-    if (hasEscrow && escrow?.status === "awaiting_funding") {
+    if (fulfillmentStatus === "awaiting_funding") {
       return "Bạn cần nạp tiền vào escrow để người bán có thể bắt đầu giao hàng.";
     }
-    if (hasEscrow && escrow?.status === "held") {
+    if (fulfillmentStatus === "funded") {
       return "Người bán đang xử lý đơn. Chờ bên bán đánh dấu đã giao.";
     }
-    if (hasEscrow && escrow?.status === "release_pending") {
+    if (fulfillmentStatus === "seller_marked_delivered") {
       return "Hãy xác nhận nhận hàng để giải ngân tiền cho người bán.";
+    }
+    if (fulfillmentStatus === "resolved_refund") {
+      return "Đơn đã được hoàn tiền theo kết quả xử lý escrow.";
+    }
+    if (fulfillmentStatus === "disputed") {
+      return "Đơn đang trong quá trình tranh chấp. Vui lòng chờ xử lý.";
     }
     if (order.status === "pending") {
       return "Đơn hàng đang xử lý. Bạn có thể theo dõi tiến độ theo thời gian thực.";
@@ -380,7 +395,45 @@ export function OrderDetailPage() {
                 >
                   {status.label}
                 </Badge>
+                <Badge
+                  colorPalette={fulfillmentMeta.color as any}
+                  variant="subtle"
+                  borderRadius="full"
+                  px={3}
+                >
+                  {fulfillmentMeta.label}
+                </Badge>
               </HStack>
+            </Box>
+          )}
+
+          {(order.seller_marked_delivered_at || order.buyer_confirmed_received_at) && (
+            <Box
+              mt={4}
+              p={4}
+              borderRadius="xl"
+              border="1px"
+              borderColor="gray.200"
+              bg="white"
+            >
+              <VStack align="stretch" gap={2}>
+                {order.seller_marked_delivered_at && (
+                  <HStack justify="space-between" fontSize="sm">
+                    <Text color="gray.600">Người bán báo đã giao</Text>
+                    <Text color="gray.900" fontWeight="medium">
+                      {new Date(order.seller_marked_delivered_at).toLocaleString("vi-VN")}
+                    </Text>
+                  </HStack>
+                )}
+                {order.buyer_confirmed_received_at && (
+                  <HStack justify="space-between" fontSize="sm">
+                    <Text color="gray.600">Người mua xác nhận đã nhận</Text>
+                    <Text color="gray.900" fontWeight="medium">
+                      {new Date(order.buyer_confirmed_received_at).toLocaleString("vi-VN")}
+                    </Text>
+                  </HStack>
+                )}
+              </VStack>
             </Box>
           )}
 

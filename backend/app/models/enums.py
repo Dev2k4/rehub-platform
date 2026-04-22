@@ -32,6 +32,17 @@ class OrderStatus(str, Enum):
     DISPUTED = "disputed"
 
 
+class FulfillmentStatus(str, Enum):
+    CREATED = "created"
+    AWAITING_FUNDING = "awaiting_funding"
+    FUNDED = "funded"
+    SELLER_MARKED_DELIVERED = "seller_marked_delivered"
+    BUYER_CONFIRMED_RECEIVED = "buyer_confirmed_received"
+    DISPUTED = "disputed"
+    RESOLVED_REFUND = "resolved_refund"
+    CANCELLED = "cancelled"
+
+
 class NotificationType(str, Enum):
     OFFER_RECEIVED = "offer_received"
     OFFER_ACCEPTED = "offer_accepted"

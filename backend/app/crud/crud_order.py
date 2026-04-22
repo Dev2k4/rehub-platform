@@ -5,7 +5,7 @@ from sqlalchemy import or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.enums import ListingStatus, OrderStatus
+from app.models.enums import FulfillmentStatus, ListingStatus, OrderStatus
 from app.models.listing import Listing
 from app.models.offer import Offer
 from app.models.order import Order
@@ -33,6 +33,15 @@ async def get_order_by_id_with_lock(db: AsyncSession, order_id: uuid.UUID) -> Or
 
 def set_order_status(order: Order, status: OrderStatus) -> None:
 	order.status = status
+	order.updated_at = _utc_now_naive()
+
+
+def set_order_fulfillment_status(order: Order, status: FulfillmentStatus) -> None:
+	order.fulfillment_status = status
+	if status == FulfillmentStatus.SELLER_MARKED_DELIVERED:
+		order.seller_marked_delivered_at = _utc_now_naive()
+	if status == FulfillmentStatus.BUYER_CONFIRMED_RECEIVED:
+		order.buyer_confirmed_received_at = _utc_now_naive()
 	order.updated_at = _utc_now_naive()
 
 
@@ -87,6 +96,7 @@ async def create_direct_order(db: AsyncSession, buyer_id: uuid.UUID, listing_id:
 		listing_id=listing.id,
 		final_price=listing.price,
 		status=OrderStatus.PENDING,
+		fulfillment_status=FulfillmentStatus.CREATED,
 	)
 	db.add(order)
 	listing.status = ListingStatus.SOLD
@@ -98,6 +108,8 @@ async def create_direct_order(db: AsyncSession, buyer_id: uuid.UUID, listing_id:
 
 async def complete_order(db: AsyncSession, order: Order) -> Order:
 	order.status = OrderStatus.COMPLETED
+	order.fulfillment_status = FulfillmentStatus.BUYER_CONFIRMED_RECEIVED
+	order.buyer_confirmed_received_at = _utc_now_naive()
 	order.updated_at = _utc_now_naive()
 
 	# Update seller's completed_orders
@@ -120,6 +132,7 @@ async def cancel_order(db: AsyncSession, order: Order, offer_id: uuid.UUID | Non
 	from app.models.enums import OfferStatus
 
 	order.status = OrderStatus.CANCELLED
+	order.fulfillment_status = FulfillmentStatus.CANCELLED
 	order.updated_at = _utc_now_naive()
 
 	# Revert listing status to ACTIVE

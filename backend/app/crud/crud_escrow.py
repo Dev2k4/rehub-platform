@@ -9,6 +9,7 @@ from app.crud import crud_order, crud_wallet
 from app.models.enums import (
     EscrowEventType,
     EscrowStatus,
+    FulfillmentStatus,
     OrderStatus,
     WalletTransactionDirection,
     WalletTransactionType,
@@ -60,6 +61,7 @@ async def create_escrow_for_order(db: AsyncSession, order: Order) -> Escrow:
         amount=order.final_price,
         status=EscrowStatus.AWAITING_FUNDING,
     )
+    crud_order.set_order_fulfillment_status(order, FulfillmentStatus.AWAITING_FUNDING)
     db.add(escrow)
     await db.flush()
 
@@ -109,6 +111,7 @@ async def fund_escrow(db: AsyncSession, order: Order, buyer_id: uuid.UUID) -> Es
     escrow.status = EscrowStatus.HELD
     escrow.funded_at = _utc_now_naive()
     escrow.updated_at = _utc_now_naive()
+    crud_order.set_order_fulfillment_status(order, FulfillmentStatus.FUNDED)
 
     event = EscrowEvent(
         escrow_id=escrow.id,
@@ -142,6 +145,7 @@ async def request_release(db: AsyncSession, order_id: uuid.UUID, seller_id: uuid
     escrow.status = EscrowStatus.RELEASE_PENDING
     escrow.updated_at = _utc_now_naive()
     crud_order.set_order_status(order, OrderStatus.PENDING)
+    crud_order.set_order_fulfillment_status(order, FulfillmentStatus.SELLER_MARKED_DELIVERED)
 
     db.add(EscrowEvent(
         escrow_id=escrow.id,
@@ -208,6 +212,7 @@ async def confirm_release(db: AsyncSession, order_id: uuid.UUID, buyer_id: uuid.
     escrow.released_at = _utc_now_naive()
     escrow.updated_at = _utc_now_naive()
     crud_order.set_order_status(order, OrderStatus.COMPLETED)
+    crud_order.set_order_fulfillment_status(order, FulfillmentStatus.BUYER_CONFIRMED_RECEIVED)
 
     await db.execute(
         update(User)
@@ -246,6 +251,7 @@ async def open_dispute(db: AsyncSession, order_id: uuid.UUID, actor_id: uuid.UUI
     escrow.status = EscrowStatus.DISPUTED
     escrow.updated_at = _utc_now_naive()
     crud_order.set_order_status(order, OrderStatus.DISPUTED)
+    crud_order.set_order_fulfillment_status(order, FulfillmentStatus.DISPUTED)
 
     db.add(EscrowEvent(
         escrow_id=escrow.id,
@@ -308,6 +314,7 @@ async def admin_resolve_release(db: AsyncSession, order_id: uuid.UUID, admin_id:
     escrow.released_at = _utc_now_naive()
     escrow.updated_at = _utc_now_naive()
     crud_order.set_order_status(order, OrderStatus.COMPLETED)
+    crud_order.set_order_fulfillment_status(order, FulfillmentStatus.BUYER_CONFIRMED_RECEIVED)
 
     await db.execute(
         update(User)
@@ -363,6 +370,7 @@ async def admin_resolve_refund(db: AsyncSession, order_id: uuid.UUID, admin_id: 
     escrow.refunded_at = _utc_now_naive()
     escrow.updated_at = _utc_now_naive()
     crud_order.set_order_status(order, OrderStatus.CANCELLED)
+    crud_order.set_order_fulfillment_status(order, FulfillmentStatus.RESOLVED_REFUND)
 
     db.add(EscrowEvent(
         escrow_id=escrow.id,

@@ -59,7 +59,16 @@ export function useMarketplaceData() {
 
   useEffect(() => {
     setPage(1)
-  }, [])
+  }, [
+    selectedCategoryId,
+    keyword,
+    conditionGrade,
+    province,
+    district,
+    minPrice,
+    maxPrice,
+    sortBy,
+  ])
 
   const sellerIds = useMemo(() => {
     const ids = listingsQuery.data?.items.map((item) => item.seller_id) ?? []

@@ -6,7 +6,7 @@ from sqlalchemy import and_, or_, update
 from app.models.offer import Offer
 from app.models.listing import Listing
 from app.models.order import Order
-from app.models.enums import OfferStatus, ListingStatus, OrderStatus
+from app.models.enums import FulfillmentStatus, OfferStatus, ListingStatus, OrderStatus
 from app.schemas.offer import OfferCreate, OfferStatusUpdate
 from app.core.config import settings
 
@@ -268,7 +268,8 @@ async def accept_offer_with_order(
         seller_id=listing.seller_id,
         listing_id=offer.listing_id,
         final_price=offer.offer_price,
-        status=OrderStatus.PENDING
+        status=OrderStatus.PENDING,
+        fulfillment_status=FulfillmentStatus.CREATED,
     )
     db.add(order)
 
