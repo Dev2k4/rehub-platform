@@ -82,6 +82,7 @@ class EscrowStatus(str, Enum):
     RELEASED = "released"
     REFUNDED = "refunded"
     DISPUTED = "disputed"
+    EXPIRED = "expired"
 
 
 class EscrowEventType(str, Enum):
@@ -93,4 +94,5 @@ class EscrowEventType(str, Enum):
     DISPUTE_OPENED = "dispute_opened"
     RELEASE = "release"
     REFUND = "refund"
+    EXPIRED = "expired"
     ADMIN_RESOLVE = "admin_resolve"

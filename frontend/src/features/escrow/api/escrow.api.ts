@@ -9,6 +9,7 @@ export type EscrowStatus =
   | "released"
   | "refunded"
   | "disputed"
+  | "expired"
 
 export interface EscrowRead {
   id: string
@@ -22,6 +23,28 @@ export interface EscrowRead {
   refunded_at: string | null
   created_at: string
   updated_at: string
+}
+
+export type EscrowEventType =
+  | "created"
+  | "funded"
+  | "hold"
+  | "seller_mark_delivered"
+  | "buyer_confirm"
+  | "dispute_opened"
+  | "release"
+  | "refund"
+  | "expired"
+  | "admin_resolve"
+
+export interface EscrowEventRead {
+  id: string
+  escrow_id: string
+  actor_id: string | null
+  event_type: EscrowEventType
+  note: string | null
+  data: Record<string, unknown>
+  created_at: string
 }
 
 interface EscrowAdminResolveRequest {
@@ -86,6 +109,14 @@ export async function getEscrow(orderId: string): Promise<EscrowRead> {
     headers: getAuthHeaders(),
   })
   return parseResponse<EscrowRead>(response)
+}
+
+export async function getEscrowEvents(orderId: string): Promise<EscrowEventRead[]> {
+  const response = await fetchWithAuthRetry(`/escrows/${orderId}/events`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  })
+  return parseResponse<EscrowEventRead[]>(response)
 }
 
 export async function listDisputedEscrows(params?: {

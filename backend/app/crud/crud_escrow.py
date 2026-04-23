@@ -1,20 +1,23 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.crud import crud_order, crud_wallet
+from app.core.config import settings
 from app.models.enums import (
     EscrowEventType,
     EscrowStatus,
     FulfillmentStatus,
+    ListingStatus,
     OrderStatus,
     WalletTransactionDirection,
     WalletTransactionType,
 )
 from app.models.escrow import Escrow, EscrowEvent
+from app.models.listing import Listing
 from app.models.order import Order
 from app.models.user import User
 
@@ -38,6 +41,79 @@ async def list_disputed_escrows(db: AsyncSession, skip: int = 0, limit: int = 50
         .limit(limit)
     )
     return list(result.scalars().all())
+
+
+async def list_escrow_events_by_order_id(
+    db: AsyncSession,
+    order_id: uuid.UUID,
+    *,
+    descending: bool = False,
+) -> list[EscrowEvent]:
+    escrow = await get_escrow_by_order_id(db, order_id)
+    if not escrow:
+        return []
+
+    query = select(EscrowEvent).where(EscrowEvent.escrow_id == escrow.id)
+    if descending:
+        query = query.order_by(EscrowEvent.created_at.desc())
+    else:
+        query = query.order_by(EscrowEvent.created_at.asc())
+
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def expire_unfunded_escrows(db: AsyncSession) -> list[dict[str, uuid.UUID | str]]:
+    cutoff = _utc_now_naive() - timedelta(hours=settings.ESCROW_FUNDING_EXPIRE_HOURS)
+    result = await db.execute(
+        select(Escrow, Order)
+        .join(Order, Order.id == Escrow.order_id)
+        .where(
+            Escrow.status == EscrowStatus.AWAITING_FUNDING,
+            Escrow.created_at <= cutoff,
+            Order.status == OrderStatus.PENDING,
+        )
+    )
+    rows = list(result.all())
+    if not rows:
+        return []
+
+    expired_items: list[dict[str, uuid.UUID | str]] = []
+    now = _utc_now_naive()
+
+    for escrow, order in rows:
+        escrow.status = EscrowStatus.EXPIRED
+        escrow.updated_at = now
+        crud_order.set_order_status(order, OrderStatus.CANCELLED)
+        crud_order.set_order_fulfillment_status(order, FulfillmentStatus.CANCELLED)
+
+        await db.execute(
+            update(Listing)
+            .where(Listing.id == order.listing_id)
+            .values(status=ListingStatus.ACTIVE, updated_at=now)
+        )
+
+        db.add(
+            EscrowEvent(
+                escrow_id=escrow.id,
+                actor_id=None,
+                event_type=EscrowEventType.EXPIRED,
+                note="Escrow funding window expired",
+                data={"order_id": str(order.id)},
+            )
+        )
+        expired_items.append(
+            {
+                "escrow_id": escrow.id,
+                "order_id": order.id,
+                "buyer_id": order.buyer_id,
+                "seller_id": order.seller_id,
+                "listing_id": order.listing_id,
+            }
+        )
+
+    await db.commit()
+    return expired_items
 
 
 async def get_escrow_by_order_id_with_lock(db: AsyncSession, order_id: uuid.UUID) -> Escrow | None:

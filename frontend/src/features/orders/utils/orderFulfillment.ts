@@ -39,6 +39,8 @@ export function deriveFulfillmentStatus(
         return "resolved_refund"
       case "disputed":
         return "disputed"
+      case "expired":
+        return "cancelled"
       default:
         return "created"
     }
