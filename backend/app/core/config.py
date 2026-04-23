@@ -54,6 +54,18 @@ class Settings(BaseSettings):
     # Offers
     OFFER_EXPIRE_HOURS: int = 48
     OFFER_EXPIRY_JOB_INTERVAL_MINUTES: int = 5
+    ESCROW_FUNDING_EXPIRE_HOURS: int = 24
+    ESCROW_EXPIRY_JOB_INTERVAL_MINUTES: int = 5
+
+    # Assistant AI
+    ASSISTANT_AI_PROVIDER: str = "vertex"
+    ASSISTANT_MAX_RESULTS_DEFAULT: int = 5
+    VERTEX_AI_PROJECT_ID: str = ""
+    VERTEX_AI_LOCATION: str = "us-central1"
+    VERTEX_AI_MODEL: str = "gemini-2.5-flash"
+    VERTEX_AI_ACCESS_TOKEN: str = ""
+    VERTEX_AI_SERVICE_ACCOUNT_FILE: str = ""
+    VERTEX_AI_SERVICE_ACCOUNT_JSON: str = ""
 
     # Frontend host for generated links (email verification, password reset, ...)
     FRONTEND_HOST: str = "https://happiness-eaten-flashy.ngrok-free.dev"

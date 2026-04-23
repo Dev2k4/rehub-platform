@@ -17,13 +17,16 @@ from slowapi.util import get_remote_address
 from app.api.v1 import api_router
 from app.core.cache import cache
 from app.core.config import get_cors_origins, settings
-from app.crud import crud_offer
+from app.crud import crud_escrow, crud_notification, crud_offer
+from app.models.enums import NotificationType
 from app.db.init_db import init_db
 from app.db.session import AsyncSessionLocal
+from app.schemas.escrow import EscrowRead
 from app.services.websocket_manager import connection_manager
 
 logger = logging.getLogger(__name__)
 offer_expiry_task: asyncio.Task | None = None
+escrow_expiry_task: asyncio.Task | None = None
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -124,8 +127,53 @@ async def lifespan(_: FastAPI):
 
             await asyncio.sleep(settings.OFFER_EXPIRY_JOB_INTERVAL_MINUTES * 60)
 
-    global offer_expiry_task
+    async def _escrow_expiry_worker() -> None:
+        while True:
+            try:
+                async with AsyncSessionLocal() as session:
+                    expired_escrows = await crud_escrow.expire_unfunded_escrows(session)
+                    if expired_escrows:
+                        logger.info("Expired %s unfunded escrows", len(expired_escrows))
+                        for item in expired_escrows:
+                            await crud_notification.create_notification(
+                                db=session,
+                                user_id=item["buyer_id"],
+                                type=NotificationType.ORDER_CANCELLED,
+                                title="Order cancelled",
+                                message="Escrow funding window expired. The order was cancelled.",
+                                data={"order_id": str(item["order_id"]), "listing_id": str(item["listing_id"])}
+                            )
+                            if item["seller_id"] != item["buyer_id"]:
+                                await crud_notification.create_notification(
+                                    db=session,
+                                    user_id=item["seller_id"],
+                                    type=NotificationType.ORDER_CANCELLED,
+                                    title="Order cancelled",
+                                    message="Buyer did not fund escrow in time. The order was cancelled.",
+                                    data={"order_id": str(item["order_id"]), "listing_id": str(item["listing_id"])}
+                                )
+
+                            escrow = await crud_escrow.get_escrow_by_order_id(session, item["order_id"])
+                            if escrow:
+                                payload = EscrowRead.model_validate(escrow).model_dump(mode="json")
+                                event = {"type": "escrow:state_changed", "data": {"escrow": payload}}
+                                try:
+                                    await connection_manager.send_to_user(item["buyer_id"], event)
+                                    if item["seller_id"] != item["buyer_id"]:
+                                        await connection_manager.send_to_user(item["seller_id"], event)
+                                except Exception:
+                                    logger.exception(
+                                        "Failed to broadcast escrow expiration for order %s",
+                                        item["order_id"],
+                                    )
+            except Exception:
+                logger.exception("Escrow expiry worker failed")
+
+            await asyncio.sleep(settings.ESCROW_EXPIRY_JOB_INTERVAL_MINUTES * 60)
+
+    global offer_expiry_task, escrow_expiry_task
     offer_expiry_task = asyncio.create_task(_offer_expiry_worker())
+    escrow_expiry_task = asyncio.create_task(_escrow_expiry_worker())
 
     try:
         yield
@@ -134,6 +182,12 @@ async def lifespan(_: FastAPI):
             offer_expiry_task.cancel()
             try:
                 await offer_expiry_task
+            except asyncio.CancelledError:
+                pass
+        if escrow_expiry_task:
+            escrow_expiry_task.cancel()
+            try:
+                await escrow_expiry_task
             except asyncio.CancelledError:
                 pass
         await cache.disconnect()
