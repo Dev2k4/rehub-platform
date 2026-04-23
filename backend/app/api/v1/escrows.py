@@ -9,12 +9,7 @@ from app.api.dependencies import get_current_admin, get_current_user, get_db
 from app.crud import crud_escrow, crud_notification, crud_order, crud_wallet
 from app.models.enums import NotificationType
 from app.models.user import User
-from app.schemas.escrow import (
-    EscrowAdminResolveRequest,
-    EscrowDisputeRequest,
-    EscrowEventRead,
-    EscrowRead,
-)
+from app.schemas.escrow import EscrowAdminResolveRequest, EscrowDisputeRequest, EscrowRead
 from app.schemas.wallet import WalletAccountRead
 from app.services.websocket_manager import connection_manager
 
@@ -84,22 +79,6 @@ async def get_escrow_by_order(
     if not escrow:
         raise HTTPException(status_code=404, detail="Escrow not found")
     return escrow
-
-
-@router.get("/{order_id}/events", response_model=list[EscrowEventRead])
-async def get_escrow_events_by_order(
-    order_id: uuid.UUID,
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: AsyncSession = Depends(get_db),
-):
-    order = await crud_order.get_order_by_id(db, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    if order.buyer_id != current_user.id and order.seller_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    return await crud_escrow.list_escrow_events_by_order_id(db, order_id)
 
 
 @router.post("/{order_id}/fund", response_model=EscrowRead)

@@ -3,7 +3,6 @@ import {
   confirmEscrowRelease,
   fundEscrow,
   getEscrow,
-  getEscrowEvents,
   openEscrowDispute,
   requestEscrowRelease,
 } from "@/features/escrow/api/escrow.api"
@@ -23,15 +22,6 @@ export function useWallet() {
   return useQuery({
     queryKey: ["wallet", "me"],
     queryFn: () => getMyWallet(),
-  })
-}
-
-export function useEscrowEvents(orderId: string) {
-  return useQuery({
-    queryKey: ["escrow-events", orderId],
-    queryFn: () => getEscrowEvents(orderId),
-    enabled: !!orderId,
-    retry: 2,
   })
 }
 
@@ -56,7 +46,6 @@ export function useFundEscrow() {
       queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
-      queryClient.invalidateQueries({ queryKey: ["escrow-events", orderId] })
     },
   })
 }
@@ -70,7 +59,6 @@ export function useRequestEscrowRelease() {
       queryClient.invalidateQueries({ queryKey: ["escrow", orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
-      queryClient.invalidateQueries({ queryKey: ["escrow-events", orderId] })
     },
   })
 }
@@ -85,7 +73,6 @@ export function useConfirmEscrowRelease() {
       queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
-      queryClient.invalidateQueries({ queryKey: ["escrow-events", orderId] })
     },
   })
 }
@@ -101,7 +88,6 @@ export function useOpenEscrowDispute() {
       queryClient.invalidateQueries({ queryKey: ["wallet", "me"] })
       queryClient.invalidateQueries({ queryKey: ["orders", params.orderId] })
       queryClient.invalidateQueries({ queryKey: ["orders", "me"] })
-      queryClient.invalidateQueries({ queryKey: ["escrow-events", params.orderId] })
     },
   })
 }

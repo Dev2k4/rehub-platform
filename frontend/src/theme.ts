@@ -40,16 +40,6 @@ const config = defineConfig({
       bg: "#F8FAFC", // Màu nền sáng hơn một chút để nổi bật các Card trắng
       color: "gray.800",
       fontFamily: "Inter, sans-serif",
-      fontSize: "15px",
-      lineHeight: "1.6",
-    },
-    "h1, h2, h3, h4, h5, h6": {
-      lineHeight: "1.25",
-      letterSpacing: "-0.01em",
-      fontWeight: "700",
-    },
-    p: {
-      lineHeight: "1.6",
     },
   },
   theme: {

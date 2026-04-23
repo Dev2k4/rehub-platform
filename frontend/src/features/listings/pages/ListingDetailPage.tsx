@@ -24,17 +24,15 @@ import {
   useParams,
   useSearch,
 } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowLeft,
   FiCalendar,
   FiCheckCircle,
-  FiMapPin,
   FiMessageCircle,
   FiShare2,
   FiStar,
-  FiTrendingUp,
   // FiTag,
   FiUser,
 } from "react-icons/fi";
@@ -205,33 +203,6 @@ export function ListingDetailPage() {
     enabled: !!categoryId,
   });
 
-  const marketPriceStats = useMemo(() => {
-    const prices = (similarListingsQuery.data?.items ?? [])
-      .filter((item) => item.id !== id)
-      .map((item) => Number(item.price))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .sort((a, b) => a - b);
-
-    if (prices.length === 0) {
-      return null;
-    }
-
-    const median =
-      prices.length % 2 === 0
-        ? (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2
-        : prices[Math.floor(prices.length / 2)];
-
-    const average = prices.reduce((sum, value) => sum + value, 0) / prices.length;
-
-    return {
-      count: prices.length,
-      min: prices[0],
-      max: prices[prices.length - 1],
-      median,
-      average,
-    };
-  }, [similarListingsQuery.data, id]);
-
   // Hook must be called unconditionally before early returns
   const isOwnListingCheck =
     user?.id && listingQuery.data?.seller_id === user.id;
@@ -299,7 +270,7 @@ export function ListingDetailPage() {
   }
 
   const listing = listingQuery.data;
-  const category = categoryMap.get(listing.category_id);
+  const _category = categoryMap.get(listing.category_id);
   const conditionInfo = CONDITION_LABELS[listing.condition_grade] ?? {
     label: listing.condition_grade,
     color: "gray",
@@ -313,22 +284,6 @@ export function ListingDetailPage() {
   const currentImage = images[selectedImageIndex];
   const isOwnListing = user?.id === listing.seller_id;
   const canTransact = listing.status === "active" && !isOwnListing;
-  const sellerTrustScore = Math.round(sellerProfileQuery.data?.trust_score ?? 0);
-  const sellerRatingCount = sellerProfileQuery.data?.rating_count ?? 0;
-  const sellerLocation = [
-    sellerProfileQuery.data?.district,
-    sellerProfileQuery.data?.province,
-  ]
-    .filter(Boolean)
-    .join(", ");
-  const currentPrice = Number(listing.price);
-  const priceDiffFromMedian = marketPriceStats
-    ? currentPrice - marketPriceStats.median
-    : null;
-  const priceDiffPercent =
-    marketPriceStats && marketPriceStats.median > 0
-      ? Math.round((priceDiffFromMedian! / marketPriceStats.median) * 100)
-      : null;
 
   const requireAuth = () => {
     if (isAuthenticated) {
@@ -543,30 +498,12 @@ export function ListingDetailPage() {
               >
                 <Box p={6}>
                   {/* Category */}
-                  <HStack gap={2} mb={3}>
-                    <Text
-                      fontSize="xs"
-                      color="blue.700"
-                      bg="blue.50"
-                      px={2}
-                      py={1}
-                      borderRadius="full"
-                      fontWeight="700"
-                    >
+                  {/* <HStack gap={2} mb={3}>
+                    <Box as={FiTag} w={4} h={4} color="gray.400" />
+                    <Text fontSize="sm" color="gray.500">
                       {category?.name ?? "Chưa phân loại"}
                     </Text>
-                    <Text
-                      fontSize="xs"
-                      color="gray.600"
-                      bg="gray.100"
-                      px={2}
-                      py={1}
-                      borderRadius="full"
-                      fontWeight="700"
-                    >
-                      {images.length} ảnh
-                    </Text>
-                  </HStack>
+                  </HStack> */}
 
                   {/* Title */}
                   <Heading as="h1" size="lg" color="gray.900" mb={4}>
@@ -961,217 +898,7 @@ export function ListingDetailPage() {
             </Box>
 
             <Box gridColumn={{ base: "span 1", lg: "span 4" }}>
-              <VStack gap={4} align="stretch" position={{ lg: "sticky" }} top={{ lg: 24 }}>
-                <Box
-                  bg="white"
-                  borderRadius="xl"
-                  border="1px solid"
-                  borderColor="gray.200"
-                  boxShadow="sm"
-                  p={5}
-                >
-                  <Heading as="h3" size="sm" color="gray.900" mb={3}>
-                    Chỉ số tin đăng
-                  </Heading>
-                  <SimpleGrid columns={2} gap={3}>
-                    <Box>
-                      <Text fontSize="xs" color="gray.500">Đăng lúc</Text>
-                      <Text fontSize="sm" fontWeight="700" color="gray.800">
-                        {formatPostedTime(listing.created_at)}
-                      </Text>
-                    </Box>
-                    <Box>
-                      <Text fontSize="xs" color="gray.500">Cập nhật</Text>
-                      <Text fontSize="sm" fontWeight="700" color="gray.800">
-                        {formatPostedTime(listing.updated_at)}
-                      </Text>
-                    </Box>
-                    <Box>
-                      <Text fontSize="xs" color="gray.500">Tình trạng</Text>
-                      <Text fontSize="sm" fontWeight="700" color="gray.800">
-                        {conditionInfo.label}
-                      </Text>
-                    </Box>
-                    <Box>
-                      <Text fontSize="xs" color="gray.500">Mặc cả</Text>
-                      <Text fontSize="sm" fontWeight="700" color="gray.800">
-                        {listing.is_negotiable ? "Có" : "Không"}
-                      </Text>
-                    </Box>
-                  </SimpleGrid>
-                </Box>
-
-                <Box
-                  bg="white"
-                  borderRadius="xl"
-                  border="1px solid"
-                  borderColor="gray.200"
-                  boxShadow="sm"
-                  p={5}
-                >
-                  <Heading as="h3" size="sm" color="gray.900" mb={3}>
-                    Độ tin cậy người bán
-                  </Heading>
-                  {sellerProfileQuery.isLoading ? (
-                    <VStack align="stretch" gap={2}>
-                      <Box className="animate-shimmer" h="10px" borderRadius="full" />
-                      <Box className="animate-shimmer" h="10px" borderRadius="full" />
-                      <SimpleGrid columns={2} gap={2}>
-                        {Array.from({ length: 4 }).map((_, idx) => (
-                          <Box
-                            key={idx}
-                            className="animate-shimmer"
-                            h="34px"
-                            borderRadius="0.5rem"
-                          />
-                        ))}
-                      </SimpleGrid>
-                    </VStack>
-                  ) : (
-                    <>
-                      <HStack justify="space-between" mb={3}>
-                        <Text fontSize="sm" color="gray.600">Trust score</Text>
-                        <Text fontSize="sm" fontWeight="800" color="blue.700">
-                          {sellerTrustScore}
-                        </Text>
-                      </HStack>
-                      <Box h="8px" bg="gray.100" borderRadius="full" overflow="hidden" mb={3}>
-                        <Box
-                          h="full"
-                          bg="linear-gradient(90deg, #22c55e, #16a34a)"
-                          w={`${Math.min(100, Math.max(0, sellerTrustScore))}%`}
-                        />
-                      </Box>
-                      <SimpleGrid columns={2} gap={3}>
-                        <Box>
-                          <Text fontSize="xs" color="gray.500">Đánh giá TB</Text>
-                          <HStack gap={1}>
-                            <Box as={FiStar} color="yellow.500" />
-                            <Text fontSize="sm" fontWeight="700" color="gray.800">
-                              {sellerProfileQuery.data
-                                ? sellerProfileQuery.data.rating_avg.toFixed(1)
-                                : "0.0"}
-                            </Text>
-                          </HStack>
-                        </Box>
-                        <Box>
-                          <Text fontSize="xs" color="gray.500">Số lượt đánh giá</Text>
-                          <Text fontSize="sm" fontWeight="700" color="gray.800">
-                            {sellerRatingCount}
-                          </Text>
-                        </Box>
-                        <Box>
-                          <Text fontSize="xs" color="gray.500">Đơn hoàn tất</Text>
-                          <Text fontSize="sm" fontWeight="700" color="gray.800">
-                            {sellerProfileQuery.data?.completed_orders ?? 0}
-                          </Text>
-                        </Box>
-                        <Box>
-                          <Text fontSize="xs" color="gray.500">Đã tham gia từ</Text>
-                          <Text fontSize="sm" fontWeight="700" color="gray.800">
-                            {sellerProfileQuery.data
-                              ? new Date(
-                                  sellerProfileQuery.data.created_at,
-                                ).toLocaleDateString("vi-VN")
-                              : "-"}
-                          </Text>
-                        </Box>
-                      </SimpleGrid>
-                      {sellerLocation ? (
-                        <HStack mt={3} gap={2} color="gray.600">
-                          <Box as={FiMapPin} />
-                          <Text fontSize="sm">{sellerLocation}</Text>
-                        </HStack>
-                      ) : null}
-                    </>
-                  )}
-                </Box>
-
-                <Box
-                  bg="white"
-                  borderRadius="xl"
-                  border="1px solid"
-                  borderColor="gray.200"
-                  boxShadow="sm"
-                  p={5}
-                >
-                  <HStack gap={2} mb={3}>
-                    <Box as={FiTrendingUp} color="blue.600" />
-                    <Heading as="h3" size="sm" color="gray.900">
-                      Price intelligence
-                    </Heading>
-                  </HStack>
-
-                  {similarListingsQuery.isLoading ? (
-                    <VStack align="stretch" gap={2}>
-                      <Box className="animate-shimmer" h="12px" borderRadius="full" />
-                      <Box className="animate-shimmer" h="12px" borderRadius="full" />
-                      <Box className="animate-shimmer" h="12px" borderRadius="full" />
-                      <SimpleGrid columns={2} gap={2}>
-                        <Box className="animate-shimmer" h="30px" borderRadius="0.5rem" />
-                        <Box className="animate-shimmer" h="30px" borderRadius="0.5rem" />
-                      </SimpleGrid>
-                    </VStack>
-                  ) : marketPriceStats ? (
-                    <VStack align="stretch" gap={2.5}>
-                      <HStack justify="space-between">
-                        <Text fontSize="sm" color="gray.600">
-                          Giá hiện tại
-                        </Text>
-                        <Text fontSize="sm" fontWeight="800" color="gray.800">
-                          {formatCurrencyVnd(listing.price)}
-                        </Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text fontSize="sm" color="gray.600">
-                          Giá trung vị danh mục
-                        </Text>
-                        <Text fontSize="sm" fontWeight="700" color="gray.800">
-                          {formatCurrencyVnd(marketPriceStats.median)}
-                        </Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text fontSize="sm" color="gray.600">
-                          Chênh lệch so với trung vị
-                        </Text>
-                        <Text
-                          fontSize="sm"
-                          fontWeight="800"
-                          color={
-                            (priceDiffPercent ?? 0) <= 0 ? "green.600" : "orange.600"
-                          }
-                        >
-                          {priceDiffPercent != null
-                            ? `${priceDiffPercent > 0 ? "+" : ""}${priceDiffPercent}%`
-                            : "-"}
-                        </Text>
-                      </HStack>
-                      <SimpleGrid columns={2} gap={2}>
-                        <Box>
-                          <Text fontSize="xs" color="gray.500">
-                            Mẫu so sánh
-                          </Text>
-                          <Text fontSize="sm" fontWeight="700" color="gray.800">
-                            {marketPriceStats.count} tin
-                          </Text>
-                        </Box>
-                        <Box>
-                          <Text fontSize="xs" color="gray.500">
-                            Khoảng giá
-                          </Text>
-                          <Text fontSize="sm" fontWeight="700" color="gray.800">
-                            {`${Math.round(marketPriceStats.min / 1_000_000)}-${Math.round(marketPriceStats.max / 1_000_000)}tr`}
-                          </Text>
-                        </Box>
-                      </SimpleGrid>
-                    </VStack>
-                  ) : (
-                    <Text fontSize="sm" color="gray.500">
-                      Chưa đủ dữ liệu so sánh trong cùng danh mục.
-                    </Text>
-                  )}
-                </Box>
-              </VStack>
+              {/* Sidebar content could go here in future */}
             </Box>
           </SimpleGrid>
         </Box>

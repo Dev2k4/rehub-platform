@@ -12,7 +12,6 @@ import {
 } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
 import { FiArrowLeft, FiCreditCard, FiShield } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
@@ -21,7 +20,6 @@ import {
   useConfirmEscrowRelease,
   useDemoTopupWallet,
   useEscrow,
-  useEscrowEvents,
   useFundEscrow,
   useOpenEscrowDispute,
   useRequestEscrowRelease,
@@ -33,35 +31,11 @@ import {
   useCompleteOrder,
   useOrder,
 } from "@/features/orders/hooks/useOrders";
-import {
-  deriveFulfillmentStatus,
-  fulfillmentStatusMeta,
-  type OrderWithFulfillment,
-} from "@/features/orders/utils/orderFulfillment";
 import { ReviewForm } from "@/features/reviews/components/ReviewForm";
 import { ReviewsList } from "@/features/reviews/components/ReviewsList";
 import { useOrderReviews } from "@/features/reviews/hooks/useReviews";
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 import { getUserPublicProfile } from "@/features/users/api/users.api";
-
-const ESCROW_FUNDING_WINDOW_HOURS = 24;
-
-function formatRemainingTime(ms: number): string {
-  if (ms <= 0) {
-    return "Đã hết hạn";
-  }
-
-  const totalSeconds = Math.floor(ms / 1000);
-  const days = Math.floor(totalSeconds / 86_400);
-  const hours = Math.floor((totalSeconds % 86_400) / 3_600);
-  const minutes = Math.floor((totalSeconds % 3_600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (days > 0) {
-    return `${days} ngày ${hours} giờ ${minutes} phút`;
-  }
-  return `${hours} giờ ${minutes} phút ${seconds} giây`;
-}
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
@@ -71,8 +45,6 @@ function statusMeta(status: string): { label: string; color: string } {
       return { label: "Hoàn thành", color: "green" };
     case "cancelled":
       return { label: "Đã hủy", color: "red" };
-    case "disputed":
-      return { label: "Tranh chấp", color: "red" };
     default:
       return { label: status, color: "gray" };
   }
@@ -92,35 +64,8 @@ function escrowStatusLabel(status: string): string {
       return "Tranh chấp";
     case "refunded":
       return "Đã hoàn tiền";
-    case "expired":
-      return "Hết hạn nạp quỹ";
     default:
       return status;
-  }
-}
-
-function escrowEventLabel(eventType: string): string {
-  switch (eventType) {
-    case "created":
-      return "Khởi tạo escrow";
-    case "funded":
-      return "Người mua nạp quỹ";
-    case "seller_mark_delivered":
-      return "Người bán báo đã giao";
-    case "buyer_confirm":
-      return "Người mua xác nhận nhận hàng";
-    case "dispute_opened":
-      return "Mở tranh chấp";
-    case "admin_resolve":
-      return "Admin xử lý tranh chấp";
-    case "expired":
-      return "Escrow hết hạn nạp quỹ";
-    case "release":
-      return "Giải ngân";
-    case "refund":
-      return "Hoàn tiền";
-    default:
-      return eventType;
   }
 }
 
@@ -134,7 +79,6 @@ export function OrderDetailPage() {
   const completeMutation = useCompleteOrder();
   const cancelMutation = useCancelOrder();
   const escrowQuery = useEscrow(id);
-  const escrowEventsQuery = useEscrowEvents(id);
   const walletQuery = useWallet();
   const topupMutation = useDemoTopupWallet();
   const fundEscrowMutation = useFundEscrow();
@@ -159,7 +103,6 @@ export function OrderDetailPage() {
         : orderQuery.data.buyer_id
       : null,
   );
-  const [nowMs, setNowMs] = useState(() => Date.now());
 
   if (!authLoading && !isAuthenticated) {
     navigate({ to: "/auth/login" });
@@ -182,7 +125,7 @@ export function OrderDetailPage() {
     );
   }
 
-  const order = orderQuery.data as OrderWithFulfillment;
+  const order = orderQuery.data;
   const status = statusMeta(order.status);
   const isBuyer = order.buyer_id === user.id;
   const isSeller = order.seller_id === user.id;
@@ -190,8 +133,6 @@ export function OrderDetailPage() {
     counterpartyProfileQuery.data?.full_name?.trim() || counterpartyId;
   const escrow = escrowQuery.data;
   const hasEscrow = !!escrow;
-  const fulfillmentStatus = deriveFulfillmentStatus(order, escrow);
-  const fulfillmentMeta = fulfillmentStatusMeta(fulfillmentStatus);
   const canComplete = !hasEscrow && order.status === "pending" && isBuyer;
   const canCancel = !hasEscrow && order.status === "pending";
 
@@ -204,16 +145,6 @@ export function OrderDetailPage() {
 
   const canFundEscrow =
     hasEscrow && isBuyer && escrow?.status === "awaiting_funding";
-  const fundingDeadlineMs = useMemo(() => {
-    if (!escrow?.created_at) {
-      return null;
-    }
-    return (
-      new Date(escrow.created_at).getTime() +
-      ESCROW_FUNDING_WINDOW_HOURS * 60 * 60 * 1000
-    );
-  }, [escrow?.created_at]);
-  const fundingRemainingMs = fundingDeadlineMs ? fundingDeadlineMs - nowMs : null;
   const canRequestRelease = hasEscrow && isSeller && escrow?.status === "held";
   const canConfirmRelease =
     hasEscrow && isBuyer && escrow?.status === "release_pending";
@@ -237,20 +168,14 @@ export function OrderDetailPage() {
       return null;
     }
 
-    if (fulfillmentStatus === "awaiting_funding") {
+    if (hasEscrow && escrow?.status === "awaiting_funding") {
       return "Bạn cần nạp tiền vào escrow để người bán có thể bắt đầu giao hàng.";
     }
-    if (fulfillmentStatus === "funded") {
+    if (hasEscrow && escrow?.status === "held") {
       return "Người bán đang xử lý đơn. Chờ bên bán đánh dấu đã giao.";
     }
-    if (fulfillmentStatus === "seller_marked_delivered") {
+    if (hasEscrow && escrow?.status === "release_pending") {
       return "Hãy xác nhận nhận hàng để giải ngân tiền cho người bán.";
-    }
-    if (fulfillmentStatus === "resolved_refund") {
-      return "Đơn đã được hoàn tiền theo kết quả xử lý escrow.";
-    }
-    if (fulfillmentStatus === "disputed") {
-      return "Đơn đang trong quá trình tranh chấp. Vui lòng chờ xử lý.";
     }
     if (order.status === "pending") {
       return "Đơn hàng đang xử lý. Bạn có thể theo dõi tiến độ theo thời gian thực.";
@@ -263,14 +188,6 @@ export function OrderDetailPage() {
     }
     return "Theo dõi cập nhật trạng thái để biết bước tiếp theo của giao dịch.";
   })();
-
-  useEffect(() => {
-    if (!canFundEscrow) {
-      return;
-    }
-    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [canFundEscrow]);
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -463,45 +380,7 @@ export function OrderDetailPage() {
                 >
                   {status.label}
                 </Badge>
-                <Badge
-                  colorPalette={fulfillmentMeta.color as any}
-                  variant="subtle"
-                  borderRadius="full"
-                  px={3}
-                >
-                  {fulfillmentMeta.label}
-                </Badge>
               </HStack>
-            </Box>
-          )}
-
-          {(order.seller_marked_delivered_at || order.buyer_confirmed_received_at) && (
-            <Box
-              mt={4}
-              p={4}
-              borderRadius="xl"
-              border="1px"
-              borderColor="gray.200"
-              bg="white"
-            >
-              <VStack align="stretch" gap={2}>
-                {order.seller_marked_delivered_at && (
-                  <HStack justify="space-between" fontSize="sm">
-                    <Text color="gray.600">Người bán báo đã giao</Text>
-                    <Text color="gray.900" fontWeight="medium">
-                      {new Date(order.seller_marked_delivered_at).toLocaleString("vi-VN")}
-                    </Text>
-                  </HStack>
-                )}
-                {order.buyer_confirmed_received_at && (
-                  <HStack justify="space-between" fontSize="sm">
-                    <Text color="gray.600">Người mua xác nhận đã nhận</Text>
-                    <Text color="gray.900" fontWeight="medium">
-                      {new Date(order.buyer_confirmed_received_at).toLocaleString("vi-VN")}
-                    </Text>
-                  </HStack>
-                )}
-              </VStack>
             </Box>
           )}
 
@@ -558,78 +437,6 @@ export function OrderDetailPage() {
                   </Text>
                 </HStack>
               </VStack>
-
-              {canFundEscrow && fundingDeadlineMs && (
-                <Box
-                  mt={4}
-                  p={3}
-                  borderRadius="lg"
-                  border="1px"
-                  borderColor={
-                    (fundingRemainingMs ?? 0) <= 0 ? "red.200" : "orange.200"
-                  }
-                  bg={(fundingRemainingMs ?? 0) <= 0 ? "red.50" : "orange.50"}
-                >
-                  <Text
-                    fontSize="sm"
-                    fontWeight="semibold"
-                    color={(fundingRemainingMs ?? 0) <= 0 ? "red.700" : "orange.700"}
-                  >
-                    Hạn nạp quỹ: {new Date(fundingDeadlineMs).toLocaleString("vi-VN")}
-                  </Text>
-                  <Text
-                    fontSize="sm"
-                    color={(fundingRemainingMs ?? 0) <= 0 ? "red.700" : "orange.700"}
-                  >
-                    Còn lại: {formatRemainingTime(fundingRemainingMs ?? 0)}
-                  </Text>
-                </Box>
-              )}
-
-              <Box mt={6}>
-                <Heading size="sm" color="blue.900" mb={3}>
-                  Nhật ký giao dịch
-                </Heading>
-                {escrowEventsQuery.isLoading ? (
-                  <Text fontSize="sm" color="blue.700">
-                    Đang tải lịch sử escrow...
-                  </Text>
-                ) : (escrowEventsQuery.data?.length ?? 0) === 0 ? (
-                  <Text fontSize="sm" color="blue.700">
-                    Chưa có sự kiện nào.
-                  </Text>
-                ) : (
-                  <VStack align="stretch" gap={2}>
-                    {(escrowEventsQuery.data ?? []).map((event) => (
-                      <Box
-                        key={event.id}
-                        bg="white"
-                        border="1px"
-                        borderColor="blue.100"
-                        borderRadius="lg"
-                        px={3}
-                        py={2.5}
-                      >
-                        <HStack justify="space-between" align="start" gap={3}>
-                          <Box>
-                            <Text fontSize="sm" fontWeight="semibold" color="gray.900">
-                              {escrowEventLabel(event.event_type)}
-                            </Text>
-                            {event.note && (
-                              <Text fontSize="xs" color="gray.600" mt={0.5}>
-                                {event.note}
-                              </Text>
-                            )}
-                          </Box>
-                          <Text fontSize="xs" color="gray.500" whiteSpace="nowrap">
-                            {new Date(event.created_at).toLocaleString("vi-VN")}
-                          </Text>
-                        </HStack>
-                      </Box>
-                    ))}
-                  </VStack>
-                )}
-              </Box>
 
               <HStack mt={5} wrap="wrap" gap={3}>
                 {canFundEscrow && topupAmountNeeded > 0 && (

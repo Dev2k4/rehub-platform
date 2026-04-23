@@ -29,32 +29,6 @@ export default defineConfig({
   server: {
     allowedHosts: [".ngrok-free.dev"],
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return
-
-          if (id.includes("@chakra-ui") || id.includes("@emotion")) {
-            return "ui-vendor"
-          }
-          if (id.includes("@tanstack/react-router")) {
-            return "router-vendor"
-          }
-          if (id.includes("@tanstack/react-query")) {
-            return "query-vendor"
-          }
-          if (id.includes("react-icons") || id.includes("lucide-react")) {
-            return "icons-vendor"
-          }
-          if (id.includes("zod")) {
-            return "validation-vendor"
-          }
-          return "vendor"
-        },
-      },
-    },
-  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

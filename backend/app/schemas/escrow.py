@@ -1,11 +1,10 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import EscrowEventType, EscrowStatus
+from app.models.enums import EscrowStatus
 
 
 class EscrowRead(BaseModel):
@@ -31,15 +30,3 @@ class EscrowDisputeRequest(BaseModel):
 class EscrowAdminResolveRequest(BaseModel):
     result: str = Field(pattern="^(release|refund)$")
     note: str | None = Field(default=None, max_length=500)
-
-
-class EscrowEventRead(BaseModel):
-    id: uuid.UUID
-    escrow_id: uuid.UUID
-    actor_id: uuid.UUID | None
-    event_type: EscrowEventType
-    note: str | None
-    data: dict[str, Any]
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
