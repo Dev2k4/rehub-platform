@@ -42,6 +42,12 @@ function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
     case "pending":
       return { label: "Chờ xử lý", color: "yellow" }
+    case "preparing":
+      return { label: "Chuẩn bị hàng", color: "purple" }
+    case "in_delivery":
+      return { label: "Đang giao", color: "blue" }
+    case "delivered":
+      return { label: "Đã giao", color: "orange" }
     case "completed":
       return { label: "Hoàn thành", color: "green" }
     case "cancelled":
@@ -60,14 +66,19 @@ function OrderStatusTracker({ status }: { status: string }) {
       icon: <FiBox size={14} style={{ display: "inline" }} />,
     },
     {
-      key: "processing",
-      label: "Xác nhận",
-      icon: <FiCheckCircle size={14} style={{ display: "inline" }} />,
+          key: "preparing",
+          label: "Chuẩn bị",
+          icon: <FiClock size={14} style={{ display: "inline" }} />,
     },
     {
-      key: "shipping",
-      label: "Giao hàng",
-      icon: <FiTruck size={14} style={{ display: "inline" }} />,
+          key: "in_delivery",
+          label: "Đang giao",
+          icon: <FiTruck size={14} style={{ display: "inline" }} />,
+      },
+      {
+          key: "delivered",
+          label: "Đã giao",
+          icon: <FiCheckCircle size={14} style={{ display: "inline" }} />,
     },
     {
       key: "completed",
@@ -77,7 +88,18 @@ function OrderStatusTracker({ status }: { status: string }) {
   ]
 
   // Map real status to step index
-  const stepIndex = status === "cancelled" ? -1 : status === "completed" ? 3 : 0
+    let stepIndex = 0
+    if (status === "cancelled") {
+      stepIndex = -1
+    } else if (status === "preparing") {
+      stepIndex = 1
+    } else if (status === "in_delivery") {
+      stepIndex = 2
+    } else if (status === "delivered") {
+      stepIndex = 3
+    } else if (status === "completed") {
+      stepIndex = 4
+    }
 
   return (
     <div className="status-tracker">

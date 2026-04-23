@@ -12,6 +12,7 @@ from app.models.listing import Listing
 from app.models.enums import OfferStatus, NotificationType
 from app.schemas.offer import OfferCreate, OfferRead, OfferStatusUpdate
 from app.crud import crud_escrow, crud_notification, crud_offer
+from app.crud import crud_fulfillment
 from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/offers", tags=["offers"])
@@ -160,6 +161,7 @@ async def update_offer_status(
                 db, offer_id, current_user.id
             )
             await crud_escrow.create_escrow_for_order(db, order)
+            await crud_fulfillment.create_fulfillment_for_order(db, order)
 
             # Gửi notification
             is_seller = listing.seller_id == current_user.id

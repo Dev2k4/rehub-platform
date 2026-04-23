@@ -9,6 +9,7 @@ export const TRANSLATE_TITLE: Record<string, string> = {
   "Order cancelled": "Đơn hàng đã hủy",
   "Escrow funded": "Đã thanh toán qua Escrow",
   "Delivery marked": "Đã chuyển hàng",
+  "Order status updated": "Trạng thái đơn hàng đã cập nhật",
   "Escrow released": "Escrow đã giải ngân",
   "Escrow disputed": "Tranh chấp Escrow",
   "Escrow resolved": "Đã giải quyết tranh chấp",
@@ -41,6 +42,10 @@ export const translateNotification = (
       "Đã mở yêu cầu khiếu nại/tranh chấp cho đơn hàng này.",
     "Buyer marked the order as completed.":
       "Người mua đã đánh dấu hoàn thành cho đơn hàng.",
+    "Seller updated order status: preparing package.":
+      "Người bán đã cập nhật trạng thái: đang chuẩn bị hàng.",
+    "Seller updated order status: shipping in progress.":
+      "Người bán đã cập nhật trạng thái: đang giao hàng.",
     "The order was cancelled by the counterparty.":
       "Đơn hàng này đã bị hủy bởi đối tác.",
     "You received a new review from a completed order.":

@@ -141,7 +141,7 @@ async def request_release(db: AsyncSession, order_id: uuid.UUID, seller_id: uuid
 
     escrow.status = EscrowStatus.RELEASE_PENDING
     escrow.updated_at = _utc_now_naive()
-    crud_order.set_order_status(order, OrderStatus.PENDING)
+    crud_order.set_order_status(order, OrderStatus.DELIVERED)
 
     db.add(EscrowEvent(
         escrow_id=escrow.id,
@@ -240,8 +240,18 @@ async def open_dispute(db: AsyncSession, order_id: uuid.UUID, actor_id: uuid.UUI
     if not escrow:
         raise ValueError("Escrow not found for this order")
 
-    if escrow.status not in {EscrowStatus.HELD, EscrowStatus.RELEASE_PENDING}:
+    if escrow.status != EscrowStatus.RELEASE_PENDING:
         raise ValueError(f"Cannot open dispute in {escrow.status} state")
+
+    from app.crud import crud_fulfillment
+    from app.models.enums import FulfillmentStatus
+
+    fulfillment = await crud_fulfillment.get_fulfillment_by_order_id_with_lock(db, order_id)
+    if not fulfillment:
+        raise ValueError("Fulfillment not found for this order")
+
+    if fulfillment.status != FulfillmentStatus.DELIVERED_BY_SELLER:
+        raise ValueError("Dispute is only available after seller marks delivered")
 
     escrow.status = EscrowStatus.DISPUTED
     escrow.updated_at = _utc_now_naive()

@@ -27,6 +27,9 @@ class OfferStatus(str, Enum):
 
 class OrderStatus(str, Enum):
     PENDING = "pending"
+    PREPARING = "preparing"
+    IN_DELIVERY = "in_delivery"
+    DELIVERED = "delivered"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     DISPUTED = "disputed"
@@ -83,3 +86,19 @@ class EscrowEventType(str, Enum):
     RELEASE = "release"
     REFUND = "refund"
     ADMIN_RESOLVE = "admin_resolve"
+
+
+class FulfillmentStatus(str, Enum):
+    PENDING_SELLER_START = "pending_seller_start"
+    PREPARING = "preparing"
+    IN_DELIVERY = "in_delivery"
+    DELIVERED_BY_SELLER = "delivered_by_seller"
+    BUYER_CONFIRMED_RECEIVED = "buyer_confirmed_received"
+
+
+class FulfillmentEventType(str, Enum):
+    CREATED = "created"
+    SELLER_START_PREPARING = "seller_start_preparing"
+    SELLER_MARK_SHIPPING = "seller_mark_shipping"
+    SELLER_MARK_DELIVERED = "seller_mark_delivered"
+    BUYER_CONFIRM_RECEIVED = "buyer_confirm_received"

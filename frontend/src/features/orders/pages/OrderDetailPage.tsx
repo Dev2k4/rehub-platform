@@ -5,6 +5,7 @@ import {
   Flex,
   Heading,
   HStack,
+  Input,
   Separator,
   Spinner,
   Text,
@@ -12,17 +13,23 @@ import {
 } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 import { FiArrowLeft, FiCreditCard, FiShield } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
 import {
-  useConfirmEscrowRelease,
+  useBuyerConfirmReceived,
+  useFulfillment,
+  useMarkShipping,
+  useMarkDelivered,
+  useStartPreparing,
+} from "@/features/fulfillment/hooks/useFulfillment";
+import {
   useDemoTopupWallet,
   useEscrow,
   useFundEscrow,
   useOpenEscrowDispute,
-  useRequestEscrowRelease,
   useWallet,
 } from "@/features/escrow/hooks/useEscrow";
 import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils";
@@ -41,12 +48,35 @@ function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
     case "pending":
       return { label: "Chờ xử lý", color: "yellow" };
+    case "preparing":
+      return { label: "Chuẩn bị hàng", color: "purple" };
+    case "in_delivery":
+      return { label: "Đang giao", color: "blue" };
+    case "delivered":
+      return { label: "Đã giao", color: "orange" };
     case "completed":
       return { label: "Hoàn thành", color: "green" };
     case "cancelled":
       return { label: "Đã hủy", color: "red" };
     default:
       return { label: status, color: "gray" };
+  }
+}
+
+function fulfillmentStatusLabel(status: string | undefined): string {
+  switch (status) {
+    case "pending_seller_start":
+      return "Chờ người bán bắt đầu";
+    case "preparing":
+      return "Đang chuẩn bị hàng";
+    case "in_delivery":
+      return "Đang giao hàng";
+    case "delivered_by_seller":
+      return "Người bán đã giao";
+    case "buyer_confirmed_received":
+      return "Người mua đã xác nhận nhận hàng";
+    default:
+      return "Chờ cập nhật";
   }
 }
 
@@ -82,9 +112,14 @@ export function OrderDetailPage() {
   const walletQuery = useWallet();
   const topupMutation = useDemoTopupWallet();
   const fundEscrowMutation = useFundEscrow();
-  const releaseRequestMutation = useRequestEscrowRelease();
-  const confirmReleaseMutation = useConfirmEscrowRelease();
+  const fulfillmentQuery = useFulfillment(id);
+  const startPreparingMutation = useStartPreparing();
+  const markShippingMutation = useMarkShipping();
+  const markDeliveredMutation = useMarkDelivered();
+  const buyerConfirmMutation = useBuyerConfirmReceived();
   const disputeMutation = useOpenEscrowDispute();
+  const [sellerProofUrl, setSellerProofUrl] = useState("");
+  const [buyerProofUrl, setBuyerProofUrl] = useState("");
   const counterpartyId =
     orderQuery.data && user
       ? orderQuery.data.buyer_id === user.id
@@ -133,6 +168,7 @@ export function OrderDetailPage() {
     counterpartyProfileQuery.data?.full_name?.trim() || counterpartyId;
   const escrow = escrowQuery.data;
   const hasEscrow = !!escrow;
+  const fulfillment = fulfillmentQuery.data;
   const canComplete = !hasEscrow && order.status === "pending" && isBuyer;
   const canCancel = !hasEscrow && order.status === "pending";
 
@@ -145,12 +181,25 @@ export function OrderDetailPage() {
 
   const canFundEscrow =
     hasEscrow && isBuyer && escrow?.status === "awaiting_funding";
-  const canRequestRelease = hasEscrow && isSeller && escrow?.status === "held";
-  const canConfirmRelease =
-    hasEscrow && isBuyer && escrow?.status === "release_pending";
+  const canStartPreparing =
+    !!fulfillment &&
+    isSeller &&
+    fulfillment.status === "pending_seller_start" &&
+    (!hasEscrow || escrow?.status === "held");
+  const canMarkShipping =
+    !!fulfillment && isSeller && fulfillment.status === "preparing";
+  const canMarkDelivered =
+    !!fulfillment && isSeller && fulfillment.status === "in_delivery";
+  const canBuyerConfirmReceived =
+    isBuyer &&
+    (
+      fulfillment?.status === "delivered_by_seller" ||
+      (order.status === "delivered" && escrow?.status === "release_pending")
+    );
   const canOpenDispute =
     hasEscrow &&
-    (escrow?.status === "held" || escrow?.status === "release_pending");
+    escrow?.status === "release_pending" &&
+    fulfillment?.status === "delivered_by_seller";
   const alreadyReviewed = (orderReviewsQuery.data ?? []).some(
     (review) => review.reviewer_id === user.id,
   );
@@ -171,11 +220,23 @@ export function OrderDetailPage() {
     if (hasEscrow && escrow?.status === "awaiting_funding") {
       return "Bạn cần nạp tiền vào escrow để người bán có thể bắt đầu giao hàng.";
     }
-    if (hasEscrow && escrow?.status === "held") {
-      return "Người bán đang xử lý đơn. Chờ bên bán đánh dấu đã giao.";
+    if (fulfillment?.status === "pending_seller_start") {
+      return "Chờ người bán xác nhận bắt đầu giao hàng.";
     }
-    if (hasEscrow && escrow?.status === "release_pending") {
-      return "Hãy xác nhận nhận hàng để giải ngân tiền cho người bán.";
+    if (fulfillment?.status === "preparing") {
+      return "Người bán đang chuẩn bị hàng.";
+    }
+    if (fulfillment?.status === "in_delivery") {
+      return "Đơn đang trong quá trình giao hàng.";
+    }
+    if (fulfillment?.status === "delivered_by_seller") {
+      return "Người bán đã đánh dấu đã giao. Hãy xác nhận đã nhận hàng kèm ảnh bằng chứng.";
+    }
+    if (order.status === "delivered" && escrow?.status === "release_pending") {
+      return "Đơn đã được đánh dấu đã giao. Hãy xác nhận đã nhận hàng để hoàn tất thanh toán.";
+    }
+    if (fulfillment?.status === "buyer_confirmed_received") {
+      return "Bạn đã xác nhận đã nhận hàng.";
     }
     if (order.status === "pending") {
       return "Đơn hàng đang xử lý. Bạn có thể theo dõi tiến độ theo thời gian thực.";
@@ -398,14 +459,14 @@ export function OrderDetailPage() {
               <HStack mb={4} gap={2}>
                 <FiShield color="#2563EB" size={20} />
                 <Heading size="md" color="blue.900">
-                  Quy trình Escrow
+                  {isSeller ? "Tiến độ giao hàng" : "Quy trình Escrow"}
                 </Heading>
               </HStack>
 
               <VStack align="stretch" gap={0}>
                 <HStack justify="space-between" py={2.5}>
                   <Text color="blue.700" fontSize="sm">
-                    Trạng thái Escrow
+                    {isSeller ? "Trạng thái giao hàng" : "Trạng thái Escrow"}
                   </Text>
                   <Badge
                     colorPalette="blue"
@@ -413,33 +474,52 @@ export function OrderDetailPage() {
                     borderRadius="full"
                     px={3}
                   >
-                    {escrowStatusLabel(escrow?.status ?? "")}
+                    {isSeller
+                      ? fulfillmentStatusLabel(fulfillment?.status)
+                      : escrowStatusLabel(escrow?.status ?? "")}
                   </Badge>
                 </HStack>
                 <Separator borderColor="blue.200" />
+                {isBuyer && (
+                  <>
+                    <HStack justify="space-between" py={2.5}>
+                      <Text color="blue.700" fontSize="sm">
+                        Số tiền đang giữ
+                      </Text>
+                      <Text fontWeight="bold" color="blue.900">
+                        {formatCurrencyVnd(escrow?.amount ?? "0")}
+                      </Text>
+                    </HStack>
+                    <Separator borderColor="blue.200" />
+                  </>
+                )}
                 <HStack justify="space-between" py={2.5}>
                   <Text color="blue.700" fontSize="sm">
-                    Số tiền đang giữ
+                    {isBuyer ? "Số dư ví demo của bạn" : "Tiền đã được người mua ký quỹ"}
                   </Text>
-                  <Text fontWeight="bold" color="blue.900">
-                    {formatCurrencyVnd(escrow?.amount ?? "0")}
-                  </Text>
-                </HStack>
-                <Separator borderColor="blue.200" />
-                <HStack justify="space-between" py={2.5}>
-                  <Text color="blue.700" fontSize="sm">
-                    Số dư ví demo của bạn
-                  </Text>
-                  <Text fontWeight="medium" color="blue.800">
-                    {formatCurrencyVnd(
-                      walletQuery.data?.available_balance ?? "0",
-                    )}
-                  </Text>
+                  {isBuyer ? (
+                    <Text fontWeight="medium" color="blue.800">
+                      {formatCurrencyVnd(
+                        walletQuery.data?.available_balance ?? "0",
+                      )}
+                    </Text>
+                  ) : (
+                    <Badge
+                      colorPalette={escrow?.status === "held" || escrow?.status === "release_pending" || escrow?.status === "released" ? "green" : "gray"}
+                      variant="subtle"
+                      borderRadius="full"
+                      px={3}
+                    >
+                      {escrow?.status === "held" || escrow?.status === "release_pending" || escrow?.status === "released"
+                        ? "Người mua đã gửi tiền"
+                        : "Chưa gửi tiền"}
+                    </Badge>
+                  )}
                 </HStack>
               </VStack>
 
               <HStack mt={5} wrap="wrap" gap={3}>
-                {canFundEscrow && topupAmountNeeded > 0 && (
+                {isBuyer && canFundEscrow && topupAmountNeeded > 0 && (
                   <Button
                     size="sm"
                     colorPalette="blue"
@@ -465,7 +545,7 @@ export function OrderDetailPage() {
                   </Button>
                 )}
 
-                {canFundEscrow && (
+                {isBuyer && canFundEscrow && (
                   <Button
                     size="sm"
                     colorPalette="blue"
@@ -491,72 +571,146 @@ export function OrderDetailPage() {
                   </Button>
                 )}
 
-                {canRequestRelease && (
+                {canStartPreparing && (
                   <Button
                     size="sm"
                     colorPalette="orange"
                     borderRadius="xl"
                     onClick={async () => {
                       try {
-                        await releaseRequestMutation.mutateAsync(order.id);
+                        await startPreparingMutation.mutateAsync(order.id);
                         toaster.create({
-                          title: "Đã yêu cầu thả tiền",
+                          title: "Đã cập nhật: đang chuẩn bị hàng",
                           type: "success",
                         });
                       } catch (e: any) {
                         toaster.create({
-                          title: e?.message || "Lỗi yêu cầu thả tiền",
+                          title: e?.message || "Lỗi cập nhật trạng thái chuẩn bị",
                           type: "error",
                         });
                       }
                     }}
-                    loading={releaseRequestMutation.isPending}
+                    loading={startPreparingMutation.isPending}
                   >
-                    Đánh dấu đã giao
+                    Đang chuẩn bị hàng
                   </Button>
                 )}
 
-                {canConfirmRelease && (
+                {canMarkShipping && (
                   <Button
                     size="sm"
-                    colorPalette="green"
+                    colorPalette="blue"
                     borderRadius="xl"
                     onClick={async () => {
                       try {
-                        await confirmReleaseMutation.mutateAsync(order.id);
+                        await markShippingMutation.mutateAsync({
+                          orderId: order.id,
+                        });
                         toaster.create({
-                          title: "Đã xác nhận thanh toán",
+                          title: "Đã cập nhật: đang giao hàng",
                           type: "success",
                         });
                       } catch (e: any) {
-                        const message = String(e?.message || "");
-                        if (
-                          message.includes(
-                            "Cannot confirm release in released state",
-                          )
-                        ) {
-                          await Promise.all([
-                            escrowQuery.refetch(),
-                            orderQuery.refetch(),
-                            walletQuery.refetch(),
-                          ]);
-                          toaster.create({
-                            title: "Escrow đã được xác nhận trước đó",
-                            type: "info",
-                          });
-                          return;
-                        }
-
                         toaster.create({
-                          title: message || "Lỗi xác nhận",
+                          title: e?.message || "Lỗi cập nhật trạng thái giao hàng",
                           type: "error",
                         });
                       }
                     }}
-                    loading={confirmReleaseMutation.isPending}
+                    loading={markShippingMutation.isPending}
                   >
-                    Xác nhận nhận hàng
+                    Đang giao hàng
                   </Button>
+                )}
+
+                {canMarkDelivered && (
+                  <>
+                    <Input
+                      value={sellerProofUrl}
+                      onChange={(e) => setSellerProofUrl(e.target.value)}
+                      placeholder="Link ảnh bằng chứng giao hàng (seller)"
+                      size="sm"
+                      maxW="360px"
+                      bg="white"
+                    />
+                    <Button
+                      size="sm"
+                      colorPalette="orange"
+                      borderRadius="xl"
+                      onClick={async () => {
+                        if (!sellerProofUrl.trim()) {
+                          toaster.create({
+                            title: "Bạn cần cung cấp ảnh bằng chứng giao hàng",
+                            type: "error",
+                          });
+                          return;
+                        }
+                        try {
+                          await markDeliveredMutation.mutateAsync({
+                            orderId: order.id,
+                            proofImageUrls: [sellerProofUrl.trim()],
+                          });
+                          toaster.create({
+                            title: "Đã đánh dấu đã giao hàng",
+                            type: "success",
+                          });
+                        } catch (e: any) {
+                          toaster.create({
+                            title: e?.message || "Lỗi đánh dấu đã giao",
+                            type: "error",
+                          });
+                        }
+                      }}
+                      loading={markDeliveredMutation.isPending}
+                    >
+                      Đã giao hàng
+                    </Button>
+                  </>
+                )}
+
+                {canBuyerConfirmReceived && (
+                  <>
+                    <Input
+                      value={buyerProofUrl}
+                      onChange={(e) => setBuyerProofUrl(e.target.value)}
+                      placeholder="Link ảnh bằng chứng đã nhận (buyer)"
+                      size="sm"
+                      maxW="360px"
+                      bg="white"
+                    />
+                    <Button
+                      size="sm"
+                      colorPalette="green"
+                      borderRadius="xl"
+                      onClick={async () => {
+                        if (!buyerProofUrl.trim()) {
+                          toaster.create({
+                            title: "Bạn cần cung cấp ảnh bằng chứng đã nhận",
+                            type: "error",
+                          });
+                          return;
+                        }
+                        try {
+                          await buyerConfirmMutation.mutateAsync({
+                            orderId: order.id,
+                            proofImageUrls: [buyerProofUrl.trim()],
+                          });
+                          toaster.create({
+                            title: "Đã xác nhận đã nhận hàng",
+                            type: "success",
+                          });
+                        } catch (e: any) {
+                          toaster.create({
+                            title: e?.message || "Lỗi xác nhận đã nhận hàng",
+                            type: "error",
+                          });
+                        }
+                      }}
+                      loading={buyerConfirmMutation.isPending}
+                    >
+                      Xác nhận đã nhận
+                    </Button>
+                  </>
                 )}
 
                 {canOpenDispute && (

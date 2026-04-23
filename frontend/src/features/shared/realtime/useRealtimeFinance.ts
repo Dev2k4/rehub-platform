@@ -35,6 +35,9 @@ export function useRealtimeFinance(enabled: boolean) {
           ["escrow", payload.escrow.order_id],
           payload.escrow,
         )
+        queryClient.invalidateQueries({
+          queryKey: ["fulfillment", payload.escrow.order_id],
+        })
       }
       queryClient.invalidateQueries({ queryKey: ["escrow"] })
       queryClient.invalidateQueries({ queryKey: ["orders"] })

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { OpenAPI } from "@/client"
 import { loginUser } from "@/features/auth/api/auth.api"
@@ -7,6 +7,7 @@ import { setTokens } from "@/features/auth/utils/auth.storage"
 
 export function useLoginMutation() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (data: LoginInput) => {
@@ -14,6 +15,8 @@ export function useLoginMutation() {
       return { response, rememberMe: data.rememberMe }
     },
     onSuccess: ({ response, rememberMe }) => {
+      queryClient.clear()
+
       // Save tokens
       setTokens(
         response.access_token,

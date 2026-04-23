@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import auth, users, admin, categories, listings, offers, orders, reviews, notifications, wallet, escrows, websocket, chat
+from app.api.v1 import auth, users, admin, categories, listings, offers, orders, reviews, notifications, wallet, escrows, fulfillments, websocket, chat
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -14,5 +14,6 @@ api_router.include_router(reviews.router)
 api_router.include_router(notifications.router)
 api_router.include_router(wallet.router)
 api_router.include_router(escrows.router)
+api_router.include_router(fulfillments.router)
 api_router.include_router(websocket.router)
 api_router.include_router(chat.router)

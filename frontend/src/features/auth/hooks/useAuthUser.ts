@@ -1,13 +1,19 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { getMyProfile } from "@/features/auth/api/auth.profile"
 import { isAuthenticated } from "@/features/auth/utils/auth.storage"
 
 export function useAuthUser() {
+  const queryClient = useQueryClient()
   const [authenticated, setAuthenticated] = useState(isAuthenticated())
 
   useEffect(() => {
     const onTokenChanged = () => {
+      // Prevent leaking account-scoped data when switching users without reload.
+      queryClient.removeQueries({ queryKey: ["auth", "user"], exact: true })
+      queryClient.removeQueries({ queryKey: ["orders", "me"], exact: true })
+      queryClient.removeQueries({ queryKey: ["wallet", "me"], exact: true })
+      queryClient.removeQueries({ queryKey: ["escrow"] })
       setAuthenticated(isAuthenticated())
     }
 
@@ -15,13 +21,13 @@ export function useAuthUser() {
     return () => {
       window.removeEventListener("auth:token-changed", onTokenChanged)
     }
-  }, [])
+  }, [queryClient])
 
   const userQuery = useQuery({
     queryKey: ["auth", "user"],
     queryFn: () => getMyProfile(),
     enabled: authenticated,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 0,
   })
 
   return {

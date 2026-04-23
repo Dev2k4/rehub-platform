@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import type { OfferRead, OrderRead } from "@/client"
+import type { FulfillmentRead } from "@/features/fulfillment/api/fulfillment.api"
 import { wsClient } from "./ws.client"
 
 type OrderEventPayload = {
@@ -14,6 +15,10 @@ type OfferEventPayload = {
 type OfferExpiredPayload = {
   offer_id?: string
   listing_id?: string
+}
+
+type FulfillmentEventPayload = {
+  fulfillment?: FulfillmentRead
 }
 
 export function useRealtimeCommerce(enabled: boolean) {
@@ -35,6 +40,10 @@ export function useRealtimeCommerce(enabled: boolean) {
             return old
           }
           return old.map((item) => (item.id === incoming.id ? incoming : item))
+        })
+
+        queryClient.invalidateQueries({
+          queryKey: ["fulfillment", incoming.id],
         })
       }
 
@@ -88,10 +97,23 @@ export function useRealtimeCommerce(enabled: boolean) {
       queryClient.invalidateQueries({ queryKey: ["offers"] })
     })
 
+    const unsubscribeFulfillment = wsClient.on("fulfillment:state_changed", (data) => {
+      const payload = data as FulfillmentEventPayload
+      const incoming = payload.fulfillment
+
+      if (incoming) {
+        queryClient.setQueryData(["fulfillment", incoming.order_id], incoming)
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["fulfillment"] })
+      queryClient.invalidateQueries({ queryKey: ["orders"] })
+    })
+
     return () => {
       unsubscribeOrder()
       unsubscribeOffer()
       unsubscribeOfferExpired()
+      unsubscribeFulfillment()
     }
   }, [enabled, queryClient])
 }

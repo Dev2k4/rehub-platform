@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db
-from app.crud import crud_escrow, crud_notification, crud_order, crud_user
+from app.crud import crud_escrow, crud_fulfillment, crud_notification, crud_order, crud_user
 from app.models.enums import EscrowStatus, OrderStatus, NotificationType
 from app.models.user import User
 from app.schemas.order import OrderDirectCreate, OrderRead
@@ -58,6 +58,8 @@ async def create_direct_order(
 			message="Order created with escrow. Please fund your demo wallet escrow to continue.",
 			data={"order_id": str(order.id), "listing_id": str(data.listing_id), "action": "fund_escrow"},
 		)
+
+	await crud_fulfillment.create_fulfillment_for_order(db, order)
 
 	if not listing:
 		# Order đã tạo thành công, chỉ là không gửi được notification
