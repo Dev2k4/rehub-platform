@@ -231,9 +231,10 @@ interface PaginationContext {
   size: ButtonProps["size"];
 }
 
-const [PaginationProvider] = createContext<PaginationContext>({
-  name: "PaginationContext",
-});
+const [PaginationProvider, usePaginationContext] =
+  createContext<PaginationContext>({
+    name: "PaginationContext",
+  });
 
 export const PaginationRoot = React.forwardRef<
   HTMLDivElement,

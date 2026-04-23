@@ -32,17 +32,6 @@ class OrderStatus(str, Enum):
     DISPUTED = "disputed"
 
 
-class FulfillmentStatus(str, Enum):
-    CREATED = "created"
-    AWAITING_FUNDING = "awaiting_funding"
-    FUNDED = "funded"
-    SELLER_MARKED_DELIVERED = "seller_marked_delivered"
-    BUYER_CONFIRMED_RECEIVED = "buyer_confirmed_received"
-    DISPUTED = "disputed"
-    RESOLVED_REFUND = "resolved_refund"
-    CANCELLED = "cancelled"
-
-
 class NotificationType(str, Enum):
     OFFER_RECEIVED = "offer_received"
     OFFER_ACCEPTED = "offer_accepted"
@@ -82,7 +71,6 @@ class EscrowStatus(str, Enum):
     RELEASED = "released"
     REFUNDED = "refunded"
     DISPUTED = "disputed"
-    EXPIRED = "expired"
 
 
 class EscrowEventType(str, Enum):
@@ -94,5 +82,4 @@ class EscrowEventType(str, Enum):
     DISPUTE_OPENED = "dispute_opened"
     RELEASE = "release"
     REFUND = "refund"
-    EXPIRED = "expired"
     ADMIN_RESOLVE = "admin_resolve"

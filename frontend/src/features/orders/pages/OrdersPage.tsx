@@ -24,6 +24,7 @@ import {
   FiStar,
   FiTruck,
 } from "react-icons/fi"
+import type { OrderRead } from "@/client"
 import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { useEscrow } from "@/features/escrow/hooks/useEscrow"
@@ -33,12 +34,6 @@ import {
   useCompleteOrder,
   useMyOrders,
 } from "@/features/orders/hooks/useOrders"
-import {
-  deriveFulfillmentStatus,
-  fulfillmentStatusMeta,
-  type FulfillmentStatus,
-  type OrderWithFulfillment,
-} from "@/features/orders/utils/orderFulfillment"
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 
 type OrderTab = "buying" | "selling"
@@ -51,68 +46,38 @@ function statusMeta(status: string): { label: string; color: string } {
       return { label: "Hoàn thành", color: "green" }
     case "cancelled":
       return { label: "Đã hủy", color: "red" }
-    case "disputed":
-      return { label: "Tranh chấp", color: "red" }
     default:
       return { label: status, color: "gray" }
   }
 }
 
 // Mini order status timeline
-function OrderStatusTracker({
-  fulfillmentStatus,
-  hasEscrow,
-}: {
-  fulfillmentStatus: FulfillmentStatus
-  hasEscrow: boolean
-}) {
-  const steps = hasEscrow
-    ? [
-        {
-          key: "created",
-          label: "Đặt hàng",
-          icon: <FiBox size={14} style={{ display: "inline" }} />,
-        },
-        {
-          key: "funded",
-          label: "Nạp quỹ",
-          icon: <FiShield size={14} style={{ display: "inline" }} />,
-        },
-        {
-          key: "seller_marked_delivered",
-          label: "Người bán báo giao",
-          icon: <FiTruck size={14} style={{ display: "inline" }} />,
-        },
-        {
-          key: "buyer_confirmed_received",
-          label: "Người mua xác nhận",
-          icon: <FiStar size={14} style={{ display: "inline" }} />,
-        },
-      ]
-    : [
-        {
-          key: "created",
-          label: "Đặt hàng",
-          icon: <FiBox size={14} style={{ display: "inline" }} />,
-        },
-        {
-          key: "buyer_confirmed_received",
-          label: "Hoàn tất",
-          icon: <FiStar size={14} style={{ display: "inline" }} />,
-        },
-      ]
+function OrderStatusTracker({ status }: { status: string }) {
+  const steps = [
+    {
+      key: "pending",
+      label: "Đặt hàng",
+      icon: <FiBox size={14} style={{ display: "inline" }} />,
+    },
+    {
+      key: "processing",
+      label: "Xác nhận",
+      icon: <FiCheckCircle size={14} style={{ display: "inline" }} />,
+    },
+    {
+      key: "shipping",
+      label: "Giao hàng",
+      icon: <FiTruck size={14} style={{ display: "inline" }} />,
+    },
+    {
+      key: "completed",
+      label: "Hoàn tất",
+      icon: <FiStar size={14} style={{ display: "inline" }} />,
+    },
+  ]
 
-  const stepIndexByStatus: Record<FulfillmentStatus, number> = {
-    created: 0,
-    awaiting_funding: 0,
-    funded: hasEscrow ? 1 : 0,
-    seller_marked_delivered: hasEscrow ? 2 : 0,
-    buyer_confirmed_received: hasEscrow ? 3 : 1,
-    disputed: -1,
-    resolved_refund: -1,
-    cancelled: -1,
-  }
-  const stepIndex = stepIndexByStatus[fulfillmentStatus]
+  // Map real status to step index
+  const stepIndex = status === "cancelled" ? -1 : status === "completed" ? 3 : 0
 
   return (
     <div className="status-tracker">
@@ -121,7 +86,7 @@ function OrderStatusTracker({
         const isActive = i === stepIndex
         const cls = isDone ? "done" : isActive ? "active" : "pending"
         return (
-          <Box key={step.key} display="contents">
+          <>
             <div key={step.key} className="status-step">
               <div className={`status-step-dot ${cls}`}>
                 {isDone ? (
@@ -137,7 +102,7 @@ function OrderStatusTracker({
                 className={`status-connector ${isDone ? "done" : "pending"}`}
               />
             )}
-          </Box>
+          </>
         )
       })}
     </div>
@@ -145,7 +110,7 @@ function OrderStatusTracker({
 }
 
 type OrderListItemProps = {
-  order: OrderWithFulfillment
+  order: OrderRead
   userId: string
   navigate: ReturnType<typeof useNavigate>
   completePending: boolean
@@ -169,8 +134,6 @@ function OrderListItem({
   const isCounterpartyOnline = useIsUserOnline(counterpartyId)
   const escrowQuery = useEscrow(order.id)
   const escrow = escrowQuery.data
-  const fulfillmentStatus = deriveFulfillmentStatus(order, escrow)
-  const fulfillmentMeta = fulfillmentStatusMeta(fulfillmentStatus)
 
   const canComplete = order.status === "pending" && isBuyer && !escrow
   const canCancel =
@@ -239,22 +202,7 @@ function OrderListItem({
       </Flex>
 
       {/* Order status tracker */}
-      <OrderStatusTracker
-        fulfillmentStatus={fulfillmentStatus}
-        hasEscrow={!!escrow}
-      />
-
-      <HStack mt={2} gap={2}>
-        <Badge
-          colorPalette={fulfillmentMeta.color as any}
-          variant="subtle"
-          borderRadius="full"
-          px={3}
-          size="sm"
-        >
-          {fulfillmentMeta.label}
-        </Badge>
-      </HStack>
+      <OrderStatusTracker status={order.status} />
 
       {/* Counterparty + ID */}
       <Flex mt={2} justify="space-between" align="center" wrap="wrap" gap={2}>

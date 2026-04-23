@@ -1,14 +1,11 @@
 import { Box, Flex, Heading, SimpleGrid, Text } from "@chakra-ui/react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import {
-  FiCamera,
   FiEye,
   FiHeart,
   FiImage,
-  FiMapPin,
   FiMessageCircle,
   FiShare2,
-  FiStar,
   FiTag,
 } from "react-icons/fi"
 import type {
@@ -29,10 +26,6 @@ type ListingGridProps = {
   listings: ListingWithImages[]
   categoryMap: Map<string, CategoryTree>
   sellerMap: Map<string, UserPublicProfile>
-  isLoading?: boolean
-  skeletonRows?: number
-  emptyStateTitle?: string
-  emptyStateDescription?: string
 }
 
 const CONDITION_BADGE: Record<
@@ -50,15 +43,7 @@ export function ListingGrid({
   listings,
   categoryMap,
   sellerMap,
-  isLoading = false,
-  skeletonRows = 2,
-  emptyStateTitle,
-  emptyStateDescription,
 }: ListingGridProps) {
-  if (isLoading) {
-    return <ListingGridSkeleton rows={skeletonRows} />
-  }
-
   if (listings.length === 0) {
     return (
       <Box
@@ -77,11 +62,10 @@ export function ListingGrid({
           📭
         </Box>
         <Text fontSize="md" color="gray.600" fontWeight="700" mb={2}>
-          {emptyStateTitle || "Không tìm thấy sản phẩm phù hợp"}
+          Không tìm thấy sản phẩm phù hợp
         </Text>
         <Text fontSize="sm" color="gray.400">
-          {emptyStateDescription ||
-            "Thử thay đổi bộ lọc hoặc tìm kiếm với từ khoá khác."}
+          Thử thay đổi bộ lọc hoặc tìm kiếm với từ khoá khác.
         </Text>
       </Box>
     )
@@ -99,40 +83,6 @@ export function ListingGrid({
         />
       ))}
     </SimpleGrid>
-  )
-}
-
-function ListingGridSkeleton({ rows = 2 }: { rows?: number }) {
-  return (
-    <Flex direction="column" gap={3}>
-      {Array.from({ length: rows }).map((_, rowIndex) => (
-        <SimpleGrid
-          key={rowIndex}
-          columns={{ base: 2, sm: 2, lg: 3, xl: 4 }}
-          gap={3}
-        >
-          {Array.from({ length: 4 }).map((__, itemIndex) => (
-            <Box
-              key={`${rowIndex}-${itemIndex}`}
-              bg="white"
-              border="1px solid"
-              borderColor="gray.100"
-              borderRadius="1rem"
-              overflow="hidden"
-            >
-              <Box className="animate-shimmer" aspectRatio={1} />
-              <Box p="0.75rem">
-                <Box className="animate-shimmer" h="10px" borderRadius="md" mb={2} />
-                <Box className="animate-shimmer" h="10px" borderRadius="md" mb={3} w="72%" />
-                <Box className="animate-shimmer" h="12px" borderRadius="md" w="48%" mb={3} />
-                <Box className="animate-shimmer" h="9px" borderRadius="md" mb={2} w="66%" />
-                <Box className="animate-shimmer" h="9px" borderRadius="md" w="54%" />
-              </Box>
-            </Box>
-          ))}
-        </SimpleGrid>
-      ))}
-    </Flex>
   )
 }
 
@@ -155,13 +105,10 @@ function ListingGridItem({
   const badge = CONDITION_BADGE[listing.condition_grade] ?? CONDITION_BADGE.poor
 
   const delayClass = `delay-${Math.min(animDelay, 7)}`
-  const imageCount = listing.images?.length ?? 0
-  const locationLabel = [seller?.district, seller?.province]
-    .filter(Boolean)
-    .join(", ")
-  const sellerTrust = Math.round(seller?.trust_score ?? 0)
-  const sellerRating = Number((seller?.rating_avg ?? 0).toFixed(1))
-  const completedOrders = seller?.completed_orders ?? 0
+
+  // Mock stats (would come from backend in production)
+  const viewCount = Math.floor(Math.random() * 200 + 10)
+  const likeCount = Math.floor(Math.random() * 40 + 1)
 
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -286,12 +233,12 @@ function ListingGridItem({
           }}
         >
           <Flex align="center" gap="0.2rem" color="white" fontSize="0.65rem">
-            <FiCamera size={10} />
-            <Text>{imageCount} ảnh</Text>
+            <FiEye size={10} />
+            <Text>{viewCount}</Text>
           </Flex>
           <Flex align="center" gap="0.2rem" color="white" fontSize="0.65rem">
-            <FiEye size={10} />
-            <Text>{formatPostedTime(listing.updated_at)}</Text>
+            <FiHeart size={10} />
+            <Text>{likeCount}</Text>
           </Flex>
         </Flex>
       </Box>
@@ -315,28 +262,6 @@ function ListingGridItem({
         <Text fontSize="1rem" fontWeight="800" color="#E53E3E" lineHeight="1.2">
           {formatCurrencyVnd(listing.price)}
         </Text>
-
-        {listing.is_negotiable ? (
-          <Text
-            w="fit-content"
-            fontSize="0.62rem"
-            fontWeight="700"
-            color="green.700"
-            bg="green.50"
-            borderRadius="full"
-            px="0.45rem"
-            py="0.1rem"
-          >
-            Có thể thương lượng
-          </Text>
-        ) : null}
-
-        {locationLabel ? (
-          <Flex align="center" gap="0.25rem" fontSize="0.68rem" color="gray.500">
-            <Box as={FiMapPin} w="10px" h="10px" />
-            <Text lineClamp={1}>{locationLabel}</Text>
-          </Flex>
-        ) : null}
 
         {/* Seller row */}
         <Flex align="center" gap="0.35rem" fontSize="0.72rem">
@@ -376,44 +301,6 @@ function ListingGridItem({
             </Box>
           )}
         </Flex>
-
-        {seller ? (
-          <Flex gap="0.35rem" flexWrap="wrap" mt="0.1rem">
-            <Flex
-              align="center"
-              gap="0.2rem"
-              fontSize="0.62rem"
-              color="amber.700"
-              bg="amber.50"
-              px="0.4rem"
-              py="0.1rem"
-              borderRadius="0.35rem"
-            >
-              <FiStar size={10} />
-              <Text>{sellerRating}/5</Text>
-            </Flex>
-            <Text
-              fontSize="0.62rem"
-              color="gray.600"
-              bg="gray.100"
-              px="0.4rem"
-              py="0.1rem"
-              borderRadius="0.35rem"
-            >
-              {completedOrders} giao dịch
-            </Text>
-            <Text
-              fontSize="0.62rem"
-              color="blue.700"
-              bg="blue.50"
-              px="0.4rem"
-              py="0.1rem"
-              borderRadius="0.35rem"
-            >
-              Trust {sellerTrust}
-            </Text>
-          </Flex>
-        ) : null}
 
         {/* Category + time */}
         <Flex
