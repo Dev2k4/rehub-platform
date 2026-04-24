@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router"
 import { FloatingActions } from "@/components/FloatingActions"
 import { Footer } from "@/components/layout/Footer"
+import { AiAssistantWidget } from "@/features/ai-assistant/components/AiAssistantWidget"
 import { ChatFloatingWidget } from "@/features/chat/components/ChatFloatingWidget"
 import { MarketplaceHeader } from "@/features/home/components/MarketplaceHeader"
 
@@ -29,6 +30,7 @@ function AppLayout() {
       <Box pt={isHome || isAuthFlow ? 0 : { base: "76px", sm: "92px" }}>
         <Outlet />
       </Box>
+      <AiAssistantWidget />
       <ChatFloatingWidget />
       {!isAdmin && !isAuthFlow && <FloatingActions />}
       {!isAdmin && !isAuthFlow && <Footer />}

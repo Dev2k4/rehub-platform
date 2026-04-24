@@ -14,7 +14,14 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { FiMessageCircle, FiMinimize2, FiSend, FiX } from "react-icons/fi"
+import {
+  FiArrowLeft,
+  FiMessageCircle,
+  FiMinimize2,
+  FiSend,
+  FiUserPlus,
+  FiX,
+} from "react-icons/fi"
 import { Avatar } from "@/components/ui/avatar"
 import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
@@ -52,6 +59,18 @@ function extractListingIdFromText(text: string): string | null {
   } catch {
     return null
   }
+}
+
+function getPeerIdFromConversation(
+  conversation: {
+    participant_a_id: string
+    participant_b_id: string
+  },
+  currentUserId: string,
+) {
+  return conversation.participant_a_id === currentUserId
+    ? conversation.participant_b_id
+    : conversation.participant_a_id
 }
 
 function ListingSharedCard({
@@ -199,6 +218,7 @@ export function ChatFloatingWidget() {
     string | null
   >(null)
   const [messageInput, setMessageInput] = useState("")
+  const [startConversationUserId, setStartConversationUserId] = useState("")
   const [pendingListingShareId, setPendingListingShareId] = useState<
     string | null
   >(null)
@@ -250,6 +270,29 @@ export function ChatFloatingWidget() {
     [conversationsQuery.data, selectedConversationId],
   )
 
+  const currentUserId = user?.id ?? ""
+
+  const selectedPeerId = useMemo(() => {
+    if (!selectedConversation || !currentUserId) {
+      return null
+    }
+    return getPeerIdFromConversation(selectedConversation, currentUserId)
+  }, [currentUserId, selectedConversation])
+
+  const selectedPeerProfileQuery = useQuery({
+    queryKey: ["user-public", selectedPeerId],
+    queryFn: () => getUserPublicProfile(selectedPeerId!),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!selectedPeerId,
+  })
+
+  const selectedPeerDisplayName =
+    selectedPeerProfileQuery.data?.full_name ??
+    (selectedPeerId ? `User ${selectedPeerId.slice(0, 6)}` : "Chon cuoc tro chuyen")
+
+  const selectedPeerAvatar = selectedPeerProfileQuery.data?.avatar_url ?? undefined
+  const isSelectedPeerOnline = useIsUserOnline(selectedPeerId)
+
   const unreadCount = useMemo(() => {
     if (!conversationsQuery.data || isOpen) {
       return 0
@@ -273,6 +316,7 @@ export function ChatFloatingWidget() {
     onSuccess: (conversation) => {
       queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
       setSelectedConversationId(conversation.id)
+      setStartConversationUserId("")
       openWidget()
     },
     onError: (error: unknown) => {
@@ -464,9 +508,34 @@ export function ChatFloatingWidget() {
     }
   }, [messageInput, selectedConversationId, sendMessageMutation])
 
-  if (authLoading || !isAuthenticated || !user) {
+  const handleCreateConversation = useCallback(() => {
+    const peerId = startConversationUserId.trim()
+    if (!peerId) {
+      return
+    }
+    openConversationMutation.mutate(peerId)
+  }, [openConversationMutation, startConversationUserId])
+
+  const canUseChat = isAuthenticated && !!user
+
+  const handleLauncherClick = useCallback(() => {
+    if (!canUseChat) {
+      toaster.create({
+        title: "Vui long dang nhap de su dung chat",
+        type: "info",
+      })
+      navigate({ to: "/auth/login" })
+      return
+    }
+    openWidget()
+  }, [canUseChat, navigate, openWidget])
+
+  if (authLoading) {
     return null
   }
+
+  const showConversationPane = !isMobile || !selectedConversationId
+  const showMessagePane = !isMobile || !!selectedConversationId
 
   return (
     <>
@@ -483,7 +552,7 @@ export function ChatFloatingWidget() {
             px={5}
             colorPalette="blue"
             boxShadow="0 14px 30px rgba(1,138,190,0.35)"
-            onClick={openWidget}
+            onClick={handleLauncherClick}
           >
             <FiMessageCircle style={{ marginRight: "0.5rem" }} />
             Tin nhan
@@ -501,7 +570,7 @@ export function ChatFloatingWidget() {
         </Box>
       )}
 
-      {isPanelMounted && (
+      {isPanelMounted && canUseChat && (
         <Box
           position="fixed"
           right={isMobile ? 0 : 5}
@@ -537,14 +606,55 @@ export function ChatFloatingWidget() {
             borderColor="gray.100"
             justify="space-between"
           >
-            <VStack align="start" gap={0}>
-              <Text fontWeight="bold">Tin nhan</Text>
-              <Text fontSize="xs" color="gray.500">
-                {selectedConversation
-                  ? `Cuoc tro chuyen ${selectedConversation.id.slice(0, 8)}`
-                  : "Chon cuoc tro chuyen"}
-              </Text>
-            </VStack>
+            <HStack gap={2} minW={0}>
+              {isMobile && selectedConversationId && (
+                <IconButton
+                  aria-label="Quay lai danh sach"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedConversationId(null)}
+                >
+                  <FiArrowLeft />
+                </IconButton>
+              )}
+              {selectedConversationId ? (
+                <HStack gap={2} minW={0}>
+                  <Box position="relative" flexShrink={0}>
+                    <Avatar
+                      name={selectedPeerDisplayName}
+                      src={selectedPeerAvatar}
+                      size="sm"
+                    />
+                    <Box
+                      position="absolute"
+                      right={0}
+                      bottom={0}
+                      w={2.5}
+                      h={2.5}
+                      borderRadius="full"
+                      bg={isSelectedPeerOnline ? "green.400" : "gray.300"}
+                      border="2px solid"
+                      borderColor="white"
+                    />
+                  </Box>
+                  <VStack align="start" gap={0} minW={0}>
+                    <Text fontWeight="bold" truncate maxW="190px">
+                      {selectedPeerDisplayName}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      {isSelectedPeerOnline ? "Dang hoat dong" : "Ngoai tuyen"}
+                    </Text>
+                  </VStack>
+                </HStack>
+              ) : (
+                <VStack align="start" gap={0} minW={0}>
+                  <Text fontWeight="bold">Tin nhan</Text>
+                  <Text fontSize="xs" color="gray.500">
+                    Chon cuoc tro chuyen
+                  </Text>
+                </VStack>
+              )}
+            </HStack>
             <HStack>
               {!isMobile && (
                 <IconButton
@@ -568,42 +678,81 @@ export function ChatFloatingWidget() {
           </HStack>
 
           <Flex minH={0} flex={1}>
-            <Box
-              w="42%"
-              borderRight="1px"
-              borderColor="gray.100"
-              p={2}
-              overflowY="auto"
-            >
-              {conversationsQuery.isLoading ? (
-                <Flex py={8} justify="center">
-                  <Spinner size="sm" color="blue.500" />
-                </Flex>
-              ) : (
-                <VStack align="stretch" gap={1}>
-                  {(conversationsQuery.data ?? []).map((conversation) => {
-                    return (
-                      <ConversationItem
-                        key={conversation.id}
-                        conversation={conversation}
-                        currentUserId={user.id}
-                        selected={conversation.id === selectedConversationId}
-                        onSelect={() =>
-                          setSelectedConversationId(conversation.id)
+            {showConversationPane && (
+              <Box
+                w={isMobile ? "100%" : "42%"}
+                borderRight={isMobile ? "none" : "1px"}
+                borderColor="gray.100"
+                p={2}
+                overflowY="auto"
+              >
+                <VStack align="stretch" gap={2} pb={2}>
+                  <HStack>
+                    <Input
+                      size="sm"
+                      placeholder="Nhap user id de tao chat"
+                      value={startConversationUserId}
+                      onChange={(event) =>
+                        setStartConversationUserId(event.target.value)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault()
+                          handleCreateConversation()
                         }
-                      />
-                    )
-                  })}
-                  {conversationsQuery.data?.length === 0 && (
-                    <Text px={2} py={4} fontSize="sm" color="gray.500">
-                      Chua co cuoc tro chuyen.
-                    </Text>
-                  )}
+                      }}
+                    />
+                    <IconButton
+                      aria-label="Tao cuoc tro chuyen"
+                      size="sm"
+                      colorPalette="blue"
+                      onClick={handleCreateConversation}
+                      loading={openConversationMutation.isPending}
+                      disabled={!startConversationUserId.trim()}
+                    >
+                      <FiUserPlus />
+                    </IconButton>
+                  </HStack>
+                  <Text px={1} fontSize="xs" color="gray.500">
+                    Moi tro chuyen bang user id cua doi phuong.
+                  </Text>
                 </VStack>
-              )}
-            </Box>
 
-            <Flex flex={1} minW={0} direction="column">
+                {conversationsQuery.isLoading ? (
+                  <Flex py={8} justify="center">
+                    <Spinner size="sm" color="blue.500" />
+                  </Flex>
+                ) : conversationsQuery.isError ? (
+                  <Text px={2} py={4} fontSize="sm" color="red.500">
+                    Khong tai duoc danh sach tro chuyen.
+                  </Text>
+                ) : (
+                  <VStack align="stretch" gap={1}>
+                    {(conversationsQuery.data ?? []).map((conversation) => {
+                      return (
+                        <ConversationItem
+                          key={conversation.id}
+                          conversation={conversation}
+                          currentUserId={currentUserId}
+                          selected={conversation.id === selectedConversationId}
+                          onSelect={() =>
+                            setSelectedConversationId(conversation.id)
+                          }
+                        />
+                      )
+                    })}
+                    {conversationsQuery.data?.length === 0 && (
+                      <Text px={2} py={4} fontSize="sm" color="gray.500">
+                        Chua co cuoc tro chuyen.
+                      </Text>
+                    )}
+                  </VStack>
+                )}
+              </Box>
+            )}
+
+            {showMessagePane && (
+              <Flex flex={1} minW={0} direction="column">
               <VStack
                 ref={messagesScrollRef}
                 align="stretch"
@@ -616,9 +765,15 @@ export function ChatFloatingWidget() {
                   <Flex justify="center" py={8}>
                     <Spinner size="sm" color="blue.500" />
                   </Flex>
+                ) : messagesQuery.isError ? (
+                  <Flex justify="center" py={8}>
+                    <Text color="red.500" fontSize="sm">
+                      Khong tai duoc tin nhan.
+                    </Text>
+                  </Flex>
                 ) : (messagesQuery.data?.items ?? []).length > 0 ? (
                   (messagesQuery.data?.items ?? []).map((message) => {
-                    const mine = message.sender_id === user.id
+                    const mine = message.sender_id === currentUserId
                     return (
                       <Flex
                         key={message.id}
@@ -626,15 +781,20 @@ export function ChatFloatingWidget() {
                       >
                         {message.message_type === "listing_share" &&
                         message.listing ? (
-                          <ListingSharedCard
-                            listing={message.listing}
-                            onOpen={() => {
-                              navigate({
-                                to: "/listings/$id",
-                                params: { id: message.listing!.id },
-                              })
-                            }}
-                          />
+                          <VStack align={mine ? "end" : "start"} gap={1}>
+                            <ListingSharedCard
+                              listing={message.listing}
+                              onOpen={() => {
+                                navigate({
+                                  to: "/listings/$id",
+                                  params: { id: message.listing!.id },
+                                })
+                              }}
+                            />
+                            <Text fontSize="xs" color="gray.500">
+                              {new Date(message.created_at).toLocaleString("vi-VN")}
+                            </Text>
+                          </VStack>
                         ) : (
                           <Box
                             maxW="85%"
@@ -646,6 +806,13 @@ export function ChatFloatingWidget() {
                           >
                             <Text fontSize="sm" whiteSpace="pre-wrap">
                               {message.content ?? ""}
+                            </Text>
+                            <Text
+                              fontSize="xs"
+                              mt={1}
+                              color={mine ? "whiteAlpha.800" : "gray.500"}
+                            >
+                              {new Date(message.created_at).toLocaleString("vi-VN")}
                             </Text>
                           </Box>
                         )}
@@ -684,7 +851,8 @@ export function ChatFloatingWidget() {
                   <FiSend />
                 </IconButton>
               </HStack>
-            </Flex>
+              </Flex>
+            )}
           </Flex>
         </Box>
       )}

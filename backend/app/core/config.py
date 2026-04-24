@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     CHAT_MASTER_KEY: str = ""
     CHAT_MINIO_BUCKET_NAME: str = "rehub-chat"
 
+    # AI assistant
+    AI_PROVIDER_NAME: str = "openai-compatible"
+    AI_PROVIDER_BASE_URL: str = "https://api.openai.com/v1"
+    AI_API_KEY: str = ""
+    AI_CHAT_MODEL: str = "gpt-4o-mini"
+    AI_CHAT_TEMPERATURE: float = 0.2
+    AI_CHAT_MAX_TOKENS: int = 600
+
     # Offers
     OFFER_EXPIRE_HOURS: int = 48
     OFFER_EXPIRY_JOB_INTERVAL_MINUTES: int = 5
