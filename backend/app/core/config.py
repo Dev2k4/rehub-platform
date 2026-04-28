@@ -1,5 +1,7 @@
 import urllib.parse
 from pathlib import Path
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve .env path: project_root/.env
@@ -54,10 +56,15 @@ class Settings(BaseSettings):
     # AI assistant
     AI_PROVIDER_NAME: str = "openai-compatible"
     AI_PROVIDER_BASE_URL: str = "https://api.openai.com/v1"
-    AI_API_KEY: str = ""
+    AI_API_KEY: str = "sk-3e79791a76affe4d-yexuzs-4b65b973"
     AI_CHAT_MODEL: str = "gpt-4o-mini"
     AI_CHAT_TEMPERATURE: float = 0.2
     AI_CHAT_MAX_TOKENS: int = 600
+    AI_CHAT_FALLBACK_ENABLED: bool = True
+    AI_CHAT_TIMEOUT_SECONDS: float = 25.0
+    AI_PRICE_DATASET_PATH: str = ""
+    AI_PRICE_MAX_CANDIDATES: int = 8
+    AI_PRICE_MIN_MATCH_SCORE: float = 0.18
 
     # Offers
     OFFER_EXPIRE_HOURS: int = 48
@@ -89,6 +96,26 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_blank_ai_values(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+
+        normalized = dict(values)
+        ai_defaults = {
+            "AI_CHAT_TEMPERATURE": 0.2,
+            "AI_CHAT_MAX_TOKENS": 600,
+            "AI_CHAT_TIMEOUT_SECONDS": 25.0,
+            "AI_CHAT_FALLBACK_ENABLED": True,
+            "AI_PRICE_MAX_CANDIDATES": 8,
+            "AI_PRICE_MIN_MATCH_SCORE": 0.18,
+        }
+        for key, default in ai_defaults.items():
+            if normalized.get(key) == "":
+                normalized[key] = default
+        return normalized
 
 settings = Settings()
 

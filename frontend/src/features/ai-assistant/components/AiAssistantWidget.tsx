@@ -21,6 +21,12 @@ type AssistantMessage = {
   content: string
 }
 
+type AssistantMeta = {
+  fallbackUsed: boolean
+  provider?: string
+  model?: string
+}
+
 function getApiBase(): string {
   return OpenAPI.BASE.replace(/\/+$/, "")
 }
@@ -48,7 +54,10 @@ function normalizeAssistantPayload(payload: unknown): string | null {
   return null
 }
 
-async function askAssistant(prompt: string, pathname: string): Promise<string> {
+async function askAssistant(
+  prompt: string,
+  pathname: string,
+): Promise<{ answer: string; meta: AssistantMeta }> {
   const endpoint = `${getApiBase()}/api/v1/ai/chat`
   const response = await fetch(endpoint, {
     method: "POST",
@@ -61,6 +70,7 @@ async function askAssistant(prompt: string, pathname: string): Promise<string> {
         source: "ai-widget",
         pathname,
       },
+      mode: "auto",
     }),
   })
 
@@ -77,12 +87,25 @@ async function askAssistant(prompt: string, pathname: string): Promise<string> {
     throw new Error(detail)
   }
 
-  const payload = (await response.json()) as unknown
-  const normalized = normalizeAssistantPayload(payload)
+  const payload = (await response.json()) as {
+    answer?: unknown
+    fallback_used?: unknown
+    provider?: unknown
+    model?: unknown
+  }
+  const normalized =
+    typeof payload.answer === "string" && payload.answer.trim()
+      ? payload.answer.trim()
+      : normalizeAssistantPayload(payload)
   if (!normalized) {
     throw new Error("Phản hồi AI không hợp lệ")
   }
-  return normalized
+  const meta: AssistantMeta = {
+    fallbackUsed: Boolean(payload.fallback_used),
+    provider: typeof payload.provider === "string" ? payload.provider : undefined,
+    model: typeof payload.model === "string" ? payload.model : undefined,
+  }
+  return { answer: normalized, meta }
 }
 
 export function AiAssistantWidget() {
@@ -94,6 +117,7 @@ export function AiAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [assistantMeta, setAssistantMeta] = useState<AssistantMeta | null>(null)
   const [messages, setMessages] = useState<AssistantMessage[]>([
     {
       id: "assistant-welcome",
@@ -139,13 +163,14 @@ export function AiAssistantWidget() {
       setIsLoading(true)
 
       try {
-        const answer = await askAssistant(question, pathname)
+        const { answer, meta } = await askAssistant(question, pathname)
         const assistantMessage: AssistantMessage = {
           id: `a-${Date.now()}`,
           role: "assistant",
           content: answer,
         }
         setMessages((prev) => [...prev, assistantMessage])
+        setAssistantMeta(meta)
       } catch (error: unknown) {
         const detail =
           error instanceof Error && error.message.trim()
@@ -159,6 +184,7 @@ export function AiAssistantWidget() {
             content: `Mình gặp lỗi khi gọi AI: ${detail}`,
           },
         ])
+        setAssistantMeta({ fallbackUsed: true })
       } finally {
         setIsLoading(false)
         window.setTimeout(scrollToBottom, 0)
@@ -222,6 +248,17 @@ export function AiAssistantWidget() {
               <Text fontSize="xs" color="gray.500">
                 Hướng dẫn nhanh, trả lời theo ngữ cảnh trang
               </Text>
+              {(assistantMeta?.provider || assistantMeta?.model) && (
+                <Text fontSize="xs" color="gray.500">
+                  Nguồn: {assistantMeta?.provider ?? "unknown"}
+                  {assistantMeta?.model ? ` • ${assistantMeta.model}` : ""}
+                </Text>
+              )}
+              {assistantMeta?.fallbackUsed && (
+                <Text fontSize="xs" color="orange.500">
+                  Đang dùng chế độ trả lời nhanh (offline)
+                </Text>
+              )}
             </VStack>
             <HStack>
               {!isMobile && (

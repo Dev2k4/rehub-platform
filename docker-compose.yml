@@ -28,6 +28,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      9router:
+        condition: service_started
     ports:
       - "8000:8000"
     env_file:
@@ -39,6 +41,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=Hieu2004@
       - MINIO_ENDPOINT=http://minio:9000
+      - AI_PROVIDER_NAME=9router
+      - AI_PROVIDER_BASE_URL=http://9router:20128/v1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
       interval: 10s
@@ -76,6 +80,14 @@ services:
       exit 0;
       "
     restart: "no"
+
+  9router:
+    image: node:20-alpine
+    restart: always
+    command: >
+      sh -c "npm install -g 9router && 9router -H 0.0.0.0 -p 20128 -n -t"
+    ports:
+      - "20128:20128"
 
 volumes:
   app-db-data:

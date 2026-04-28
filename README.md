@@ -115,3 +115,16 @@ Expected response:
 - `{ "status": "sent", "event_id": "..." }`
 
 Then verify the event appears in Sentry Issues/Events for your staging project.
+
+## AI Assistant
+
+The backend now exposes two AI capabilities:
+
+- `POST /api/v1/ai/chat` for marketplace guidance and general assistant chat.
+- `POST /api/v1/ai/price-suggestion` for CSV-based price estimation.
+
+Configuration notes:
+
+- If the external provider is missing or returns a quota/rate-limit error, chat falls back to a local heuristic assistant so the module still works.
+- `AI_PRICE_DATASET_PATH` must point to the CSV file used for pricing suggestions.
+- Empty AI numeric settings in `.env` are treated as defaults, so local startup does not fail on blank placeholder values.

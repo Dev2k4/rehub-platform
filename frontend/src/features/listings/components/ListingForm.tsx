@@ -1,11 +1,14 @@
 import {
   Box,
   Input as ChakraInput,
+  Dialog,
   Flex,
   IconButton,
   Image,
   NativeSelect,
+  Portal,
   SimpleGrid,
+  Spinner,
   Stack,
   Text,
   Textarea,
@@ -14,7 +17,8 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { FiCamera, FiTrash2 } from "react-icons/fi"
+import { FiCamera, FiStar, FiTrash2 } from "react-icons/fi"
+import { usePriceSuggestion, PriceSuggestionResponse } from "@/features/listings/hooks/usePriceSuggestion"
 import { z } from "zod"
 import type { CategoryTree } from "@/client"
 import { Button } from "@/components/ui/button"
@@ -56,6 +60,10 @@ export function ListingForm({
   const [previewImages, setPreviewImages] = useState<string[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [selectedParentId, setSelectedParentId] = useState<string>("")
+  const [hasSuggestedPrice, setHasSuggestedPrice] = useState(false)
+  const [suggestionData, setSuggestionData] = useState<PriceSuggestionResponse | null>(null)
+  const [priceModalOpen, setPriceModalOpen] = useState(false)
+  const { isLoading: isLoadingPrice, error: priceError, suggestPrice } = usePriceSuggestion()
 
   const {
     register,
@@ -74,6 +82,37 @@ export function ListingForm({
   })
 
   const selectedCategoryId = watch("category_id")
+  const watchTitle = watch("title")
+  const watchDescription = watch("description")
+  const watchCondition = watch("condition_grade")
+
+  const canShowPriceIcon = useMemo(() => {
+    return (
+      !hasSuggestedPrice &&
+      (watchTitle || "").length >= 5 &&
+      (watchDescription || "").length >= 20 &&
+      !!watchCondition &&
+      !isLoadingPrice
+    )
+  }, [watchTitle, watchDescription, watchCondition, hasSuggestedPrice, isLoadingPrice])
+
+  const handlePriceSuggestion = async () => {
+    const query = `${watchTitle} - ${watchDescription}`
+    const context = {
+      category: selectedParent?.name || "",
+      condition: watchCondition || "",
+    }
+
+    const result = await suggestPrice(query, context)
+    if (result && (result.price_low || result.price_high)) {
+      setSuggestionData(result)
+      setHasSuggestedPrice(true)
+      setPriceModalOpen(true)
+      console.log("Gợi ý giá thành công:", result.summary)
+    } else if (priceError) {
+      console.warn("Không thể gợi ý giá:", priceError)
+    }
+  }
 
   const selectedParent = useMemo(() => {
     return categories.find((item) => item.id === selectedParentId) ?? null
@@ -196,7 +235,38 @@ export function ListingForm({
             }}
           />
         </Field>
-
+   {/* Condition */}
+        <Field
+          label="Tình trạng"
+          invalid={!!errors.condition_grade}
+          errorText={errors.condition_grade?.message}
+        >
+          <NativeSelect.Root>
+            <NativeSelect.Field
+              {...register("condition_grade")}
+              bg="gray.50"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              px={4}
+              py={2}
+              _focus={{
+                bg: "white",
+                borderColor: "blue.500",
+                ring: "1px",
+                ringColor: "blue.500",
+              }}
+            >
+              <option value="brand_new">Mới (Chưa khui seal)</option>
+              <option value="like_new">Như mới (Đã khui seal, ít dùng)</option>
+              <option value="good">Tốt (Có chút trầy xước nhẹ)</option>
+              <option value="fair">
+                Trung bình (Ngoại hình cũ, hiệu năng tốt)
+              </option>
+              <option value="poor">Cũ (Trầy xước nhiều hoặc có lỗi nhẹ)</option>
+            </NativeSelect.Field>
+          </NativeSelect.Root>
+        </Field>
         {/* Price */}
         <Field
           label="Giá (VNĐ)"
@@ -205,8 +275,21 @@ export function ListingForm({
         >
           <InputGroup
             width="full"
-            startElement={
-              <Box color="gray.400" display="flex" alignItems="center" ps={4} />
+            endElement={
+              canShowPriceIcon && (
+                <IconButton
+                  aria-label="Gợi ý giá từ AI"
+                  onClick={handlePriceSuggestion}
+                  disabled={isLoadingPrice || hasSuggestedPrice}
+                  size="sm"
+                  colorPalette="blue"
+                  variant="ghost"
+                  me={2}
+                  title="Gợi ý giá dựa trên sản phẩm tương tự"
+                >
+                  {isLoadingPrice ? <Spinner size="sm" /> : <FiStar size={18} />}
+                </IconButton>
+              )
             }
           >
             <ChakraInput
@@ -218,7 +301,6 @@ export function ListingForm({
               borderRadius="xl"
               border="1px solid"
               borderColor="gray.200"
-              ps="10"
               px={4}
               _focus={{
                 bg: "white",
@@ -228,6 +310,27 @@ export function ListingForm({
               }}
             />
           </InputGroup>
+
+          {!suggestionData && (
+            <Box
+              borderRadius="lg"
+              border="1px dashed"
+              borderColor="gray.200"
+              bg="transparent"
+              px={4}
+              py={3}
+              mt={3}
+            >
+              <Text fontSize="sm" color="gray.600">
+                Chưa có gợi ý giá. Điền tiêu đề, mô tả và chọn tình trạng, sau đó bấm biểu tượng để lấy khoảng giá.
+              </Text>
+            </Box>
+          )}
+          {hasSuggestedPrice && (
+            <Text fontSize="xs" color="green.600" mt={1}>
+              ✓ Đã nhận gợi ý giá từ AI. Đóng và mở lại modal để yêu cầu gợi ý mới.
+            </Text>
+          )}
         </Field>
 
         {/* Category */}
@@ -261,7 +364,7 @@ export function ListingForm({
                     ringColor: "blue.500",
                   }}
                 >
-                  <option value="">Chọn danh mục mẹ</option>
+                  <option value="">Chọn danh mục</option>
                   {categories.map((root) => (
                     <option key={root.id} value={root.id}>
                       {root.name}
@@ -281,7 +384,7 @@ export function ListingForm({
                 py={2.5}
               >
                 <Text fontSize="sm" color="blue.700" fontWeight="medium">
-                  Danh mục mẹ: {selectedParent.name}
+                  Danh mục: {selectedParent.name}
                 </Text>
                 <Button
                   type="button"
@@ -338,39 +441,7 @@ export function ListingForm({
           </VStack>
         </Field>
 
-        {/* Condition */}
-        <Field
-          label="Tình trạng"
-          invalid={!!errors.condition_grade}
-          errorText={errors.condition_grade?.message}
-        >
-          <NativeSelect.Root>
-            <NativeSelect.Field
-              {...register("condition_grade")}
-              bg="gray.50"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              px={4}
-              py={2}
-              _focus={{
-                bg: "white",
-                borderColor: "blue.500",
-                ring: "1px",
-                ringColor: "blue.500",
-              }}
-            >
-              <option value="brand_new">Mới (Chưa khui seal)</option>
-              <option value="like_new">Như mới (Đã khui seal, ít dùng)</option>
-              <option value="good">Tốt (Có chút trầy xước nhẹ)</option>
-              <option value="fair">
-                Trung bình (Ngoại hình cũ, hiệu năng tốt)
-              </option>
-              <option value="poor">Cũ (Trầy xước nhiều hoặc có lỗi nhẹ)</option>
-            </NativeSelect.Field>
-          </NativeSelect.Root>
-        </Field>
-
+     
         {/* Negotiable */}
         <Box pl={1}>
           <Controller
@@ -501,6 +572,91 @@ export function ListingForm({
           </Button>
         </Flex>
       </Stack>
+
+      <Dialog.Root
+        open={priceModalOpen}
+        onOpenChange={(e) => setPriceModalOpen(e.open)}
+        placement="center"
+      >
+        <Portal>
+          <Dialog.Backdrop bg="blackAlpha.400" backdropFilter="blur(2px)" />
+          <Dialog.Positioner justifyContent="flex-end" px={6}>
+            <Dialog.Content
+              maxW="sm"
+              borderRadius="1.25rem"
+              p={0}
+              overflow="hidden"
+              boxShadow="0 20px 50px rgba(0,0,0,0.15)"
+              border="1px solid"
+              borderColor="gray.100"
+            >
+              <Flex
+                justify="space-between"
+                align="center"
+                px={6}
+                py={4}
+                bg="blue.600"
+              >
+                <Text fontSize="md" fontWeight="700" color="white">
+                  Khoảng giá gợi ý
+                </Text>
+                <Dialog.CloseTrigger asChild>
+                  <IconButton
+                    aria-label="Đóng"
+                    variant="ghost"
+                    size="sm"
+                    color="white"
+                  >
+                    ×
+                  </IconButton>
+                </Dialog.CloseTrigger>
+              </Flex>
+
+              <Dialog.Body px={6} py={5} bg="white">
+                {suggestionData ? (
+                  <Box>
+                    <Text fontSize="sm" color="gray.600">
+                      Sản phẩm tương tự từ nhiều cửa hàng.
+                    </Text>
+                    <Text
+                      fontSize="2xl"
+                      fontWeight="800"
+                      color="gray.800"
+                      mt={2}
+                    >
+                      {suggestionData.price_low?.toLocaleString("vi-VN")} - {suggestionData.price_high?.toLocaleString("vi-VN")} VND
+                    </Text>
+                    <Box mt={4}>
+                      <Box position="relative" h="10px" borderRadius="full" bg="gray.200">
+                        <Box
+                          position="absolute"
+                          left="45%"
+                          top="-6px"
+                          w="2px"
+                          h="22px"
+                          bg="blue.500"
+                          borderRadius="full"
+                        />
+                      </Box>
+                      <Flex justify="space-between" mt={2} fontSize="xs" color="gray.600">
+                        <Text>{suggestionData.price_low?.toLocaleString("vi-VN")} VND</Text>
+                        <Text>{suggestionData.price_high?.toLocaleString("vi-VN")} VND</Text>
+                      </Flex>
+                    </Box>
+                    <Text fontSize="sm" color="gray.600" mt={3}>
+                      Độ tin cậy: {Math.round(suggestionData.confidence * 100)}% • Nguồn: {suggestionData.matched_count} shop
+                    </Text>
+                  </Box>
+                ) : (
+                  <Text fontSize="sm" color="gray.600">
+                    Chưa có dữ liệu gợi ý. Vui lòng thử lại sau.
+                  </Text>
+                )}
+              </Dialog.Body>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
     </Box>
   )
 }
