@@ -30,8 +30,8 @@ function AppLayout() {
       <Box pt={isHome || isAuthFlow ? 0 : { base: "76px", sm: "92px" }}>
         <Outlet />
       </Box>
-      <AiAssistantWidget />
-      <ChatFloatingWidget />
+      {!isAuthFlow && <AiAssistantWidget />}
+      {!isAuthFlow && <ChatFloatingWidget />}
       {!isAdmin && !isAuthFlow && <FloatingActions />}
       {!isAdmin && !isAuthFlow && <Footer />}
     </Box>

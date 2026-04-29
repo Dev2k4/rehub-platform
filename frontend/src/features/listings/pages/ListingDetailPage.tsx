@@ -270,7 +270,7 @@ export function ListingDetailPage() {
   }
 
   const listing = listingQuery.data;
-  const _category = categoryMap.get(listing.category_id);
+
   const conditionInfo = CONDITION_LABELS[listing.condition_grade] ?? {
     label: listing.condition_grade,
     color: "gray",

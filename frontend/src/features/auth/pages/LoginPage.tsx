@@ -43,16 +43,7 @@ export function LoginPage() {
 
       <LoginForm />
 
-      <Box mt={4} textAlign="right">
-        <ChakraLink
-          asChild
-          fontSize="xs"
-          color="gray.400"
-          _hover={{ color: "blue.500" }}
-        >
-          <Link to="/auth/forgot-password">Quên mật khẩu?</Link>
-        </ChakraLink>
-      </Box>
+
 
       <Box
         mt={8}

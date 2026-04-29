@@ -231,7 +231,7 @@ interface PaginationContext {
   size: ButtonProps["size"];
 }
 
-const [PaginationProvider, usePaginationContext] =
+export const [PaginationProvider, usePaginationContext] =
   createContext<PaginationContext>({
     name: "PaginationContext",
   });

@@ -52,7 +52,7 @@ export function RegisterForm({ onError }: RegisterFormProps) {
       phone: "",
       password: "",
       fullName: "",
-      rememberMe: false,
+      agreeTerms: false,
     },
   })
 
@@ -228,22 +228,24 @@ export function RegisterForm({ onError }: RegisterFormProps) {
           )}
         </Field>
 
-        {/* Remember Me */}
-        <Controller
-          control={control}
-          name="rememberMe"
-          render={({ field }) => (
-            <Checkbox
-              checked={field.value}
-              onCheckedChange={(e) => field.onChange(!!e.checked)}
-              id="rememberMeReg"
-            >
-              <Text fontSize="sm" color="gray.600">
-                Ghi nhớ đăng nhập
-              </Text>
-            </Checkbox>
-          )}
-        />
+        {/* Agree Terms */}
+        <Field invalid={!!errors.agreeTerms} errorText={errors.agreeTerms?.message}>
+          <Controller
+            control={control}
+            name="agreeTerms"
+            render={({ field }) => (
+              <Checkbox
+                checked={field.value === true}
+                onCheckedChange={(e) => field.onChange(!!e.checked)}
+                id="agreeTermsReg"
+              >
+                <Text fontSize="sm" color="gray.600">
+                  Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật
+                </Text>
+              </Checkbox>
+            )}
+          />
+        </Field>
 
         {/* Submit Button */}
         <Button

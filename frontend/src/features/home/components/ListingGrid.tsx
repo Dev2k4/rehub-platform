@@ -23,7 +23,7 @@ import {
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
 
 type ListingGridProps = {
-  listings: ListingWithImages[]
+  listings: (ListingWithImages & { isPendingOverlay?: boolean })[]
   categoryMap: Map<string, CategoryTree>
   sellerMap: Map<string, UserPublicProfile>
 }
@@ -80,6 +80,7 @@ export function ListingGrid({
           category={categoryMap.get(listing.category_id)}
           seller={sellerMap.get(listing.seller_id)}
           animDelay={idx % 8}
+          isPendingOverlay={listing.isPendingOverlay}
         />
       ))}
     </SimpleGrid>
@@ -91,6 +92,7 @@ type ListingGridItemProps = {
   category?: CategoryTree
   seller?: UserPublicProfile
   animDelay?: number
+  isPendingOverlay?: boolean
 }
 
 function ListingGridItem({
@@ -98,6 +100,7 @@ function ListingGridItem({
   category,
   seller,
   animDelay = 0,
+  isPendingOverlay = false,
 }: ListingGridItemProps) {
   const navigate = useNavigate()
   const isSellerOnline = useIsUserOnline(listing.seller_id)
@@ -152,10 +155,40 @@ function ListingGridItem({
         boxShadow: "0 12px 24px rgba(0,0,0,0.08)",
         borderColor: "blue.200",
       }}
-      cursor="pointer"
+      position="relative"
+      cursor={isPendingOverlay ? "default" : "pointer"}
       display="flex"
       flexDirection="column"
+      pointerEvents={isPendingOverlay ? "none" : "auto"}
     >
+      {/* Pending Overlay Layer */}
+      {isPendingOverlay && (
+        <Flex
+          position="absolute"
+          top={0} left={0} right={0} bottom={0}
+          bg="whiteAlpha.700"
+          backdropFilter="blur(2px) grayscale(40%)"
+          zIndex={10}
+          align="center"
+          justify="center"
+          borderRadius="1rem"
+        >
+          <Box
+            bg="orange.500"
+            color="white"
+            px={4}
+            py={1.5}
+            borderRadius="full"
+            boxShadow="0 4px 14px rgba(237, 137, 54, 0.4)"
+            border="1px solid"
+            borderColor="orange.400"
+          >
+            <Text fontSize="xs" fontWeight="800" textTransform="uppercase" letterSpacing="0.5px">
+              Đang chờ duyệt
+            </Text>
+          </Box>
+        </Flex>
+      )}
       {/* Image area */}
       <Box
         className="listing-card-img-wrapper"

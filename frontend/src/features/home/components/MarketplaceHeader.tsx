@@ -526,6 +526,11 @@ import { getNotificationDestination } from "@/features/notifications/utils/notif
 import { translateNotification } from "@/features/notifications/utils/notificationTranslation";
 import { AuthButtons } from "./AuthButtons";
 import { UserDropdownMenu } from "./UserDropdownMenu";
+import { ListingModal } from "@/features/listings/components/ListingModal";
+import { useCreateListing, useUploadListingImage } from "@/features/listings/hooks/useMyListings";
+import type { ListingFormSubmitPayload } from "@/features/listings/components/ListingForm";
+import { toaster } from "@/components/ui/toaster";
+import { useState } from "react";
 
 type MarketplaceHeaderProps = {
   keyword?: string;
@@ -545,6 +550,34 @@ export function MarketplaceHeader({
   const { user, isAuthenticated, isLoading } = useAuthUser();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Local listing modal state for global posting
+  const [isLocalModalOpen, setIsLocalModalOpen] = useState(false);
+  const createMutation = useCreateListing();
+  const uploadImageMutation = useUploadListingImage();
+
+  const handleCreateListing = async (payload: ListingFormSubmitPayload) => {
+    try {
+      const created = await createMutation.mutateAsync(payload.data);
+      if (payload.files.length > 0) {
+        for (let i = 0; i < payload.files.length; i++) {
+          await uploadImageMutation.mutateAsync({
+            listingId: created.id,
+            file: payload.files[i],
+            isPrimary: i === 0,
+          });
+        }
+      }
+      setIsLocalModalOpen(false);
+      toaster.create({ title: "Đăng tin thành công!", type: "success" });
+      navigate({ to: "/" }); // Navigate to home to see the listing
+    } catch (error: any) {
+      toaster.create({
+        title: error?.message || "Đăng tin thất bại",
+        type: "error",
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -918,9 +951,14 @@ export function MarketplaceHeader({
               {/* Post Listing button */}
               <Button
                 onClick={(e) => {
+                  e.preventDefault();
                   if (onOpenListingModal) {
-                    e.preventDefault();
                     onOpenListingModal();
+                  } else if (isAuthenticated) {
+                    setIsLocalModalOpen(true);
+                  } else {
+                    toaster.create({ title: "Vui lòng đăng nhập để đăng tin", type: "info" });
+                    navigate({ to: "/auth/login" });
                   }
                 }}
                 borderRadius="2rem"
@@ -1002,6 +1040,16 @@ export function MarketplaceHeader({
             </Box>
           </Box>
         </Box>
+      )}
+
+      {/* Global Listing Modal when not on home page */}
+      {!onOpenListingModal && (
+        <ListingModal
+          isOpen={isLocalModalOpen}
+          onOpenChange={setIsLocalModalOpen}
+          onSubmit={handleCreateListing}
+          isLoading={createMutation.isPending || uploadImageMutation.isPending}
+        />
       )}
     </Box>
   );

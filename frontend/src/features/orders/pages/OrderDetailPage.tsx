@@ -194,7 +194,7 @@ export function OrderDetailPage() {
     isBuyer &&
     (
       fulfillment?.status === "delivered_by_seller" ||
-      (order.status === "delivered" && escrow?.status === "release_pending")
+      ((order.status as string) === "delivered" && escrow?.status === "release_pending")
     );
   const canOpenDispute =
     hasEscrow &&
@@ -232,7 +232,7 @@ export function OrderDetailPage() {
     if (fulfillment?.status === "delivered_by_seller") {
       return "Người bán đã đánh dấu đã giao. Hãy xác nhận đã nhận hàng kèm ảnh bằng chứng.";
     }
-    if (order.status === "delivered" && escrow?.status === "release_pending") {
+    if ((order.status as string) === "delivered" && escrow?.status === "release_pending") {
       return "Đơn đã được đánh dấu đã giao. Hãy xác nhận đã nhận hàng để hoàn tất thanh toán.";
     }
     if (fulfillment?.status === "buyer_confirmed_received") {

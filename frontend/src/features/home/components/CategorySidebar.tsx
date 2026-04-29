@@ -220,7 +220,7 @@ export function CategorySidebar({
     <Box
       as="aside"
       display={{ base: "none", lg: "block" }}
-      w="250px"
+      w="100%"
       flexShrink={0}
     >
       <Box

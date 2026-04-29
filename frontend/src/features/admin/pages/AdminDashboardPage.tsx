@@ -150,7 +150,6 @@ function QuickActionCard({
 }
 
 export function AdminDashboardPage() {
-  const _navigate = useNavigate()
   const { data: users = [], isLoading: usersLoading } = useAdminUsers({
     limit: 200,
   })

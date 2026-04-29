@@ -17,7 +17,9 @@ export const registerSchema = z.object({
     .string()
     .min(2, "Tên phải có ít nhất 2 ký tự")
     .max(255, "Tên không được vượt quá 255 ký tự"),
-  rememberMe: z.boolean().default(false),
+  agreeTerms: z.boolean().refine((val) => val === true, {
+    message: "Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
+  }),
 })
 
 export type RegisterInput = z.infer<typeof registerSchema>

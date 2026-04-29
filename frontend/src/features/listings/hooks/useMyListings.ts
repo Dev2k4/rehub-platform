@@ -13,16 +13,20 @@ import {
   uploadListingImage,
 } from "@/features/listings/api/listings.api"
 
-export function useMyListings(params?: {
-  keyword?: string
-  status?: string
-  skip?: number
-  limit?: number
-}) {
+export function useMyListings(
+  params?: {
+    keyword?: string
+    status?: string
+    skip?: number
+    limit?: number
+  },
+  options?: { enabled?: boolean }
+) {
   return useQuery<ListingPaginated>({
     queryKey: ["listings", "my-listings", params],
     queryFn: () => getMyListings(params),
     staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled,
   })
 }
 

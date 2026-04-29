@@ -19,7 +19,6 @@ import {
   FiMessageCircle,
   FiMinimize2,
   FiSend,
-  FiUserPlus,
   FiX,
 } from "react-icons/fi"
 import { Avatar } from "@/components/ui/avatar"
@@ -218,7 +217,7 @@ export function ChatFloatingWidget() {
     string | null
   >(null)
   const [messageInput, setMessageInput] = useState("")
-  const [startConversationUserId, setStartConversationUserId] = useState("")
+
   const [pendingListingShareId, setPendingListingShareId] = useState<
     string | null
   >(null)
@@ -316,7 +315,7 @@ export function ChatFloatingWidget() {
     onSuccess: (conversation) => {
       queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
       setSelectedConversationId(conversation.id)
-      setStartConversationUserId("")
+
       openWidget()
     },
     onError: (error: unknown) => {
@@ -508,13 +507,6 @@ export function ChatFloatingWidget() {
     }
   }, [messageInput, selectedConversationId, sendMessageMutation])
 
-  const handleCreateConversation = useCallback(() => {
-    const peerId = startConversationUserId.trim()
-    if (!peerId) {
-      return
-    }
-    openConversationMutation.mutate(peerId)
-  }, [openConversationMutation, startConversationUserId])
 
   const canUseChat = isAuthenticated && !!user
 
@@ -686,37 +678,7 @@ export function ChatFloatingWidget() {
                 p={2}
                 overflowY="auto"
               >
-                <VStack align="stretch" gap={2} pb={2}>
-                  <HStack>
-                    <Input
-                      size="sm"
-                      placeholder="Nhap user id de tao chat"
-                      value={startConversationUserId}
-                      onChange={(event) =>
-                        setStartConversationUserId(event.target.value)
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault()
-                          handleCreateConversation()
-                        }
-                      }}
-                    />
-                    <IconButton
-                      aria-label="Tao cuoc tro chuyen"
-                      size="sm"
-                      colorPalette="blue"
-                      onClick={handleCreateConversation}
-                      loading={openConversationMutation.isPending}
-                      disabled={!startConversationUserId.trim()}
-                    >
-                      <FiUserPlus />
-                    </IconButton>
-                  </HStack>
-                  <Text px={1} fontSize="xs" color="gray.500">
-                    Moi tro chuyen bang user id cua doi phuong.
-                  </Text>
-                </VStack>
+
 
                 {conversationsQuery.isLoading ? (
                   <Flex py={8} justify="center">

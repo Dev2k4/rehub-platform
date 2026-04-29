@@ -1,21 +1,13 @@
-import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
-export function FloatingActions({
-  onOpenListingModal,
-}: {
-  onOpenListingModal?: () => void
-}) {
+export function FloatingActions() {
   const [_showScrollTop, setShowScrollTop] = useState(false)
-  const _navigate = useNavigate()
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 300)
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
-
-  const _scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" })
 
   return (
     <div className="floating-actions">

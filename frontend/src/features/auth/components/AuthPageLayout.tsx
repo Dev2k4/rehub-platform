@@ -318,13 +318,7 @@ export function AuthPageLayout({
           {children}
         </Box>
 
-        {/* Bottom support link */}
-        <Text fontSize="xs" color="gray.400" textAlign="center" mt={6} px={4}>
-          Gặp sự cố?{" "}
-          <a href="#" style={{ color: "#60A5FA", textDecoration: "none" }}>
-            Liên hệ hỗ trợ
-          </a>
-        </Text>
+
       </Flex>
     </Flex>
   )
