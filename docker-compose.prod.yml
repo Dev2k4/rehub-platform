@@ -104,6 +104,12 @@ services:
       exit 0;
       "
 
+  router9:
+    image: node:20-alpine
+    restart: always
+    command: >
+      sh -c "npm install -g 9router && 9router -H 0.0.0.0 -p 20128 -n -t"
+
   backend:
     build:
       context: .
@@ -125,6 +131,8 @@ services:
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
       - MINIO_PUBLIC_BASE_URL=https://${DOMAIN}
       - STORAGE_BACKEND=minio
+      - AI_PROVIDER_NAME=9router
+      - AI_PROVIDER_BASE_URL=http://router9:20128/v1
     depends_on:
       db:
         condition: service_healthy
@@ -134,6 +142,8 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+      router9:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-readiness/"]
       interval: 10s

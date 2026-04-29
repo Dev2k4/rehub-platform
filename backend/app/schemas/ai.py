@@ -9,12 +9,25 @@ class AiChatRequest(BaseModel):
     mode: Literal["auto", "chat", "price"] = "auto"
 
 
+class AiProductItem(BaseModel):
+    """A product found in the database matching the user's query."""
+
+    listing_id: str
+    title: str
+    price: int
+    condition: str
+    condition_label: str
+    category_name: str | None = None
+    image_url: str | None = None
+
+
 class AiChatResponse(BaseModel):
     answer: str
     provider: str
     model: str
     intent: str = "assistant"
     fallback_used: bool = False
+    products: list[AiProductItem] | None = None
 
 
 class AiPriceSuggestionRequest(BaseModel):

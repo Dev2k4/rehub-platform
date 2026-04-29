@@ -7,12 +7,15 @@ from typing import Literal
 
 import httpx
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.services.ai_price_service import (
-    PriceDatasetUnavailableError,
-    compose_price_suggestion_reply,
-    get_price_suggestion_engine,
+from app.services.ai_db_context import (
+    AiListingContext,
+    extract_product_keywords,
+    format_listings_as_reply,
+    format_listings_for_prompt,
+    search_listings_for_ai,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,6 +68,7 @@ _INVENTORY_KEYWORDS = (
     "sản phẩm này",
     "hang nay",
     "hàng này",
+    "mua",
 )
 
 _PRICING_KEYWORDS = (
@@ -84,6 +88,8 @@ _PRICING_KEYWORDS = (
     "bán giá nào",
     "bao nhieu tien",
     "bao nhiêu tiền",
+    "muon ban",
+    "muốn bán",
 )
 
 
@@ -94,6 +100,7 @@ class AiAnswer:
     model: str
     intent: AIIntent
     fallback_used: bool
+    products: list[dict] | None = None
 
 
 def _normalize_text(value: str) -> str:
@@ -123,94 +130,6 @@ def _current_path(context: dict[str, str]) -> str:
     return pathname.strip() or "/"
 
 
-def _fallback_answer(intent: AIIntent, message: str, context: dict[str, str]) -> str:
-    pathname = _current_path(context)
-    normalized_message = _normalize_text(message)
-    if intent == "pricing":
-        engine = get_price_suggestion_engine()
-        try:
-            suggestion = engine.suggest(message, context=context)
-            return compose_price_suggestion_reply(suggestion)
-        except PriceDatasetUnavailableError:
-            return (
-                "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ. "
-                "Hiện mình chưa có dữ liệu giá để ước lượng. "
-                "Bạn hãy cấu hình `AI_PRICE_DATASET_PATH` trỏ tới file CSV sản phẩm, rồi gửi lại tên sản phẩm và tình trạng nhé. "
-                "Bạn có hài lòng với câu trả lời này không? "
-                "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-            )
-        except Exception as exc:  # pragma: no cover - defensive fallback
-            logger.exception("Price fallback generation failed")
-            return f"Mình chưa ước giá được lúc này: {exc}"
-
-    if intent == "howto":
-        if pathname.startswith("/orders") or any(
-            keyword in normalized_message
-            for keyword in ("don hang", "ky quy", "nap ky quy", "escrow", "thanh toan")
-        ):
-            return (
-                "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ. "
-                "Với đơn hàng và ký quỹ (escrow), bạn làm theo các bước sau nhé ✅:\n"
-                "1) Vào trang Chi tiết đơn hàng để xem trạng thái hiện tại.\n"
-                "2) Bấm nút Nạp/Ký quỹ và làm theo hướng dẫn thanh toán.\n"
-                "3) Chờ người bán xác nhận, hệ thống sẽ giữ tiền an toàn.\n"
-                "4) Khi nhận hàng ok, bạn xác nhận hoàn tất để giải ngân cho người bán.\n"
-                "Nếu bạn đang ở bước nào (nạp, chờ xác nhận hay nhận hàng), nói mình biết để mình hướng dẫn kỹ hơn nhé. "
-                "Bạn có hài lòng với câu trả lời này không? "
-                "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-            )
-        if pathname.startswith("/listings"):
-            return (
-                "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ. "
-                "Để đăng tin nhanh và hiệu quả, bạn làm theo các bước sau nhé ✍️:\n"
-                "1) Nhập tiêu đề rõ ràng (tên sản phẩm + tình trạng).\n"
-                "2) Viết mô tả chi tiết (mẫu mã, phụ kiện, bảo hành nếu có).\n"
-                "3) Chọn danh mục và tình trạng phù hợp.\n"
-                "4) Nhập giá bán mong muốn (có thể tham khảo gợi ý).\n"
-                "5) Thêm ảnh rõ, đủ góc, tránh mờ/thiếu sáng.\n"
-                "6) Kiểm tra lại rồi bấm Đăng tin.\n"
-                "Bạn muốn mình hướng dẫn kỹ hơn ở bước nào? "
-                "Bạn có hài lòng với câu trả lời này không? "
-                "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-            )
-        if pathname.startswith("/offers"):
-            return (
-                "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ. "
-                "Ở luồng trả giá, bạn có thể làm như sau 💬:\n"
-                "1) Vào chi tiết tin đăng và xem mức giá đề xuất.\n"
-                "2) Gửi offer ở mức phù hợp với tình trạng thực tế.\n"
-                "3) Theo dõi phản hồi từ người bán trong mục Đơn hàng/Trả giá.\n"
-                "4) Nếu đạt thỏa thuận, tiến hành thanh toán/ký quỹ.\n"
-                "Bạn muốn mình gợi ý mức offer theo tình trạng cụ thể không? "
-                "Bạn có hài lòng với câu trả lời này không? "
-                "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-            )
-        return (
-            "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ. "
-            "Mình có thể hướng dẫn bạn cách đăng tin, sửa tin, trả giá, và thao tác trong hệ thống ReHub. "
-            "Bạn đang cần hướng dẫn bước nào (đăng tin, trả giá, thanh toán, ký quỹ, hay theo dõi đơn hàng)? "
-            "Bạn có hài lòng với câu trả lời này không? "
-            "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-        )
-
-    if intent == "inventory":
-        return (
-            "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ. "
-            "Mình chưa đọc trực tiếp kho hàng theo thời gian thực trong chế độ fallback này. "
-            "Bạn hãy gửi tên sản phẩm cụ thể (ví dụ: iPhone 13 128GB) hoặc từ khóa tìm kiếm, "
-            "mình sẽ giúp bạn thu hẹp và hướng dẫn cách kiểm tra nhanh. "
-            "Bạn có hài lòng với câu trả lời này không? "
-            "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-        )
-
-    return (
-        "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ. "
-        "Bạn có thể hỏi về cách đăng tin, thao tác trong hệ thống, tìm sản phẩm, hoặc nhờ gợi ý giá bán cho món đồ bạn đang có. "
-        "Bạn có hài lòng với câu trả lời này không? "
-        "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-    )
-
-
 def _provider_is_configured() -> bool:
     return bool(settings.AI_API_KEY.strip()) and bool(settings.AI_PROVIDER_BASE_URL.strip()) and bool(settings.AI_CHAT_MODEL.strip())
 
@@ -220,117 +139,133 @@ def _chat_endpoint() -> str:
     return f"{base}/chat/completions"
 
 
-def _build_system_prompt(intent: AIIntent, pathname: str) -> str:
+_PLATFORM_CONTEXT = (
+    "ReHub là sàn giao dịch đồ cũ (secondhand marketplace) tại Việt Nam. "
+    "Chức năng chính: Đăng tin bán đồ cũ (listings) với ảnh, giá, tình trạng; "
+    "Trả giá / thương lượng (offers); Thanh toán an toàn qua ký quỹ (escrow); "
+    "Theo dõi đơn hàng và giao hàng (fulfillment); Chat trực tiếp giữa người mua và người bán; "
+    "Đánh giá sau giao dịch (reviews). "
+    "Các tình trạng sản phẩm: Mới 100% (Brand New), Như mới (Like New), Tốt (Good), Trung bình (Fair), Cũ (Poor)."
+)
+
+
+def _build_system_prompt(
+    intent: AIIntent,
+    pathname: str,
+    db_context: str | None = None,
+) -> str:
     base_prompt = (
-        "Bạn là Trợ lý AI của ReHub Marketplace. Trả lời bằng tiếng Việt có dấu, lịch sự, thân thiện và có emoji phù hợp. "
-        "Câu trả lời nên dài hơn mặc định, có hướng dẫn cụ thể theo từng bước. "
-        "Câu trả lời PHẢI theo đúng cấu trúc sau:\n"
-        "1) Mở đầu cảm ơn: 'Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ.'\n"
-        "2) Nội dung trả lời theo ngữ cảnh và câu hỏi của người dùng, hướng dẫn rõ ràng từng bước (đánh số).\n"
-        "3) Câu hỏi kiểm tra: 'Bạn có hài lòng với câu trả lời này không?'\n"
-        "4) Lời nhắn cuối: 'Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!'\n"
-        "Không bịa dữ liệu. Nếu thiếu thông tin thì hỏi lại 1 câu ngắn trong phần nội dung."
+        "Bạn là Trợ lý AI của ReHub Marketplace. "
+        + _PLATFORM_CONTEXT
+        + " Nhiệm vụ: hỗ trợ người dùng đăng tin, tìm sản phẩm, trả giá, đơn hàng, thanh toán, ký quỹ (escrow), "
+        "và gợi ý giá bán. Trả lời bằng tiếng Việt có dấu, lịch sự, thân thiện và có emoji phù hợp. "
+        "Câu trả lời nên đầy đủ thông tin, có hướng dẫn cụ thể theo từng bước khi cần. "
+        "KHÔNG tự nhận mình là Antigravity/DeepMind hay công cụ lập trình. "
+        "QUAN TRỌNG: KHÔNG hỏi lại người dùng. Trả lời trực tiếp và đầy đủ dựa trên dữ liệu có sẵn. "
+        "KHÔNG thêm câu kiểu 'Bạn đang ở bước nào?', 'Bạn muốn mình gợi ý...?', 'Nếu còn thắc mắc...'. "
+        "Trả lời xong là kết thúc, không cần lời mời hỏi thêm."
     )
+
+    if db_context:
+        base_prompt += f"\n\n{db_context}"
+
     if intent == "pricing":
         return (
             base_prompt
-            + " Người dùng đang hỏi gợi ý giá bán. Hãy tập trung vào việc ước giá hợp lý, nêu khoảng giá và nhắc nếu cần thêm model/tình trạng."
+            + "\n\nNgười dùng đang hỏi gợi ý giá bán. Hãy tập trung vào việc ước giá hợp lý dựa trên dữ liệu sản phẩm tương tự, nêu khoảng giá cụ thể."
         )
     if intent == "howto":
         return (
             base_prompt
-            + f" Người dùng đang ở ngữ cảnh trang {pathname}. Hãy hướng dẫn từng bước thao tác phù hợp với màn hình hiện tại."
+            + f"\n\nNgười dùng đang ở ngữ cảnh trang {pathname}. Hãy hướng dẫn từng bước thao tác phù hợp."
         )
     if intent == "inventory":
         return (
             base_prompt
-            + " Người dùng đang hỏi có sản phẩm nào hay không. Nếu không có dữ liệu trực tiếp thì nói rõ giới hạn và hướng dẫn cách tìm." 
+            + "\n\nNgười dùng đang tìm sản phẩm. Hãy liệt kê các sản phẩm phù hợp từ dữ liệu trên nếu có, kèm giá và tình trạng."
         )
     return base_prompt
 
 
-def _apply_response_template(content: str) -> str:
-    greeting = "Cảm ơn bạn đã tin tưởng và sử dụng nền tảng ReHub để giao dịch đồ cũ."
-    closing_question = "Bạn có hài lòng với câu trả lời này không?"
-    closing_invite = "Nếu còn thắc mắc, bạn hãy hỏi lại tôi bất cứ khi nào bạn muốn nhé!"
-
-    normalized = _normalize_text(content)
-    if _normalize_text(greeting) in normalized:
-        return content
-
-    body = content.strip()
-    return f"{greeting} {body} {closing_question} {closing_invite}"
-
-
-def _expand_short_answer(intent: AIIntent, message: str, context: dict[str, str], answer: str) -> str:
-    # If answer is already detailed, keep it.
-    if len(answer) >= 420:
-        return answer
+def _fallback_answer(
+    intent: AIIntent,
+    message: str,
+    context: dict[str, str],
+    db_listings: list[AiListingContext] | None = None,
+) -> str:
+    """Generate a local fallback answer when LLM is unavailable."""
+    # If we have DB data, format it directly
+    if db_listings:
+        return format_listings_as_reply(db_listings, intent)
 
     pathname = _current_path(context)
     normalized_message = _normalize_text(message)
 
-    if intent == "howto":
-        if pathname.startswith("/listings"):
-            details = (
-                "Bạn có thể làm theo checklist sau để đăng tin nhanh và hiệu quả ✍️:\n"
-                "1) Tiêu đề rõ ràng: Tên sản phẩm + dung lượng/đời + tình trạng.\n"
-                "2) Mô tả ngắn gọn: phụ kiện, bảo hành, lỗi/điểm trầy nếu có.\n"
-                "3) Chọn danh mục và tình trạng chính xác.\n"
-                "4) Nhập giá mong muốn và bật thương lượng nếu cần.\n"
-                "5) Thêm 3–5 ảnh thật, đủ góc, ánh sáng tốt.\n"
-                "6) Xem lại và bấm Đăng tin.\n"
-                "Bạn đang vướng bước nào để mình hướng dẫn chi tiết hơn?"
-            )
-            return f"{answer}\n\n{details}"
+    if intent == "pricing":
+        return (
+            "Hiện tại trên ReHub chưa có sản phẩm tương tự để tham khảo giá. "
+            "Bạn có thể đăng tin và đặt giá bạn mong muốn, người mua sẽ trả giá nếu quan tâm."
+        )
 
+    if intent == "howto":
         if pathname.startswith("/orders") or any(
             keyword in normalized_message
             for keyword in ("don hang", "ky quy", "nap ky quy", "escrow", "thanh toan")
         ):
-            details = (
-                "Mẹo nhanh cho luồng đơn hàng & ký quỹ ✅:\n"
-                "1) Vào chi tiết đơn hàng để xem trạng thái.\n"
-                "2) Bấm Nạp/Ký quỹ và hoàn tất thanh toán.\n"
-                "3) Chờ người bán xác nhận, tiền được giữ an toàn.\n"
-                "4) Khi nhận hàng ok, xác nhận hoàn tất để giải ngân.\n"
-                "Bạn đang ở bước nào để mình hướng dẫn chuẩn nhất?"
+            return (
+                "Với đơn hàng và ký quỹ (escrow), bạn làm theo các bước sau ✅:\n"
+                "1) Vào trang Chi tiết đơn hàng để xem trạng thái hiện tại.\n"
+                "2) Bấm nút Nạp/Ký quỹ và làm theo hướng dẫn thanh toán.\n"
+                "3) Chờ người bán xác nhận, hệ thống sẽ giữ tiền an toàn.\n"
+                "4) Khi nhận hàng ok, bạn xác nhận hoàn tất để giải ngân cho người bán."
             )
-            return f"{answer}\n\n{details}"
-
+        if pathname.startswith("/listings"):
+            return (
+                "Để đăng tin nhanh và hiệu quả ✍️:\n"
+                "1) Nhập tiêu đề rõ ràng (tên sản phẩm + tình trạng).\n"
+                "2) Viết mô tả chi tiết (mẫu mã, phụ kiện, bảo hành nếu có).\n"
+                "3) Chọn danh mục và tình trạng phù hợp.\n"
+                "4) Nhập giá bán mong muốn (có thể bật thương lượng).\n"
+                "5) Thêm ảnh rõ, đủ góc, tránh mờ/thiếu sáng.\n"
+                "6) Kiểm tra lại rồi bấm Đăng tin."
+            )
         if pathname.startswith("/offers"):
-            details = (
-                "Gợi ý thao tác trả giá nhanh 💬:\n"
-                "1) Xem giá đề xuất trong chi tiết tin.\n"
-                "2) Gửi offer phù hợp với tình trạng thực tế.\n"
-                "3) Theo dõi phản hồi trong mục Đơn hàng/Trả giá.\n"
-                "4) Khi đồng ý, tiến hành ký quỹ/Thanh toán.\n"
-                "Bạn muốn mình gợi ý mức offer theo tình trạng cụ thể không?"
+            return (
+                "Luồng trả giá trên ReHub 💬:\n"
+                "1) Vào chi tiết tin đăng và xem mức giá đề xuất.\n"
+                "2) Gửi offer ở mức phù hợp với tình trạng thực tế.\n"
+                "3) Theo dõi phản hồi từ người bán trong mục Đơn hàng/Trả giá.\n"
+                "4) Nếu đạt thỏa thuận, tiến hành thanh toán/ký quỹ."
             )
-            return f"{answer}\n\n{details}"
-
-        details = (
-            "Bạn có thể hỏi theo từng mục nhé: Đăng tin, Trả giá, Thanh toán, Ký quỹ, hoặc Theo dõi đơn hàng. "
-            "Bạn đang cần hướng dẫn phần nào?"
+        return (
+            "ReHub hỗ trợ đăng tin, trả giá, thanh toán, ký quỹ, và theo dõi đơn hàng. "
+            "Bạn có thể hỏi cụ thể về bất kỳ thao tác nào trên hệ thống."
         )
-        return f"{answer}\n\n{details}"
 
     if intent == "inventory":
-        details = (
-            "Bạn có thể gửi mình tên sản phẩm cụ thể (ví dụ: iPhone 13 128GB) hoặc từ khóa. "
-            "Mình sẽ giúp bạn tìm nhanh và lọc theo tình trạng/phân khúc giá."
+        return (
+            "Hiện tại trên ReHub chưa tìm thấy sản phẩm phù hợp với từ khóa của bạn. "
+            "Bạn có thể thử tìm với từ khóa khác hoặc duyệt theo danh mục."
         )
-        return f"{answer}\n\n{details}"
 
-    return answer
+    return (
+        "ReHub là sàn giao dịch đồ cũ. "
+        "Bạn có thể hỏi về cách đăng tin, tìm sản phẩm, hoặc nhờ gợi ý giá bán cho món đồ bạn đang có."
+    )
 
 
-async def _ask_provider(message: str, intent: AIIntent, context: dict[str, str]) -> str:
+async def _ask_provider(
+    message: str,
+    intent: AIIntent,
+    context: dict[str, str],
+    db_context: str | None = None,
+) -> str:
     timeout = httpx.Timeout(settings.AI_CHAT_TIMEOUT_SECONDS, connect=10.0)
     payload = {
         "model": settings.AI_CHAT_MODEL,
+        "stream": False,
         "messages": [
-            {"role": "system", "content": _build_system_prompt(intent, _current_path(context))},
+            {"role": "system", "content": _build_system_prompt(intent, _current_path(context), db_context)},
             {"role": "system", "content": f"Ngữ cảnh trang: {_current_path(context)}"},
             {"role": "user", "content": message},
         ],
@@ -370,41 +305,77 @@ async def _ask_provider(message: str, intent: AIIntent, context: dict[str, str])
     return content.strip()
 
 
-async def generate_ai_answer(message: str, context: dict[str, str] | None = None, mode: str = "auto") -> AiAnswer:
+def _clean_trailing_questions(text: str) -> str:
+    """Remove trailing follow-up questions that the LLM might still generate."""
+    # Patterns to strip from the end of the response
+    _TRAILING_PATTERNS = [
+        r"Nếu còn thắc mắc[^.!]*[.!?]*\s*$",
+        r"Bạn đang ở bước nào[^.!]*[.!?]*\s*$",
+        r"Bạn muốn mình[^.!]*[.!?]*\s*$",
+        r"Bạn có muốn[^.!]*[.!?]*\s*$",
+        r"Hãy cho mình biết[^.!]*[.!?]*\s*$",
+        r"Bạn cần hướng dẫn[^.!]*[.!?]*\s*$",
+    ]
+    result = text
+    for pattern in _TRAILING_PATTERNS:
+        result = re.sub(pattern, "", result, flags=re.IGNORECASE).strip()
+    return result
+
+
+def _serialize_products(listings: list[AiListingContext]) -> list[dict]:
+    """Convert listing context objects to JSON-serializable dicts for the API response."""
+    return [
+        {
+            "listing_id": item.listing_id,
+            "title": item.title,
+            "price": item.price,
+            "condition": item.condition,
+            "condition_label": item.condition_label,
+            "category_name": item.category_name,
+            "image_url": item.image_url,
+        }
+        for item in listings
+    ]
+
+
+async def generate_ai_answer(
+    message: str,
+    context: dict[str, str] | None = None,
+    mode: str = "auto",
+    db: AsyncSession | None = None,
+) -> AiAnswer:
     context = context or {}
     intent = detect_intent(message, mode=mode)
 
-    if intent == "pricing":
-        engine = get_price_suggestion_engine()
-        try:
-            suggestion = engine.suggest(message, context=context)
-            return AiAnswer(
-                answer=compose_price_suggestion_reply(suggestion),
-                provider=engine.provider_name,
-                model=engine.model_name,
-                intent=intent,
-                fallback_used=False,
-            )
-        except PriceDatasetUnavailableError:
-            return AiAnswer(
-                answer=_fallback_answer(intent, message, context),
-                provider="local-fallback",
-                model="heuristic-v1",
-                intent=intent,
-                fallback_used=True,
-            )
+    # --- Enrich with DB data for inventory/pricing intents ---
+    db_listings: list[AiListingContext] = []
+    db_context_text: str | None = None
+    needs_db = intent in ("inventory", "pricing", "assistant")
 
+    if needs_db and db is not None:
+        try:
+            keywords = extract_product_keywords(message)
+            if keywords and any(len(kw) >= 2 for kw in keywords):
+                db_listings = await search_listings_for_ai(db, keywords, limit=5)
+                if db_listings:
+                    db_context_text = format_listings_for_prompt(db_listings)
+        except Exception:
+            logger.exception("Failed to enrich AI context from DB")
+
+    products = _serialize_products(db_listings) if db_listings else None
+
+    # --- Try LLM provider ---
     if _provider_is_configured():
         try:
-            raw_answer = await _ask_provider(message, intent, context)
-            expanded = _expand_short_answer(intent, message, context, raw_answer)
-            answer = _apply_response_template(expanded)
+            raw_answer = await _ask_provider(message, intent, context, db_context=db_context_text)
+            answer = _clean_trailing_questions(raw_answer)
             return AiAnswer(
                 answer=answer,
                 provider=settings.AI_PROVIDER_NAME or "openai-compatible",
                 model=settings.AI_CHAT_MODEL,
                 intent=intent,
                 fallback_used=False,
+                products=products,
             )
         except HTTPException as exc:
             logger.warning("AI provider failed, falling back to local answer: %s", exc.detail)
@@ -415,10 +386,12 @@ async def generate_ai_answer(message: str, context: dict[str, str] | None = None
             if not settings.AI_CHAT_FALLBACK_ENABLED:
                 raise HTTPException(status_code=502, detail="AI provider không phản hồi")
 
+    # --- Fallback ---
     return AiAnswer(
-        answer=_fallback_answer(intent, message, context),
+        answer=_fallback_answer(intent, message, context, db_listings=db_listings or None),
         provider="local-fallback",
         model="heuristic-v1",
         intent=intent,
         fallback_used=True,
+        products=products,
     )

@@ -15,10 +15,21 @@ import { useCallback, useMemo, useRef, useState } from "react"
 import { FiCpu, FiMinimize2, FiSend, FiX } from "react-icons/fi"
 import { OpenAPI } from "@/client"
 
+type AiProductItem = {
+  listing_id: string
+  title: string
+  price: number
+  condition: string
+  condition_label: string
+  category_name: string | null
+  image_url: string | null
+}
+
 type AssistantMessage = {
   id: string
   role: "user" | "assistant"
   content: string
+  products?: AiProductItem[]
 }
 
 type AssistantMeta = {
@@ -54,10 +65,14 @@ function normalizeAssistantPayload(payload: unknown): string | null {
   return null
 }
 
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat("vi-VN").format(price) + " ₫"
+}
+
 async function askAssistant(
   prompt: string,
   pathname: string,
-): Promise<{ answer: string; meta: AssistantMeta }> {
+): Promise<{ answer: string; meta: AssistantMeta; products?: AiProductItem[] }> {
   const endpoint = `${getApiBase()}/api/v1/ai/chat`
   const response = await fetch(endpoint, {
     method: "POST",
@@ -92,6 +107,7 @@ async function askAssistant(
     fallback_used?: unknown
     provider?: unknown
     model?: unknown
+    products?: unknown
   }
   const normalized =
     typeof payload.answer === "string" && payload.answer.trim()
@@ -105,7 +121,76 @@ async function askAssistant(
     provider: typeof payload.provider === "string" ? payload.provider : undefined,
     model: typeof payload.model === "string" ? payload.model : undefined,
   }
-  return { answer: normalized, meta }
+  const products = Array.isArray(payload.products) ? (payload.products as AiProductItem[]) : undefined
+  return { answer: normalized, meta, products }
+}
+
+function ProductCard({ product }: { product: AiProductItem }) {
+  return (
+    <Box
+      bg="white"
+      border="1px solid"
+      borderColor="teal.100"
+      borderRadius="lg"
+      p={2.5}
+      cursor="pointer"
+      _hover={{ borderColor: "teal.300", boxShadow: "sm" }}
+      transition="all 0.15s"
+      onClick={() => window.open(`/listings/${product.listing_id}`, "_blank")}
+      minW="180px"
+      maxW="220px"
+      flexShrink={0}
+    >
+      {product.image_url && (
+        <Box
+          borderRadius="md"
+          overflow="hidden"
+          mb={2}
+          h="80px"
+          bg="gray.50"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <img
+            src={product.image_url}
+            alt={product.title}
+            style={{ maxHeight: "80px", maxWidth: "100%", objectFit: "cover" }}
+          />
+        </Box>
+      )}
+      <Text fontSize="xs" fontWeight="600" lineClamp={2} color="gray.800">
+        {product.title}
+      </Text>
+      <Text fontSize="xs" fontWeight="bold" color="teal.600" mt={1}>
+        {formatPrice(product.price)}
+      </Text>
+      <HStack mt={1} gap={1} flexWrap="wrap">
+        <Text
+          fontSize="2xs"
+          bg="gray.100"
+          px={1.5}
+          py={0.5}
+          borderRadius="sm"
+          color="gray.600"
+        >
+          {product.condition_label}
+        </Text>
+        {product.category_name && (
+          <Text
+            fontSize="2xs"
+            bg="teal.50"
+            px={1.5}
+            py={0.5}
+            borderRadius="sm"
+            color="teal.700"
+          >
+            {product.category_name}
+          </Text>
+        )}
+      </HStack>
+    </Box>
+  )
 }
 
 export function AiAssistantWidget() {
@@ -123,7 +208,7 @@ export function AiAssistantWidget() {
       id: "assistant-welcome",
       role: "assistant",
       content:
-        "Xin chào, tôi là Trợ lý AI ReHub. Bạn cần tôi hướng dẫn đăng tin, tìm sản phẩm hay quy trình thanh toán?",
+        "Xin chào! Tôi là Trợ lý AI ReHub 🤖 Tôi có thể giúp bạn tìm sản phẩm, gợi ý giá bán, hoặc hướng dẫn sử dụng sàn.",
     },
   ])
 
@@ -133,7 +218,7 @@ export function AiAssistantWidget() {
     () => [
       "Cách đăng tin nhanh",
       "Escrow hoạt động thế nào",
-      "Mua bán an toàn",
+      "Tìm iPhone đang bán",
     ],
     [],
   )
@@ -163,11 +248,12 @@ export function AiAssistantWidget() {
       setIsLoading(true)
 
       try {
-        const { answer, meta } = await askAssistant(question, pathname)
+        const { answer, meta, products } = await askAssistant(question, pathname)
         const assistantMessage: AssistantMessage = {
           id: `a-${Date.now()}`,
           role: "assistant",
           content: answer,
+          products,
         }
         setMessages((prev) => [...prev, assistantMessage])
         setAssistantMeta(meta)
@@ -246,7 +332,7 @@ export function AiAssistantWidget() {
                 Trợ lý AI ReHub
               </Text>
               <Text fontSize="xs" color="gray.500">
-                Hướng dẫn nhanh, trả lời theo ngữ cảnh trang
+                Tìm sản phẩm, gợi ý giá, hướng dẫn sử dụng
               </Text>
               {(assistantMeta?.provider || assistantMeta?.model) && (
                 <Text fontSize="xs" color="gray.500">
@@ -309,20 +395,35 @@ export function AiAssistantWidget() {
             {messages.map((item) => {
               const isUser = item.role === "user"
               return (
-                <Flex key={item.id} justify={isUser ? "flex-end" : "flex-start"}>
-                  <Box
-                    maxW="86%"
-                    px={3}
-                    py={2}
-                    borderRadius="lg"
-                    bg={isUser ? "teal.600" : "gray.100"}
-                    color={isUser ? "white" : "gray.800"}
-                  >
-                    <Text fontSize="sm" whiteSpace="pre-wrap">
-                      {item.content}
-                    </Text>
-                  </Box>
-                </Flex>
+                <Box key={item.id}>
+                  <Flex justify={isUser ? "flex-end" : "flex-start"}>
+                    <Box
+                      maxW="86%"
+                      px={3}
+                      py={2}
+                      borderRadius="lg"
+                      bg={isUser ? "teal.600" : "gray.100"}
+                      color={isUser ? "white" : "gray.800"}
+                    >
+                      <Text fontSize="sm" whiteSpace="pre-wrap">
+                        {item.content}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  {/* Product cards */}
+                  {item.products && item.products.length > 0 && (
+                    <Box mt={2} ml={0}>
+                      <Text fontSize="xs" color="gray.500" mb={1.5} fontWeight="500">
+                        📦 Sản phẩm tìm thấy ({item.products.length})
+                      </Text>
+                      <Flex gap={2} overflowX="auto" pb={1}>
+                        {item.products.map((product) => (
+                          <ProductCard key={product.listing_id} product={product} />
+                        ))}
+                      </Flex>
+                    </Box>
+                  )}
+                </Box>
               )
             })}
 
