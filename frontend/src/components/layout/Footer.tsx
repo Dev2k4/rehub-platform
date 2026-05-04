@@ -5,182 +5,221 @@ import {
   SimpleGrid,
   Text,
   VStack,
+  HStack,
+  Icon,
+  Separator,
 } from "@chakra-ui/react"
-import { Link } from "@tanstack/react-router"
+import { Link, useRouterState } from "@tanstack/react-router"
+import { useEffect } from "react"
 import {
   FiFacebook,
   FiInstagram,
   FiMessageSquare,
   FiRefreshCcw,
+  FiMail,
+  FiArrowRight,
 } from "react-icons/fi"
 
-const linkStyle = {
-  fontSize: "0.875rem",
-  color: "rgba(255,255,255,0.65)",
-  textDecoration: "none",
-  transition: "color 0.2s",
-}
+const FooterLink = ({ to, children, href }: { to?: string; children: React.ReactNode; href?: string }) => {
+  const content = (
+    <HStack gap={1} transition="all 0.2s" color="whiteAlpha.600" _hover={{ color: "blue.400", transform: "translateX(4px)" }} cursor="pointer">
+      <Icon as={FiArrowRight} boxSize={3} opacity={0} _groupHover={{ opacity: 1 }} />
+      <Text fontSize="sm" fontWeight="500">{children}</Text>
+    </HStack>
+  );
+
+  if (to) {
+    return (
+      <Link to={to} style={{ textDecoration: "none" }} className="group">
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <a href={href} style={{ textDecoration: "none" }} className="group">
+      {content}
+    </a>
+  );
+};
+
+const SocialButton = ({ icon: IconNode, href, color }: { icon: any; href: string; color: string }) => (
+  <Box
+    as="a"
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    w={9}
+    h={9}
+    borderRadius="full"
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    bg="whiteAlpha.100"
+    color="whiteAlpha.700"
+    transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+    _hover={{
+      bg: color,
+      color: "white",
+      transform: "translateY(-4px)",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.25)"
+    }}
+  >
+    <IconNode size={16} />
+  </Box>
+);
 
 export function Footer() {
+  const { location } = useRouterState();
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [location.pathname]);
+
   return (
     <Box
       as="footer"
-      bg="gray.900"
-      color="whiteAlpha.800"
-      mt={16}
-      borderTop="1px solid"
-      borderColor="whiteAlpha.100"
+      bg="gray.950"
+      color="white"
+      mt={12}
+      position="relative"
+      overflow="hidden"
+      w="100%"
     >
-      <Container maxW="7xl" px={{ base: 4, md: 8 }} py={12}>
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap={10}>
-          {/* Cột 1: Về ReHub */}
-          <VStack align="start" gap={4}>
-            <Flex align="center" gap={2}>
-              <Box as={FiRefreshCcw} w={5} h={5} color="blue.400" />
+      {/* Subtle Top Gradient Line */}
+      <Box 
+        h="2px" 
+        w="full" 
+        bgGradient="to-r" 
+        gradientFrom="blue.500" 
+        gradientVia="purple.500" 
+        gradientTo="orange.400"
+        opacity={0.8}
+      />
+
+      <Container maxW="100%" px="4%" py={10}>
+        <SimpleGrid columns={{ base: 1, sm: 2, lg: 12 }} gap={{ base: 10, lg: 12 }}>
+          {/* Brand Column */}
+          <Box gridColumn={{ base: "span 1", lg: "span 5" }}>
+            <VStack align="start" gap={4}>
+              <Flex align="center" gap={3}>
+                <Box 
+                  display="flex" 
+                  alignItems="center" 
+                  justifyContent="center" 
+                  bgGradient="to-br" 
+                  gradientFrom="blue.500" 
+                  gradientTo="blue.700"
+                  p={1.5} 
+                  borderRadius="lg"
+                  boxShadow="0 4px 12px rgba(37, 99, 235, 0.3)"
+                >
+                  <Icon as={FiRefreshCcw} boxSize={5} color="white" />
+                </Box>
+                <Text
+                  fontWeight="900"
+                  fontSize="xl"
+                  bgGradient="to-r"
+                  gradientFrom="white"
+                  gradientTo="whiteAlpha.800"
+                  bgClip="text"
+                  letterSpacing="tight"
+                >
+                  ReHub
+                </Text>
+              </Flex>
+              
+              <Text
+                fontSize="sm"
+                color="whiteAlpha.700"
+                lineHeight={1.7}
+                maxW="400px"
+              >
+                Sàn giao dịch đồ cũ uy tín hàng đầu Việt Nam. Nơi kết nối cộng đồng yêu thích đồ cũ, 
+                lan tỏa giá trị bền vững và tiết kiệm tối đa cho mọi nhà.
+              </Text>
+
+              <HStack gap={3} mt={1}>
+                <SocialButton icon={FiFacebook} href="https://facebook.com" color="#1877F2" />
+                <SocialButton icon={FiInstagram} href="https://instagram.com" color="#E4405F" />
+                <SocialButton icon={FiMessageSquare} href="/" color="#0084FF" />
+              </HStack>
+            </VStack>
+          </Box>
+
+          {/* Links Column 1 */}
+          <Box gridColumn={{ base: "span 1", lg: "span 3" }}>
+            <VStack align="start" gap={4}>
               <Text
                 fontWeight="800"
-                fontSize="lg"
+                fontSize="xs"
                 color="white"
-                letterSpacing="tight"
+                textTransform="uppercase"
+                letterSpacing="widest"
               >
-                ReHub
+                Liên kết nhanh
               </Text>
-            </Flex>
-            <Text
-              fontSize="sm"
-              color="whiteAlpha.700"
-              lineHeight={1.8}
-              maxW="260px"
-            >
-              Sàn giao dịch đồ cũ uy tín hàng đầu Việt Nam. Mua bán nhanh –
-              Thanh toán bảo mật – Giao hàng toàn quốc.
-            </Text>
-            <Flex gap={4} mt={2}>
-              {[
-                {
-                  icon: FiFacebook,
-                  href: "https://facebook.com",
-                  hoverColor: "#63B3ED",
-                },
-                {
-                  icon: FiInstagram,
-                  href: "https://instagram.com",
-                  hoverColor: "#F687B3",
-                },
-                {
-                  icon: FiMessageSquare,
-                  href: "/",
-                  hoverColor: "#68D391",
-                },
-              ].map(({ icon: Icon, href, hoverColor }, i) => (
-                <a
-                  key={i}
-                  href={href}
-                  target={href.startsWith("http") ? "_blank" : undefined}
-                  rel={
-                    href.startsWith("http") ? "noopener noreferrer" : undefined
-                  }
-                  style={{
-                    color: "rgba(255,255,255,0.65)",
-                    transition: "color 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = hoverColor)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = "rgba(255,255,255,0.65)")
-                  }
-                >
-                  <Icon size={20} />
-                </a>
-              ))}
-            </Flex>
-          </VStack>
+              <VStack align="start" gap={3} w="full">
+                <FooterLink to="/">Trang chủ</FooterLink>
+                <FooterLink to="/my-listings">Đăng tin bán</FooterLink>
+                <FooterLink to="/orders">Đơn hàng của tôi</FooterLink>
+                <FooterLink to="/wallet">Ví của tôi</FooterLink>
+              </VStack>
+            </VStack>
+          </Box>
 
-          {/* Cột 2: Liên kết nhanh */}
-          <VStack align="start" gap={3}>
-            <Text
-              fontWeight="700"
-              fontSize="xs"
-              color="white"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              mb={1}
-            >
-              Liên kết nhanh
-            </Text>
-            {[
-              { label: "Trang chủ", to: "/" },
-              { label: "Đăng tin bán", to: "/my-listings" },
-              { label: "Đơn hàng của tôi", to: "/orders" },
-              { label: "Ví của tôi", to: "/wallet" },
-            ].map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                style={linkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#63B3ED")}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "rgba(255,255,255,0.65)")
-                }
+          {/* Links Column 2 */}
+          <Box gridColumn={{ base: "span 1", lg: "span 4" }}>
+            <VStack align="start" gap={4}>
+              <Text
+                fontWeight="800"
+                fontSize="xs"
+                color="white"
+                textTransform="uppercase"
+                letterSpacing="widest"
               >
-                {item.label}
-              </Link>
-            ))}
-          </VStack>
-
-          {/* Cột 3: Hỗ trợ */}
-          <VStack align="start" gap={3}>
-            <Text
-              fontWeight="700"
-              fontSize="xs"
-              color="white"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              mb={1}
-            >
-              Hỗ trợ
-            </Text>
-            {[
-              {
-                label: "Email: support@rehub.vn",
-                href: "mailto:support@rehub.vn",
-              },
-              { label: "Hướng dẫn mua bán", href: "/" },
-              { label: "Điều khoản sử dụng", href: "/" },
-              { label: "Chính sách bảo mật", href: "/" },
-            ].map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                style={linkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#63B3ED")}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "rgba(255,255,255,0.65)")
-                }
-              >
-                {item.label}
-              </a>
-            ))}
-          </VStack>
+                Hỗ trợ khách hàng
+              </Text>
+              <VStack align="start" gap={3} w="full">
+                <HStack color="whiteAlpha.600" _hover={{ color: "blue.400" }} transition="all 0.2s" cursor="pointer" as="a" href="mailto:support@rehub.vn">
+                  <FiMail />
+                  <Text fontSize="sm" fontWeight="500">support@rehub.vn</Text>
+                </HStack>
+                <FooterLink href="/">Hướng dẫn mua bán</FooterLink>
+                <FooterLink href="/">Điều khoản sử dụng</FooterLink>
+                <FooterLink href="/">Chính sách bảo mật</FooterLink>
+              </VStack>
+            </VStack>
+          </Box>
         </SimpleGrid>
 
-        {/* Divider + Copyright */}
-        <Box mt={10} pt={6} borderTop="1px solid" borderColor="whiteAlpha.200">
-          <Flex
-            justify={{ base: "center", md: "space-between" }}
-            align="center"
-            direction={{ base: "column", md: "row" }}
-            gap={3}
-          >
-            <Text fontSize="xs" color="whiteAlpha.500">
+        <Separator mt={10} borderColor="whiteAlpha.100" />
+
+        {/* Bottom Bar */}
+        <Flex
+          mt={8}
+          justify={{ base: "center", md: "space-between" }}
+          align="center"
+          direction={{ base: "column", md: "row" }}
+          gap={4}
+        >
+          <VStack align={{ base: "center", md: "start" }} gap={0.5}>
+            <Text fontSize="xs" color="whiteAlpha.500" fontWeight="500">
               © {new Date().getFullYear()} ReHub Marketplace. Bảo lưu mọi quyền.
             </Text>
-            <Text fontSize="xs" color="whiteAlpha.400">
-              Nền tảng mua bán đồ cũ – Lan tỏa giá trị mới ♻️
+            <Text fontSize="10px" color="whiteAlpha.300">
+              Phát triển bởi đội ngũ ReHub Team với ❤️ tại Việt Nam
             </Text>
-          </Flex>
-        </Box>
+          </VStack>
+
+          <HStack gap={2} bg="whiteAlpha.50" px={3} py={1.5} borderRadius="full" border="1px solid" borderColor="whiteAlpha.100">
+            <Icon as={FiRefreshCcw} boxSize={3} color="blue.400" />
+            <Text fontSize="10px" color="whiteAlpha.600" fontWeight="600" letterSpacing="wide">
+              NỀN TẢNG ĐỒ CŨ – LAN TỎA GIÁ TRỊ MỚI
+            </Text>
+          </HStack>
+        </Flex>
       </Container>
     </Box>
   )

@@ -62,6 +62,7 @@ import {
   getUserPublicProfile,
 } from "@/features/users/api/users.api";
 import { ListingCard } from "@/features/users/components/ListingCard";
+import { ListingLocationMap } from "@/features/listings/components/ListingLocationMap";
 
 const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
   brand_new: { label: "Mới 100%", color: "green" },
@@ -779,10 +780,11 @@ export function ListingDetailPage() {
           </Box>
         </Flex>
 
-        {/* Description Section */}
+        {/* Description & Location Section */}
         <Box mt={8}>
-          <SimpleGrid columns={{ base: 1, lg: 12 }} gap={8}>
-            <Box gridColumn={{ base: "span 1", lg: "span 8" }}>
+          <Flex direction={{ base: "column", lg: "row" }} gap={8} align="stretch">
+            {/* Left Column: Description & Offers */}
+            <Box w={{ base: "full", lg: "520px" }} flexShrink={0}>
               <VStack gap={8} align="stretch">
                 {isOwnListing && (
                   <Box
@@ -897,10 +899,14 @@ export function ListingDetailPage() {
               </VStack>
             </Box>
 
-            <Box gridColumn={{ base: "span 1", lg: "span 4" }}>
-              {/* Sidebar content could go here in future */}
+            {/* Right Column: Location Map */}
+            <Box flex={1} minW={0}>
+              <ListingLocationMap
+                province={sellerProfileQuery.data?.province ?? undefined}
+                district={sellerProfileQuery.data?.district ?? undefined}
+              />
             </Box>
-          </SimpleGrid>
+          </Flex>
         </Box>
       </Container>
 
@@ -948,7 +954,7 @@ export function ListingDetailPage() {
           {/* Seller's other listings */}
           {sellerListingsQuery.data &&
             sellerListingsQuery.data.items.filter((l) => l.id !== id).length >
-              0 && (
+            0 && (
               <Box mt={12}>
                 <Flex align="center" gap={3} mb={5}>
                   <Heading

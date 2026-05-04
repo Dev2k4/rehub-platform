@@ -7,6 +7,7 @@ import {
   Heading,
   HStack,
   Icon,
+  SimpleGrid,
   Spinner,
   Text,
   VStack,
@@ -14,7 +15,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { FiArrowLeft, FiFilter } from "react-icons/fi";
+import { FiArrowLeft, FiFilter, FiBell, FiAlertCircle, FiList } from "react-icons/fi";
 import type { NotificationRead } from "@/client";
 import {
   MenuContent,
@@ -111,7 +112,7 @@ export function NotificationsPage() {
         queryKey: ["notifications", "unread-count"],
       });
       toaster.create({
-        title: "Da danh dau tat ca la da doc",
+        title: "Đã đánh dấu tất cả là đã đọc",
         type: "success",
       });
     },
@@ -149,7 +150,7 @@ export function NotificationsPage() {
     try {
       await markOneMutation.mutateAsync(notificationId);
     } catch {
-      toaster.create({ title: "Khong the cap nhat thong bao", type: "error" });
+      toaster.create({ title: "Không thể cập nhật thông báo", type: "error" });
     }
   };
 
@@ -170,13 +171,13 @@ export function NotificationsPage() {
     try {
       await markAllMutation.mutateAsync();
     } catch {
-      toaster.create({ title: "Khong the danh dau tat ca", type: "error" });
+      toaster.create({ title: "Không thể đánh dấu tất cả", type: "error" });
     }
   };
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="6xl" py={10} mx="auto">
+      <Container maxW="1440px" mx="auto" px={{ base: "1rem", md: "2%" }} py={10}>
         <Flex align="center" justify="space-between" mb={6}>
           <Button
             variant="ghost"
@@ -186,58 +187,64 @@ export function NotificationsPage() {
             _hover={{ bg: "blue.50" }}
           >
             <FiArrowLeft style={{ marginRight: "0.5rem" }} />
-            Quay lai
+            Quay lại
           </Button>
         </Flex>
 
-        <Box mb={8}>
-          <Heading size="3xl" mb={3} color="gray.900" fontWeight="extrabold">
-            Thong bao
-          </Heading>
-          <Text color="gray.500" fontSize="lg">
-            Lich su thong bao theo thoi gian thuc, co loc va phan trang.
-          </Text>
-        </Box>
+        <Heading
+          size="3xl"
+          mb={2}
+          color="gray.900"
+          fontWeight="extrabold"
+          display="flex"
+          alignItems="center"
+        >
+          <FiBell
+            size={32}
+            style={{ display: "inline", marginRight: "12px" }}
+          />
+          Thông báo
+        </Heading>
+        <Text color="gray.500" fontSize="md" mb={6}>
+          Xem và quản lý các thông báo từ hệ thống.
+        </Text>
+
+        {/* Summary stats */}
+        <SimpleGrid columns={{ base: 3 }} gap={4} mb={8}>
+          <div className="stat-card animate-fadeinup delay-0">
+            <div className="stat-card-icon" style={{ background: "#EFF6FF" }}>
+              <FiBell size={18} color="#2563eb" />
+            </div>
+            <div className="stat-card-value">{total}</div>
+            <div className="stat-card-label">Tổng thông báo</div>
+          </div>
+          <div className="stat-card animate-fadeinup delay-1">
+            <div className="stat-card-icon" style={{ background: "#FFFBEB" }}>
+              <FiAlertCircle size={18} color="#f59e0b" />
+            </div>
+            <div className="stat-card-value" style={{ color: "#f59e0b" }}>
+              {unreadCount}
+            </div>
+            <div className="stat-card-label">Chưa đọc</div>
+          </div>
+          <div className="stat-card animate-fadeinup delay-2">
+            <div className="stat-card-icon" style={{ background: "#F0FDF4" }}>
+              <FiList size={18} color="#10b981" />
+            </div>
+            <div className="stat-card-value" style={{ color: "#10b981" }}>
+              {page}/{totalPages}
+            </div>
+            <div className="stat-card-label">Trang hiện tại</div>
+          </div>
+        </SimpleGrid>
 
         <Flex
           mb={6}
-          bg="white"
-          border="1px"
-          borderColor="gray.200"
-          borderRadius="xl"
-          p={4}
           justify="space-between"
           align={{ base: "start", md: "center" }}
           direction={{ base: "column", md: "row" }}
-          gap={3}
+          gap={4}
         >
-          <HStack gap={6} wrap="wrap">
-            <Box>
-              <Text fontSize="xs" color="gray.500" textTransform="uppercase">
-                Tong thong bao
-              </Text>
-              <Text fontSize="xl" fontWeight="bold" color="gray.900">
-                {total}
-              </Text>
-            </Box>
-            <Box>
-              <Text fontSize="xs" color="gray.500" textTransform="uppercase">
-                Chua doc
-              </Text>
-              <Text fontSize="xl" fontWeight="bold" color="blue.600">
-                {unreadCount}
-              </Text>
-            </Box>
-            <Box>
-              <Text fontSize="xs" color="gray.500" textTransform="uppercase">
-                Trang hien tai
-              </Text>
-              <Text fontSize="xl" fontWeight="bold" color="gray.900">
-                {page}/{totalPages}
-              </Text>
-            </Box>
-          </HStack>
-
           <HStack gap={2}>
             <Button
               size="sm"
@@ -248,12 +255,12 @@ export function NotificationsPage() {
               }}
               disabled={readFilter === "all" && typeFilter === "all"}
             >
-              Xoa bo loc
+              Xóa bộ lọc
             </Button>
             {notificationsQuery.isFetching && (
               <HStack color="gray.500" fontSize="sm">
                 <Spinner size="xs" />
-                <Text>Dang cap nhat...</Text>
+                <Text>Đang cập nhật...</Text>
               </HStack>
             )}
           </HStack>
@@ -267,41 +274,49 @@ export function NotificationsPage() {
           mb={6}
         >
           <HStack
+            mb={10}
+            gap={1.5}
             bg="whiteAlpha.800"
             backdropFilter="blur(20px)"
             p={1.5}
             borderRadius="2xl"
+            display="inline-flex"
             border="1px"
             borderColor="whiteAlpha.400"
             boxShadow="0 4px 20px rgba(0,0,0,0.04)"
-            gap={1.5}
           >
             <Button
               onClick={() => setReadFilter("all")}
               variant={readFilter === "all" ? "solid" : "ghost"}
               colorPalette={readFilter === "all" ? "blue" : "gray"}
               borderRadius="xl"
-              size="sm"
+              px={8}
+              size="md"
+              fontWeight="bold"
             >
-              Tat ca
+              Tất cả
             </Button>
             <Button
               onClick={() => setReadFilter("unread")}
               variant={readFilter === "unread" ? "solid" : "ghost"}
               colorPalette={readFilter === "unread" ? "blue" : "gray"}
               borderRadius="xl"
-              size="sm"
+              px={8}
+              size="md"
+              fontWeight="bold"
             >
-              Chua doc ({unreadCount})
+              Chưa đọc ({unreadCount})
             </Button>
             <Button
               onClick={() => setReadFilter("read")}
               variant={readFilter === "read" ? "solid" : "ghost"}
               colorPalette={readFilter === "read" ? "blue" : "gray"}
               borderRadius="xl"
-              size="sm"
+              px={8}
+              size="md"
+              fontWeight="bold"
             >
-              Da doc
+              Đã đọc
             </Button>
           </HStack>
 
@@ -342,7 +357,7 @@ export function NotificationsPage() {
               loading={markAllMutation.isPending}
               disabled={unreadCount === 0}
             >
-              Danh dau tat ca
+              Đánh dấu tất cả
             </Button>
           </HStack>
         </Flex>
@@ -364,7 +379,7 @@ export function NotificationsPage() {
             <Box py={12} textAlign="center">
               <Icon as={FiFilter} boxSize={6} color="gray.400" mb={3} />
               <Text fontSize="md" color="gray.500">
-                Khong co thong bao phu hop bo loc hien tai.
+                Không có thông báo phù hợp bộ lọc hiện tại.
               </Text>
               <Button
                 mt={4}
@@ -375,7 +390,7 @@ export function NotificationsPage() {
                   setTypeFilter("all");
                 }}
               >
-                Tro ve tat ca thong bao
+                Trở về tất cả thông báo
               </Button>
             </Box>
           ) : (
@@ -412,7 +427,7 @@ export function NotificationsPage() {
                             variant="subtle"
                             borderRadius="full"
                           >
-                            {notification.is_read ? "Da doc" : "Moi"}
+                            {notification.is_read ? "Đã đọc" : "Mới"}
                           </Badge>
                           <Badge
                             colorPalette="purple"
@@ -450,7 +465,7 @@ export function NotificationsPage() {
                             onClick={() => handleMarkRead(notification.id)}
                             loading={markOneMutation.isPending}
                           >
-                            Danh dau da doc
+                            Đánh dấu đã đọc
                           </Button>
                         )}
                         <Button
@@ -459,7 +474,7 @@ export function NotificationsPage() {
                           borderRadius="lg"
                           onClick={() => handleOpenNotification(notification)}
                         >
-                          Mo
+                          Mở
                         </Button>
                       </HStack>
                     </Flex>
@@ -474,7 +489,7 @@ export function NotificationsPage() {
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
                   disabled={page <= 1}
                 >
-                  Trang truoc
+                  Trang trước
                 </Button>
                 <Text
                   fontSize="sm"

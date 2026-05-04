@@ -2,11 +2,12 @@ import { Box, Flex, Heading, SimpleGrid, Text } from "@chakra-ui/react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import {
   FiEye,
-  FiHeart,
   FiImage,
   FiMessageCircle,
   FiShare2,
   FiTag,
+  FiMapPin,
+  FiInbox,
 } from "react-icons/fi"
 import type {
   CategoryTree,
@@ -26,6 +27,7 @@ type ListingGridProps = {
   listings: (ListingWithImages & { isPendingOverlay?: boolean })[]
   categoryMap: Map<string, CategoryTree>
   sellerMap: Map<string, UserPublicProfile>
+  currentUserProvince?: string
 }
 
 const CONDITION_BADGE: Record<
@@ -43,6 +45,7 @@ export function ListingGrid({
   listings,
   categoryMap,
   sellerMap,
+  currentUserProvince,
 }: ListingGridProps) {
   if (listings.length === 0) {
     return (
@@ -59,7 +62,7 @@ export function ListingGrid({
           mb="1rem"
           style={{ animation: "float 3s ease-in-out infinite" }}
         >
-          📭
+          <FiInbox size="100%" color="inherit" />
         </Box>
         <Text fontSize="md" color="gray.600" fontWeight="700" mb={2}>
           Không tìm thấy sản phẩm phù hợp
@@ -81,6 +84,7 @@ export function ListingGrid({
           seller={sellerMap.get(listing.seller_id)}
           animDelay={idx % 8}
           isPendingOverlay={listing.isPendingOverlay}
+          currentUserProvince={currentUserProvince}
         />
       ))}
     </SimpleGrid>
@@ -93,6 +97,7 @@ type ListingGridItemProps = {
   seller?: UserPublicProfile
   animDelay?: number
   isPendingOverlay?: boolean
+  currentUserProvince?: string
 }
 
 function ListingGridItem({
@@ -101,11 +106,15 @@ function ListingGridItem({
   seller,
   animDelay = 0,
   isPendingOverlay = false,
+  currentUserProvince,
 }: ListingGridItemProps) {
   const navigate = useNavigate()
   const isSellerOnline = useIsUserOnline(listing.seller_id)
   const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
   const badge = CONDITION_BADGE[listing.condition_grade] ?? CONDITION_BADGE.poor
+
+  const isNearby = !!currentUserProvince && !!seller?.province && 
+    currentUserProvince.trim().toLowerCase() === seller.province.trim().toLowerCase();
 
   const delayClass = `delay-${Math.min(animDelay, 7)}`
 
@@ -232,22 +241,39 @@ function ListingGridItem({
         </div>
 
         {/* Condition badge */}
-        <Box
-          className="listing-card-badge"
-          style={{ background: badge.bg, color: badge.color }}
-        >
-          {badge.label}
-        </Box>
+        <Flex position="absolute" top="0.5rem" left="0.5rem" gap={2} zIndex={5}>
+          <Box
+            style={{ background: badge.bg, color: badge.color }}
+            fontSize="0.7rem"
+            fontWeight="bold"
+            px="0.5rem"
+            py="0.15rem"
+            borderRadius="md"
+            boxShadow="sm"
+          >
+            {badge.label}
+          </Box>
+          
+          {isNearby && (
+            <Box
+              bg="green.500"
+              color="white"
+              fontSize="0.7rem"
+              fontWeight="bold"
+              px="0.5rem"
+              py="0.15rem"
+              borderRadius="md"
+              boxShadow="sm"
+              display="flex"
+              alignItems="center"
+              gap={1}
+            >
+              <FiMapPin /> Gần bạn
+            </Box>
+          )}
+        </Flex>
 
-        {/* Heart button */}
-        <Box
-          as="button"
-          className="listing-heart-btn"
-          onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          aria-label="Yêu thích"
-        >
-          <FiHeart size={14} />
-        </Box>
+        {/* Heart button removed since backend doesn't support favorites */}
 
         {/* Stats row at bottom of image */}
         <Flex
@@ -268,10 +294,6 @@ function ListingGridItem({
           <Flex align="center" gap="0.2rem" color="white" fontSize="0.65rem">
             <FiEye size={10} />
             <Text>{viewCount}</Text>
-          </Flex>
-          <Flex align="center" gap="0.2rem" color="white" fontSize="0.65rem">
-            <FiHeart size={10} />
-            <Text>{likeCount}</Text>
           </Flex>
         </Flex>
       </Box>
@@ -358,16 +380,16 @@ function ListingGridItem({
             <FiMessageCircle size={10} /> Chat
           </button>
         </Tooltip>
-        <Tooltip content="Thêm vào yêu thích">
+        <Tooltip content="Chia sẻ">
           <button
             className="listing-quick-btn"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              const url = `${window.location.origin}/listings/${listing.id}`;
+              navigator.clipboard.writeText(url);
+              toaster.create({ title: "Đã copy link sản phẩm", type: "success" });
+            }}
           >
-            <FiHeart size={10} /> Thích
-          </button>
-        </Tooltip>
-        <Tooltip content="Chia sẻ sản phẩm">
-          <button className="listing-quick-btn" onClick={handleShareClick}>
             <FiShare2 size={10} /> Chia sẻ
           </button>
         </Tooltip>

@@ -141,7 +141,7 @@ export function OffersPage() {
 
   return (
     <Box minH="100vh" bg="gray.50">
-      <Container maxW="6xl" py={10} mx="auto">
+      <Container maxW="1440px" mx="auto" px={{ base: "1rem", md: "2%" }} py={10}>
         <Flex align="center" justify="space-between" mb={6}>
           <Button
             variant="ghost"

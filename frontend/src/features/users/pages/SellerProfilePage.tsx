@@ -20,7 +20,6 @@ import {
   FiAward,
   FiCalendar,
   FiFileText,
-  FiHeart,
   FiMapPin,
   FiMessageCircle,
   FiPhone,
@@ -41,6 +40,7 @@ import {
   getUserPublicProfile,
 } from "@/features/users/api/users.api"
 import { ListingCard } from "@/features/users/components/ListingCard"
+import { DeliveryRouteMap } from "@/features/orders/components/DeliveryRouteMap"
 
 export function SellerProfilePage() {
   const navigate = useNavigate()
@@ -336,15 +336,6 @@ export function SellerProfilePage() {
                     Nhắn tin ngay
                   </Button>
                   <Button
-                    variant="outline"
-                    colorPalette="gray"
-                    borderRadius="xl"
-                    px={5}
-                  >
-                    <FiHeart size={16} style={{ marginRight: "6px" }} />
-                    Theo dõi
-                  </Button>
-                  <Button
                     variant="ghost"
                     colorPalette="gray"
                     borderRadius="xl"
@@ -355,6 +346,38 @@ export function SellerProfilePage() {
                   </Button>
                 </HStack>
               </Box>
+
+              {/* Map Widget Column */}
+              {profile.province && (
+                <Box 
+                  display={{ base: "none", lg: "block" }} 
+                  w="350px" 
+                  h="160px" 
+                  borderRadius="xl" 
+                  overflow="hidden" 
+                  border="1px" 
+                  borderColor="gray.200"
+                  flexShrink={0}
+                  boxShadow="sm"
+                >
+                  <Box position="relative" w="full" h="full">
+                    <DeliveryRouteMap 
+                      sellerProvince={profile.province}
+                      sellerDistrict={profile.district || undefined}
+                      buyerProvince={profile.province}
+                      buyerDistrict={profile.district || undefined}
+                    />
+                    {/* Overlay to hide the route legend and info box since we only want to show the location marker */}
+                    <Box 
+                      position="absolute" 
+                      top={0} left={0} right={0} bottom={0} 
+                      pointerEvents="none" 
+                      boxShadow="inset 0 0 20px rgba(0,0,0,0.05)"
+                      zIndex={1001}
+                    />
+                  </Box>
+                </Box>
+              )}
             </Flex>
 
             {/* Safe Trading Trust Box */}

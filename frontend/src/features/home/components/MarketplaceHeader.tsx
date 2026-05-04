@@ -639,7 +639,7 @@ export function MarketplaceHeader({
   };
 
   const tickerItems = [
-    { text: "Chào mừng đến ReHub Marketplace!", icon: FiHeart },
+    { text: "Chào mừng đến ReHub Marketplace!", icon: FiTrendingUp },
     { text: "Hàng nghìn sản phẩm đang chờ bạn", icon: FiTrendingUp },
     { text: "Thanh toán an toàn & bảo mật", icon: FiShield },
     { text: "Giao hàng toàn quốc", icon: FiTruck },

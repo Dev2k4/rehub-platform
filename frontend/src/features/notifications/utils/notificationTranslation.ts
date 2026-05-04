@@ -64,6 +64,42 @@ export const translateNotification = (
       /Your offer for listing (.*?) was accepted/i,
       "Đề xuất giá cho tin đăng $1 đã được chấp nhận",
     );
+    translatedMessage = translatedMessage.replace(
+      /You received a new offer for listing '(.+?)'\./i,
+      "Bạn nhận được đề xuất giá mới cho tin đăng '$1'.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /Your offer for '(.+?)' was accepted\./i,
+      "Đề xuất giá cho tin đăng '$1' đã được chấp nhận.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /Your offer for '(.+?)' was rejected\./i,
+      "Đề xuất giá cho tin đăng '$1' đã bị từ chối.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /Your offer for '(.+?)' was countered\./i,
+      "Đề xuất giá cho tin đăng '$1' đã có đề xuất giá lại.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /Buyer accepted your counter offer for '(.+?)'\./i,
+      "Người mua đã chấp nhận đề xuất giá lại cho tin đăng '$1'.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /Buyer rejected your counter offer for '(.+?)'\./i,
+      "Người mua đã từ chối đề xuất giá lại cho tin đăng '$1'.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /Your listing '(.+?)' has been approved\./i,
+      "Tin đăng '$1' của bạn đã được duyệt.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /Your listing '(.+?)' has been rejected\./i,
+      "Tin đăng '$1' của bạn đã bị từ chối.",
+    );
+    translatedMessage = translatedMessage.replace(
+      /A buyer placed an order for your listing '(.+?)'\./i,
+      "Một người mua đã đặt đơn hàng cho tin đăng '$1' của bạn.",
+    );
   }
 
   return { title: translatedTitle, message: translatedMessage };

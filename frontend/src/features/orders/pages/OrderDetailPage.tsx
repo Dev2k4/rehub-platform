@@ -7,14 +7,15 @@ import {
   HStack,
   Input,
   Separator,
-  Spinner,
   Text,
   VStack,
+  Stack,
 } from "@chakra-ui/react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
-import { FiArrowLeft, FiCreditCard, FiShield } from "react-icons/fi";
+import { FiArrowLeft, FiCreditCard, FiShield, FiMap } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
@@ -43,6 +44,7 @@ import { ReviewsList } from "@/features/reviews/components/ReviewsList";
 import { useOrderReviews } from "@/features/reviews/hooks/useReviews";
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 import { getUserPublicProfile } from "@/features/users/api/users.api";
+import { DeliveryRouteMap } from "@/features/orders/components/DeliveryRouteMap";
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
@@ -120,24 +122,32 @@ export function OrderDetailPage() {
   const disputeMutation = useOpenEscrowDispute();
   const [sellerProofUrl, setSellerProofUrl] = useState("");
   const [buyerProofUrl, setBuyerProofUrl] = useState("");
+  const [showMap, setShowMap] = useState(false);
+  
+  // Explicitly fetch both profiles for addresses
+  const buyerId = orderQuery.data?.buyer_id;
+  const sellerId = orderQuery.data?.seller_id;
+
+  const buyerProfileQuery = useQuery({
+    queryKey: ["user-profile", buyerId],
+    queryFn: () => getUserPublicProfile(buyerId!),
+    enabled: !!buyerId,
+  });
+
+  const sellerProfileQuery = useQuery({
+    queryKey: ["user-profile", sellerId],
+    queryFn: () => getUserPublicProfile(sellerId!),
+    enabled: !!sellerId,
+  });
+
   const counterpartyId =
     orderQuery.data && user
       ? orderQuery.data.buyer_id === user.id
         ? orderQuery.data.seller_id
         : orderQuery.data.buyer_id
       : "";
-  const counterpartyProfileQuery = useQuery({
-    queryKey: ["seller-profile", counterpartyId],
-    queryFn: () => getUserPublicProfile(counterpartyId),
-    enabled: !!counterpartyId,
-  });
-  const isCounterpartyOnline = useIsUserOnline(
-    orderQuery.data
-      ? orderQuery.data.buyer_id === user?.id
-        ? orderQuery.data.seller_id
-        : orderQuery.data.buyer_id
-      : null,
-  );
+
+  const isCounterpartyOnline = useIsUserOnline(counterpartyId || null);
 
   if (!authLoading && !isAuthenticated) {
     navigate({ to: "/auth/login" });
@@ -146,9 +156,44 @@ export function OrderDetailPage() {
 
   if (authLoading || !user || orderQuery.isLoading) {
     return (
-      <Flex minH="100vh" align="center" justify="center">
-        <Spinner size="lg" color="blue.500" />
-      </Flex>
+      <Box minH="100vh" bg="gray.50">
+        <Container maxW="3xl" py={10} mx="auto">
+          {/* Skeleton for Header Navigation */}
+          <HStack mb={6} gap={3}>
+            <Skeleton h="40px" w="180px" borderRadius="xl" />
+            <Skeleton h="40px" w="140px" borderRadius="xl" />
+          </HStack>
+
+          {/* Skeleton for Main Card */}
+          <Box bg="white" borderRadius="2xl" p={8} boxShadow="sm">
+            <Flex justify="space-between" mb={6}>
+              <Box w="60%">
+                <Skeleton h="32px" w="70%" mb={2} />
+                <Skeleton h="20px" w="40%" />
+              </Box>
+              <Skeleton h="32px" w="100px" borderRadius="full" />
+            </Flex>
+
+            {/* Skeleton for Order Info */}
+            <Box bg="gray.50" p={6} borderRadius="xl" mb={6}>
+              <VStack align="stretch" gap={4}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Flex key={i} justify="space-between">
+                    <Skeleton h="20px" w="30%" />
+                    <Skeleton h="20px" w="40%" />
+                  </Flex>
+                ))}
+              </VStack>
+            </Box>
+
+            {/* Skeleton for Buttons */}
+            <Stack direction="row" gap={4}>
+              <Skeleton h="44px" flex={1} borderRadius="xl" />
+              <Skeleton h="44px" flex={1} borderRadius="xl" />
+            </Stack>
+          </Box>
+        </Container>
+      </Box>
     );
   }
 
@@ -164,8 +209,12 @@ export function OrderDetailPage() {
   const status = statusMeta(order.status);
   const isBuyer = order.buyer_id === user.id;
   const isSeller = order.seller_id === user.id;
-  const counterpartyName =
-    counterpartyProfileQuery.data?.full_name?.trim() || counterpartyId;
+  
+  const buyerProfile = buyerProfileQuery.data;
+  const sellerProfile = sellerProfileQuery.data;
+  
+  const counterpartyProfile = isBuyer ? sellerProfile : buyerProfile;
+  const counterpartyName = counterpartyProfile?.full_name?.trim() || counterpartyId;
   const escrow = escrowQuery.data;
   const hasEscrow = !!escrow;
   const fulfillment = fulfillmentQuery.data;
@@ -406,6 +455,62 @@ export function OrderDetailPage() {
                   {formatCurrencyVnd(order.final_price)}
                 </Text>
               </HStack>
+              <Separator borderColor="gray.200" />
+              <VStack align="stretch" py={3} gap={2}>
+                <Text color="gray.800" fontWeight="semibold" fontSize="sm">
+                  Địa chỉ giao dịch
+                </Text>
+                <Box bg="white" p={3} borderRadius="lg" border="1px" borderColor="gray.200">
+                  <VStack align="stretch" gap={2} fontSize="sm">
+                    <Flex justify="space-between">
+                      <Text color="gray.500" w="30%">Người bán:</Text>
+                      <Text color="gray.800" w="70%" textAlign="right" fontWeight="medium">
+                        {sellerProfile?.province ? `${sellerProfile.district ? sellerProfile.district + ', ' : ''}${sellerProfile.province}` : "Chưa cập nhật"}
+                      </Text>
+                    </Flex>
+                    <Flex justify="space-between">
+                      <Text color="gray.500" w="30%">Người mua:</Text>
+                      <Text color="gray.800" w="70%" textAlign="right" fontWeight="medium">
+                        {buyerProfile?.province ? `${buyerProfile.district ? buyerProfile.district + ', ' : ''}${buyerProfile.province}` : "Chưa cập nhật"}
+                      </Text>
+                    </Flex>
+                  </VStack>
+                  
+                  {sellerProfile?.province && buyerProfile?.province ? (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      colorPalette="blue" 
+                      w="full" 
+                      mt={3} 
+                      onClick={() => setShowMap(!showMap)}
+                      borderRadius="lg"
+                    >
+                      <FiMap style={{ marginRight: "0.5rem" }} />
+                      {showMap ? "Ẩn bản đồ" : "Xem đường đi giao hàng"}
+                    </Button>
+                  ) : (
+                    <Box mt={3} p={2} bg="orange.50" borderRadius="md" border="1px solid" borderColor="orange.100">
+                      <Text fontSize="xs" color="orange.700" textAlign="center">
+                        {!buyerProfile?.province 
+                          ? "Vui lòng nhắc đối tác (người mua) cập nhật địa chỉ để xem lộ trình và giao hàng." 
+                          : "Bạn cần cập nhật địa chỉ trong Hồ sơ để xem lộ trình."}
+                      </Text>
+                    </Box>
+                  )}
+                </Box>
+              </VStack>
+
+              {showMap && sellerProfile?.province && buyerProfile?.province && (
+                <Box mt={2} overflow="hidden" borderRadius="xl" border="1px" borderColor="blue.100" boxShadow="sm">
+                  <DeliveryRouteMap 
+                    sellerProvince={sellerProfile.province}
+                    sellerDistrict={sellerProfile.district || undefined}
+                    buyerProvince={buyerProfile.province}
+                    buyerDistrict={buyerProfile.district || undefined}
+                  />
+                </Box>
+              )}
             </VStack>
           </Box>
 
@@ -572,55 +677,69 @@ export function OrderDetailPage() {
                 )}
 
                 {canStartPreparing && (
-                  <Button
-                    size="sm"
-                    colorPalette="orange"
-                    borderRadius="xl"
-                    onClick={async () => {
-                      try {
-                        await startPreparingMutation.mutateAsync(order.id);
-                        toaster.create({
-                          title: "Đã cập nhật: đang chuẩn bị hàng",
-                          type: "success",
-                        });
-                      } catch (e: any) {
-                        toaster.create({
-                          title: e?.message || "Lỗi cập nhật trạng thái chuẩn bị",
-                          type: "error",
-                        });
-                      }
-                    }}
-                    loading={startPreparingMutation.isPending}
-                  >
-                    Đang chuẩn bị hàng
-                  </Button>
+                  <VStack align="stretch" flex={1}>
+                    <Button
+                      size="sm"
+                      colorPalette="orange"
+                      borderRadius="xl"
+                      w="full"
+                      onClick={async () => {
+                        try {
+                          await startPreparingMutation.mutateAsync(order.id);
+                          toaster.create({
+                            title: "Đã cập nhật: đang chuẩn bị hàng",
+                            type: "success",
+                          });
+                        } catch (e: any) {
+                          toaster.create({
+                            title: e?.message || "Lỗi cập nhật trạng thái chuẩn bị",
+                            type: "error",
+                          });
+                        }
+                      }}
+                      loading={startPreparingMutation.isPending}
+                      disabled={!buyerProfile?.province}
+                    >
+                      Đang chuẩn bị hàng
+                    </Button>
+                    {!buyerProfile?.province && (
+                      <Text fontSize="10px" color="red.500" textAlign="center">Cần địa chỉ người mua</Text>
+                    )}
+                  </VStack>
                 )}
 
                 {canMarkShipping && (
-                  <Button
-                    size="sm"
-                    colorPalette="blue"
-                    borderRadius="xl"
-                    onClick={async () => {
-                      try {
-                        await markShippingMutation.mutateAsync({
-                          orderId: order.id,
-                        });
-                        toaster.create({
-                          title: "Đã cập nhật: đang giao hàng",
-                          type: "success",
-                        });
-                      } catch (e: any) {
-                        toaster.create({
-                          title: e?.message || "Lỗi cập nhật trạng thái giao hàng",
-                          type: "error",
-                        });
-                      }
-                    }}
-                    loading={markShippingMutation.isPending}
-                  >
-                    Đang giao hàng
-                  </Button>
+                  <VStack align="stretch" flex={1}>
+                    <Button
+                      size="sm"
+                      colorPalette="blue"
+                      borderRadius="xl"
+                      w="full"
+                      onClick={async () => {
+                        try {
+                          await markShippingMutation.mutateAsync({
+                            orderId: order.id,
+                          });
+                          toaster.create({
+                            title: "Đã cập nhật: đang giao hàng",
+                            type: "success",
+                          });
+                        } catch (e: any) {
+                          toaster.create({
+                            title: e?.message || "Lỗi cập nhật trạng thái giao hàng",
+                            type: "error",
+                          });
+                        }
+                      }}
+                      loading={markShippingMutation.isPending}
+                      disabled={!buyerProfile?.province}
+                    >
+                      Bắt đầu giao hàng
+                    </Button>
+                    {!buyerProfile?.province && (
+                      <Text fontSize="10px" color="red.500" textAlign="center">Cần địa chỉ người mua</Text>
+                    )}
+                  </VStack>
                 )}
 
                 {canMarkDelivered && (

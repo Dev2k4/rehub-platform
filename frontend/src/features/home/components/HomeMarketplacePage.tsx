@@ -464,7 +464,7 @@ export function HomeMarketplacePage() {
     flatCategories,
   } = useMarketplaceData()
 
-  const { isAuthenticated } = useAuthUser()
+  const { user, isAuthenticated } = useAuthUser()
   const pendingListingsQuery = useMyListings(
     { status: "pending", limit: 50 },
     { enabled: isAuthenticated }
@@ -721,6 +721,7 @@ export function HomeMarketplacePage() {
                   listings={listings}
                   categoryMap={categoryMap}
                   sellerMap={sellerMap}
+                  currentUserProvince={user?.province ?? undefined}
                 />
 
                 {totalPages > 1 && (
