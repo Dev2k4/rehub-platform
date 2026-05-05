@@ -7,6 +7,7 @@ class AiChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     context: dict[str, str] | None = None
     mode: Literal["auto", "chat", "price"] = "auto"
+    session_id: str | None = Field(default=None, description="Mã phiên chat để đảm bảo nhất quán kết quả")
 
 
 class AiProductItem(BaseModel):
@@ -33,6 +34,7 @@ class AiChatResponse(BaseModel):
 class AiPriceSuggestionRequest(BaseModel):
     query: str = Field(min_length=1, max_length=4000)
     context: dict[str, str] | None = None
+    session_id: str | None = Field(default=None, description="Mã phiên để đảm bảo nhất quán giá")
 
 
 class AiPriceComparable(BaseModel):

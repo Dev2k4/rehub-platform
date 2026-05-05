@@ -118,6 +118,7 @@ async def search_listings_for_ai(
     db: AsyncSession,
     keywords: list[str],
     limit: int = 5,
+    offset: int = 0,
 ) -> list[AiListingContext]:
     """Search active listings matching the given keywords and return simplified records."""
     if not keywords:
@@ -152,6 +153,7 @@ async def search_listings_for_ai(
         )
         .order_by(Listing.created_at.desc())
         .limit(limit)
+        .offset(offset)
     )
 
     result = await db.execute(stmt)

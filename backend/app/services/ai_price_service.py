@@ -3,13 +3,33 @@ from __future__ import annotations
 import csv
 import re
 import unicodedata
+import hashlib
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
 from functools import lru_cache
 from pathlib import Path
+from typing import Dict, Any
 
 from app.core.config import settings
+
+# Cache for price suggestions session consistency
+_PRICE_CACHE: Dict[str, Any] = {}
+
+
+def _get_price_cache_key(session_id: str | None, query: str, context: dict | None) -> str | None:
+    if not session_id:
+        return None
+    # Normalize query
+    q_norm = query.lower().strip()
+    # Simplified context string
+    ctx_str = ""
+    if context:
+        ctx_str = "|".join(f"{k}:{v}" for k, v in sorted(context.items()) if v)
+    
+    key_input = f"{q_norm}||{ctx_str}"
+    h = hashlib.md5(key_input.encode("utf-8")).hexdigest()
+    return f"{session_id}:price:{h}"
 
 
 _STOPWORDS = {
@@ -126,21 +146,27 @@ def _parse_price(value: str | int | float | Decimal | None) -> int | None:
     return int(parsed.to_integral_value(rounding="ROUND_HALF_UP"))
 
 
+def _round_price(value: float) -> int:
+    """Round price to the nearest step (10,000 or 5,000 VND)."""
+    val = float(value)
+    if val >= 50000:
+        # Round to nearest 10,000 for values >= 50,000
+        return int(round(val / 10000.0) * 10000)
+    # Round to nearest 5,000 for smaller values
+    return int(round(val / 5000.0) * 5000)
+
+
 def _percentile(sorted_values: list[int], percentile: float) -> int:
     if not sorted_values:
         raise ValueError("sorted_values must not be empty")
     if len(sorted_values) == 1:
-        return sorted_values[0]
+        return _round_price(float(sorted_values[0]))
     index = (len(sorted_values) - 1) * percentile
     lower = int(index)
     upper = min(lower + 1, len(sorted_values) - 1)
     weight = index - lower
     value = sorted_values[lower] * (1 - weight) + sorted_values[upper] * weight
-    return int(round(value / 1000.0) * 1000)
-
-
-def _round_price(value: float) -> int:
-    return int(round(value / 1000.0) * 1000)
+    return _round_price(value)
 
 
 def _extract_condition(text: str | None) -> str | None:
@@ -326,7 +352,14 @@ class PriceSuggestionEngine:
 
         return overlap * 0.55 + text_score * 0.35 + bonus
 
-    def suggest(self, query: str, context: dict[str, str] | None = None) -> PriceSuggestion:
+    def suggest(
+        self, query: str, context: dict[str, str] | None = None, session_id: str | None = None
+    ) -> PriceSuggestion:
+        # Check cache
+        cache_key = _get_price_cache_key(session_id, query, context)
+        if cache_key and cache_key in _PRICE_CACHE:
+            return _PRICE_CACHE[cache_key]
+
         self._load_dataset()
         if not self._records:
             raise PriceDatasetUnavailableError("Price dataset is not configured or contains no valid rows")
@@ -447,7 +480,7 @@ class PriceSuggestionEngine:
                 adjusted_high = high_price
                 adjusted_suggested = suggested_price
 
-        return PriceSuggestion(
+        res_obj = PriceSuggestion(
             query=query,
             suggested_price=adjusted_suggested,
             price_low=adjusted_low,
@@ -457,6 +490,9 @@ class PriceSuggestionEngine:
             comparables=comparables,
             summary=summary,
         )
+        if cache_key:
+            _PRICE_CACHE[cache_key] = res_obj
+        return res_obj
 
 
 @lru_cache(maxsize=4)

@@ -10,9 +10,11 @@ import {
   useBreakpointValue,
   VStack,
 } from "@chakra-ui/react"
-import { useRouterState } from "@tanstack/react-router"
+import { useNavigate, useRouterState } from "@tanstack/react-router"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { FiCpu, FiMinimize2, FiSend, FiX } from "react-icons/fi"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { OpenAPI } from "@/client"
 
 type AiProductItem = {
@@ -72,6 +74,7 @@ function formatPrice(price: number): string {
 async function askAssistant(
   prompt: string,
   pathname: string,
+  sessionId: string,
 ): Promise<{ answer: string; meta: AssistantMeta; products?: AiProductItem[] }> {
   const endpoint = `${getApiBase()}/api/v1/ai/chat`
   const response = await fetch(endpoint, {
@@ -86,6 +89,7 @@ async function askAssistant(
         pathname,
       },
       mode: "auto",
+      session_id: sessionId,
     }),
   })
 
@@ -125,7 +129,7 @@ async function askAssistant(
   return { answer: normalized, meta, products }
 }
 
-function ProductCard({ product }: { product: AiProductItem }) {
+function ProductCard({ product, onOpen }: { product: AiProductItem; onOpen: (id: string) => void }) {
   return (
     <Box
       bg="white"
@@ -136,7 +140,7 @@ function ProductCard({ product }: { product: AiProductItem }) {
       cursor="pointer"
       _hover={{ borderColor: "teal.300", boxShadow: "sm" }}
       transition="all 0.15s"
-      onClick={() => window.open(`/listings/${product.listing_id}`, "_blank")}
+      onClick={() => onOpen(product.listing_id)}
       minW="180px"
       maxW="220px"
       flexShrink={0}
@@ -193,10 +197,55 @@ function ProductCard({ product }: { product: AiProductItem }) {
   )
 }
 
+function MarkdownMessage({ content }: { content: string }) {
+  return (
+    <Box fontSize="sm" lineHeight="1.5">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <Text mb={2}>{children}</Text>,
+          ul: ({ children }) => (
+            <Box as="ul" pl={5} mb={2} style={{ listStyle: "disc" }}>
+              {children}
+            </Box>
+          ),
+          ol: ({ children }) => (
+            <Box as="ol" pl={5} mb={2} style={{ listStyle: "decimal" }}>
+              {children}
+            </Box>
+          ),
+          li: ({ children }) => (
+            <Box as="li" mb={1}>
+              {children}
+            </Box>
+          ),
+          strong: ({ children }) => <Text as="strong" fontWeight="600">{children}</Text>,
+          em: ({ children }) => <Text as="em" fontStyle="italic">{children}</Text>,
+          code: ({ children }) => (
+            <Text
+              as="code"
+              fontSize="0.85em"
+              px={1}
+              py="0.5"
+              borderRadius="4px"
+              bg="blackAlpha.100"
+            >
+              {children}
+            </Text>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </Box>
+  )
+}
+
 export function AiAssistantWidget() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
+  const navigate = useNavigate()
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false
 
   const [isOpen, setIsOpen] = useState(false)
@@ -212,12 +261,17 @@ export function AiAssistantWidget() {
     },
   ])
 
+  const sessionIdRef = useRef(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `rehub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  )
+
   const messagesRef = useRef<HTMLDivElement | null>(null)
 
   const quickPrompts = useMemo(
     () => [
       "Cách đăng tin nhanh",
-      "Escrow hoạt động thế nào",
       "Tìm iPhone đang bán",
     ],
     [],
@@ -248,7 +302,11 @@ export function AiAssistantWidget() {
       setIsLoading(true)
 
       try {
-        const { answer, meta, products } = await askAssistant(question, pathname)
+        const { answer, meta, products } = await askAssistant(
+          question,
+          pathname,
+          sessionIdRef.current,
+        )
         const assistantMessage: AssistantMessage = {
           id: `a-${Date.now()}`,
           role: "assistant",
@@ -405,9 +463,13 @@ export function AiAssistantWidget() {
                       bg={isUser ? "teal.600" : "gray.100"}
                       color={isUser ? "white" : "gray.800"}
                     >
-                      <Text fontSize="sm" whiteSpace="pre-wrap">
-                        {item.content}
-                      </Text>
+                      {isUser ? (
+                        <Text fontSize="sm" whiteSpace="pre-wrap">
+                          {item.content}
+                        </Text>
+                      ) : (
+                        <MarkdownMessage content={item.content} />
+                      )}
                     </Box>
                   </Flex>
                   {/* Product cards */}
@@ -418,7 +480,11 @@ export function AiAssistantWidget() {
                       </Text>
                       <Flex gap={2} overflowX="auto" pb={1}>
                         {item.products.map((product) => (
-                          <ProductCard key={product.listing_id} product={product} />
+                          <ProductCard
+                            key={product.listing_id}
+                            product={product}
+                            onOpen={(id) => navigate({ to: `/listings/${id}` })}
+                          />
                         ))}
                       </Flex>
                     </Box>

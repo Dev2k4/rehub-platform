@@ -18,7 +18,9 @@ router = APIRouter(prefix="/ai", tags=["AI Assistant"])
 
 @router.post("/chat", response_model=AiChatResponse)
 async def ai_chat(payload: AiChatRequest, db: AsyncSession = Depends(get_db)) -> AiChatResponse:
-    result = await generate_ai_answer(payload.message, payload.context, mode=payload.mode, db=db)
+    result = await generate_ai_answer(
+        payload.message, payload.context, mode=payload.mode, db=db, session_id=payload.session_id
+    )
     products = None
     if result.products:
         products = [AiProductItem(**p) for p in result.products]
@@ -36,7 +38,7 @@ async def ai_chat(payload: AiChatRequest, db: AsyncSession = Depends(get_db)) ->
 async def ai_price_suggestion(payload: AiPriceSuggestionRequest) -> AiPriceSuggestionResponse:
     engine = get_price_suggestion_engine()
     try:
-        suggestion = engine.suggest(payload.query, payload.context)
+        suggestion = engine.suggest(payload.query, payload.context, session_id=payload.session_id)
     except PriceDatasetUnavailableError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
