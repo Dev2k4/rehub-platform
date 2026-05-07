@@ -400,7 +400,7 @@ export function AiAssistantWidget() {
               )}
               {assistantMeta?.fallbackUsed && (
                 <Text fontSize="xs" color="orange.500">
-                  Đang dùng chế độ trả lời nhanh (offline)
+                  Đang dùng chế độ trả lời nhanh (ngoại tuyến)
                 </Text>
               )}
             </VStack>

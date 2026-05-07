@@ -44,29 +44,27 @@ const FooterLink = ({ to, children, href }: { to?: string; children: React.React
 };
 
 const SocialButton = ({ icon: IconNode, href, color }: { icon: any; href: string; color: string }) => (
-  <Box
-    as="a"
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    w={9}
-    h={9}
-    borderRadius="full"
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    bg="whiteAlpha.100"
-    color="whiteAlpha.700"
-    transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-    _hover={{
-      bg: color,
-      color: "white",
-      transform: "translateY(-4px)",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.25)"
-    }}
-  >
-    <IconNode size={16} />
-  </Box>
+  <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', textDecoration: 'none' }}>
+    <Box
+      w={9}
+      h={9}
+      borderRadius="full"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      bg="whiteAlpha.100"
+      color="whiteAlpha.700"
+      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      _hover={{
+        bg: color,
+        color: "white",
+        transform: "translateY(-4px)",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.25)"
+      }}
+    >
+      <IconNode size={16} />
+    </Box>
+  </a>
 );
 
 export function Footer() {
@@ -182,10 +180,12 @@ export function Footer() {
                 Hỗ trợ khách hàng
               </Text>
               <VStack align="start" gap={3} w="full">
-                <HStack color="whiteAlpha.600" _hover={{ color: "blue.400" }} transition="all 0.2s" cursor="pointer" as="a" href="mailto:support@rehub.vn">
-                  <FiMail />
-                  <Text fontSize="sm" fontWeight="500">support@rehub.vn</Text>
-                </HStack>
+                <a href="mailto:support@rehub.vn" style={{ textDecoration: 'none' }}>
+                  <HStack color="whiteAlpha.600" _hover={{ color: "blue.400" }} transition="all 0.2s" cursor="pointer">
+                    <FiMail />
+                    <Text fontSize="sm" fontWeight="500">support@rehub.vn</Text>
+                  </HStack>
+                </a>
                 <FooterLink href="/">Hướng dẫn mua bán</FooterLink>
                 <FooterLink href="/">Điều khoản sử dụng</FooterLink>
                 <FooterLink href="/">Chính sách bảo mật</FooterLink>
@@ -208,9 +208,7 @@ export function Footer() {
             <Text fontSize="xs" color="whiteAlpha.500" fontWeight="500">
               © {new Date().getFullYear()} ReHub Marketplace. Bảo lưu mọi quyền.
             </Text>
-            <Text fontSize="10px" color="whiteAlpha.300">
-              Phát triển bởi đội ngũ ReHub Team với ❤️ tại Việt Nam
-            </Text>
+
           </VStack>
 
           <HStack gap={2} bg="whiteAlpha.50" px={3} py={1.5} borderRadius="full" border="1px solid" borderColor="whiteAlpha.100">

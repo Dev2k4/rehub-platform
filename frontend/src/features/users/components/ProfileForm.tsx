@@ -8,14 +8,17 @@ import {
   Textarea,
 } from "@chakra-ui/react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { FiMail, FiMapPin, FiPhone, FiUser } from "react-icons/fi"
+import { useForm, Controller } from "react-hook-form"
+import { FiMail, FiPhone, FiUser } from "react-icons/fi"
 import { z } from "zod"
 import type { UserMe } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
 import { InputGroup } from "@/components/ui/input-group"
+import { SearchableSelect } from "@/features/shared/components/SearchableSelect"
+import { useVnAddress } from "@/features/shared/hooks/useVnAddress"
 
+// ─── Schema ───────────────────────────────────────────────────────
 const profileSchema = z.object({
   full_name: z.string().min(2, "Tên ít nhất 2 ký tự").max(255),
   email: z.string().email("Email không hợp lệ"),
@@ -60,6 +63,9 @@ export function ProfileForm({
   const {
     register,
     handleSubmit,
+    control,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -75,34 +81,36 @@ export function ProfileForm({
     },
   })
 
+  const watchedProvince = watch("province")
+
+  const { provinceOptions, wardOptions, provincesLoading, wardsLoading } =
+    useVnAddress(watchedProvince)
+
   return (
     <Box as="form" onSubmit={handleSubmit(onSubmit)}>
       <Stack gap={5}>
         {/* Basic Info */}
         <SectionTitle>Thông tin cơ bản</SectionTitle>
 
-        {/* Full Name */}
         <Field
           label="Họ và tên"
           invalid={!!errors.full_name}
           errorText={errors.full_name?.message}
         >
-          <InputGroup width="full" startElement={<FiUser color="#9CA3AF" />}>
+          <InputGroup width="full" startElement={<FiUser color="#9CA3AF" />} startOffset="2px">
             <ChakraInput
               {...register("full_name")}
               type="text"
               placeholder="Nhập tên của bạn"
-              ps="10"
             />
           </InputGroup>
         </Field>
 
-        {/* Email (Read-only) */}
         <Field
           label="Email"
           helperText="Email không thể thay đổi. Liên hệ hỗ trợ nếu cần."
         >
-          <InputGroup width="full" startElement={<FiMail color="#9CA3AF" />}>
+          <InputGroup width="full" startElement={<FiMail color="#9CA3AF" />} startOffset="2px">
             <ChakraInput
               {...register("email")}
               type="email"
@@ -110,28 +118,24 @@ export function ProfileForm({
               disabled
               bg="gray.50"
               cursor="not-allowed"
-              ps="10"
             />
           </InputGroup>
         </Field>
 
-        {/* Phone */}
         <Field
           label="Số điện thoại"
           invalid={!!errors.phone}
           errorText={errors.phone?.message}
         >
-          <InputGroup width="full" startElement={<FiPhone color="#9CA3AF" />}>
+          <InputGroup width="full" startElement={<FiPhone color="#9CA3AF" />} startOffset="2px">
             <ChakraInput
               {...register("phone")}
               type="tel"
               placeholder="Nhập số điện thoại"
-              ps="10"
             />
           </InputGroup>
         </Field>
 
-        {/* Bio */}
         <Field
           label="Giới thiệu bản thân"
           invalid={!!errors.bio}
@@ -148,40 +152,47 @@ export function ProfileForm({
 
         <Separator />
 
-        {/* Address */}
         <SectionTitle>Địa chỉ</SectionTitle>
 
         <Field label="Tỉnh / Thành phố">
-          <InputGroup width="full" startElement={<FiMapPin color="#9CA3AF" />}>
-            <ChakraInput
-              {...register("province")}
-              type="text"
-              placeholder="VD: Hà Nội"
-              ps="10"
-            />
-          </InputGroup>
-        </Field>
-
-        <Field label="Quận / Huyện">
-          <InputGroup width="full" startElement={<FiMapPin color="#9CA3AF" />}>
-            <ChakraInput
-              {...register("district")}
-              type="text"
-              placeholder="VD: Cầu Giấy"
-              ps="10"
-            />
-          </InputGroup>
+          <Controller
+            control={control}
+            name="province"
+            render={({ field }) => (
+              <SearchableSelect
+                options={provinceOptions}
+                value={field.value ?? ""}
+                onChange={(val) => {
+                  field.onChange(val)
+                  setValue("ward", "")
+                  setValue("district", "")
+                }}
+                placeholder="Chọn Tỉnh / Thành phố"
+                loading={provincesLoading}
+              />
+            )}
+          />
         </Field>
 
         <Field label="Phường / Xã">
-          <InputGroup width="full" startElement={<FiMapPin color="#9CA3AF" />}>
-            <ChakraInput
-              {...register("ward")}
-              type="text"
-              placeholder="VD: Dịch Vọng Hậu"
-              ps="10"
-            />
-          </InputGroup>
+          <Controller
+            control={control}
+            name="ward"
+            render={({ field }) => (
+              <SearchableSelect
+                options={wardOptions}
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                placeholder={
+                  !watchedProvince
+                    ? "Vui lòng chọn Tỉnh / Thành phố trước"
+                    : "Chọn Phường / Xã"
+                }
+                loading={wardsLoading}
+                disabled={!watchedProvince}
+              />
+            )}
+          />
         </Field>
 
         <Field label="Địa chỉ chi tiết">

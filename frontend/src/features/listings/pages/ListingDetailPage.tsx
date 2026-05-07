@@ -63,6 +63,80 @@ import {
 } from "@/features/users/api/users.api";
 import { ListingCard } from "@/features/users/components/ListingCard";
 import { ListingLocationMap } from "@/features/listings/components/ListingLocationMap";
+import { FiArrowUp, FiArrowDown } from "react-icons/fi";
+import type { OfferRead } from "@/client";
+
+const OfferItemBox = ({ offer, originalPrice, onOpenDetail }: { offer: OfferRead; originalPrice: number; onOpenDetail: (id: string) => void }) => {
+  const buyerProfileQuery = useQuery({
+    queryKey: ["buyer-profile", offer.buyer_id],
+    queryFn: () => getUserPublicProfile(offer.buyer_id),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const buyerName = buyerProfileQuery.data?.full_name ?? "Người mua ẩn danh";
+  const diff = Math.floor(Number(offer.offer_price)) - originalPrice;
+  const pct = Math.round((Math.abs(diff) / originalPrice) * 100);
+  const isDown = diff < 0;
+
+  const statusMeta = OFFER_STATUS_META[offer.status] ?? {
+    label: offer.status,
+    color: "gray",
+  };
+
+  return (
+    <Box
+      border="1px"
+      borderColor="gray.200"
+      borderRadius="xl"
+      p={4}
+      bg="white"
+      boxShadow="sm"
+      transition="all 0.2s"
+      _hover={{ boxShadow: "md", borderColor: "blue.200" }}
+    >
+      <Flex justify="space-between" align={{ base: "start", md: "center" }} gap={3}>
+        <VStack align="start" gap={1}>
+          <Text fontWeight="bold" color="gray.900" fontSize="md">
+            {buyerName}
+          </Text>
+          <HStack gap={2}>
+            <Text fontWeight="bold" color="blue.600" fontSize="lg">
+              {formatCurrencyVnd(Math.floor(Number(offer.offer_price)))}
+            </Text>
+            {diff !== 0 && (
+              <Badge colorPalette={isDown ? "orange" : "green"} variant="subtle" size="sm">
+                <HStack gap={1}>
+                  {isDown ? <FiArrowDown size={12} /> : <FiArrowUp size={12} />}
+                  <Text>{pct}%</Text>
+                </HStack>
+              </Badge>
+            )}
+          </HStack>
+          <Text fontSize="xs" color="gray.500">
+            {new Date(offer.created_at).toLocaleDateString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+        </VStack>
+
+        <VStack align="end" gap={2}>
+          <Badge colorPalette={statusMeta.color as any} size="sm">
+            {statusMeta.label}
+          </Badge>
+          <Button
+            size="sm"
+            variant="outline"
+            colorPalette="blue"
+            onClick={() => onOpenDetail(offer.id)}
+          >
+            Chi tiết
+          </Button>
+        </VStack>
+      </Flex>
+    </Box>
+  );
+};
 
 const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
   brand_new: { label: "Mới 100%", color: "green" },
@@ -559,43 +633,81 @@ export function ListingDetailPage() {
 
                 <Separator />
 
-                {/* Action Buttons */}
-                <Box p={4}>
-                  <VStack gap={3}>
+                {/* Action Buttons / Offers */}
+                {isOwnListing ? (
+                  <Box p={4}>
+                    <Heading as="h3" size="sm" color="gray.900" mb={3}>
+                      Đề xuất thương lượng cho tin đăng này
+                    </Heading>
+
+                    {listingOffersQuery.isLoading ? (
+                      <Flex py={4} justify="center">
+                        <Spinner size="sm" color="blue.500" />
+                      </Flex>
+                    ) : listingOffersQuery.data &&
+                      listingOffersQuery.data.length > 0 ? (
+                      <Box maxH="320px" overflowY="auto" pr={1} css={{
+                        "&::-webkit-scrollbar": { width: "6px" },
+                        "&::-webkit-scrollbar-track": { background: "transparent" },
+                        "&::-webkit-scrollbar-thumb": { background: "#cbd5e1", borderRadius: "10px" }
+                      }}>
+                        <VStack align="stretch" gap={3}>
+                          {listingOffersQuery.data.map((offer) => (
+                            <OfferItemBox
+                              key={offer.id}
+                              offer={offer}
+                              originalPrice={parseInt(listing.price, 10)}
+                              onOpenDetail={(id) => {
+                                setSelectedOfferId(id);
+                                setIsOfferDetailModalOpen(true);
+                              }}
+                            />
+                          ))}
+                        </VStack>
+                      </Box>
+                    ) : (
+                      <Text fontSize="sm" color="gray.500">
+                        Chưa có đề xuất.
+                      </Text>
+                    )}
+                    
                     <Button
+                      mt={4}
                       w="full"
-                      size="lg"
-                      borderRadius="lg"
-                      onClick={handleBuyNow}
-                      loading={createOrderMutation.isPending}
-                      disabled={!canTransact}
-                      className="btn-shine"
-                      boxShadow="0 4px 15px rgba(37,99,235,0.35)"
-                      style={{
-                        background: "linear-gradient(135deg, #2563eb, #7c3aed)",
-                        color: "white",
-                        position: "relative",
-                        overflow: "hidden",
-                        border: "none",
+                      variant="outline"
+                      borderColor="gray.300"
+                      color="gray.700"
+                      _hover={{ bg: "gray.50" }}
+                      onClick={async () => {
+                        const url = `${window.location.origin}/listings/${listing.id}`;
+                        const copied = await copyTextRobust(url);
+                        if (copied) {
+                          toaster.create({
+                            title:
+                              "Đã copy link tin đăng.",
+                            type: "success",
+                          });
+                        }
                       }}
-                      _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
-                      transition="all 0.2s"
                     >
-                      Mua ngay
+                      <FiShare2 style={{ marginRight: "0.5rem" }} />
+                      Chia sẻ
                     </Button>
-                    {listing.is_negotiable && (
+                  </Box>
+                ) : (
+                  <Box p={4}>
+                    <VStack gap={3}>
                       <Button
                         w="full"
                         size="lg"
                         borderRadius="lg"
-                        onClick={handleOpenOfferDialog}
-                        loading={createOfferMutation.isPending}
+                        onClick={handleBuyNow}
+                        loading={createOrderMutation.isPending}
                         disabled={!canTransact}
                         className="btn-shine"
-                        boxShadow="0 4px 15px rgba(249,115,22,0.35)"
+                        boxShadow="0 4px 15px rgba(37,99,235,0.35)"
                         style={{
-                          background:
-                            "linear-gradient(135deg, #f97316, #eab308)",
+                          background: "linear-gradient(135deg, #2563eb, #7c3aed)",
                           color: "white",
                           position: "relative",
                           overflow: "hidden",
@@ -604,64 +716,88 @@ export function ListingDetailPage() {
                         _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
                         transition="all 0.2s"
                       >
-                        Thương lượng
+                        Mua ngay
                       </Button>
-                    )}
+                      {listing.is_negotiable && (
+                        <Button
+                          w="full"
+                          size="lg"
+                          borderRadius="lg"
+                          onClick={handleOpenOfferDialog}
+                          loading={createOfferMutation.isPending}
+                          disabled={!canTransact}
+                          className="btn-shine"
+                          boxShadow="0 4px 15px rgba(249,115,22,0.35)"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, #f97316, #eab308)",
+                            color: "white",
+                            position: "relative",
+                            overflow: "hidden",
+                            border: "none",
+                          }}
+                          _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                          transition="all 0.2s"
+                        >
+                          Thương lượng
+                        </Button>
+                      )}
 
-                    <HStack w="full" gap={3}>
-                      <Button
-                        flex={1}
-                        className="btn-shine"
-                        boxShadow="0 4px 15px rgba(6,182,212,0.35)"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #0ea5e9, #06b6d4)",
-                          color: "white",
-                          position: "relative",
-                          overflow: "hidden",
-                          border: "none",
-                        }}
-                        _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
-                        transition="all 0.2s"
-                        onClick={() => {
-                          if (!requireAuth()) {
-                            return;
-                          }
-                          openChatWidget(listing.seller_id, listing.id);
-                        }}
-                      >
-                        <FiMessageCircle style={{ marginRight: "0.5rem" }} />
-                        Nhắn tin
-                      </Button>
-                      <Button
-                        flex={1}
-                        variant="outline"
-                        borderColor="gray.300"
-                        color="gray.700"
-                        _hover={{ bg: "gray.50" }}
-                        onClick={async () => {
-                          const url = `${window.location.origin}/listings/${listing.id}`;
-                          const copied = await copyTextRobust(url);
-                          if (copied) {
-                            toaster.create({
-                              title:
-                                "Đã copy link tin đăng. Dán vào chat để gửi card sản phẩm.",
-                              type: "success",
-                            });
-                          } else {
-                            toaster.create({
-                              title: "Không thể copy link. Vui lòng thử lại.",
-                              type: "error",
-                            });
-                          }
-                        }}
-                      >
-                        <FiShare2 style={{ marginRight: "0.5rem" }} />
-                        Chia sẻ
-                      </Button>
-                    </HStack>
-                  </VStack>
-                </Box>
+                      <HStack w="full" gap={3}>
+                        <Button
+                          flex={1}
+                          className="btn-shine"
+                          boxShadow="0 4px 15px rgba(6,182,212,0.35)"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                            color: "white",
+                            position: "relative",
+                            overflow: "hidden",
+                            border: "none",
+                          }}
+                          _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                          transition="all 0.2s"
+                          onClick={() => {
+                            if (!requireAuth()) {
+                              return;
+                            }
+                            openChatWidget(listing.seller_id, listing.id);
+                          }}
+                        >
+                          <FiMessageCircle style={{ marginRight: "0.5rem" }} />
+                          Nhắn tin
+                        </Button>
+                        <Button
+                          flex={1}
+                          variant="outline"
+                          borderColor="gray.300"
+                          color="gray.700"
+                          _hover={{ bg: "gray.50" }}
+                          onClick={async () => {
+                            const url = `${window.location.origin}/listings/${listing.id}`;
+                            const copied = await copyTextRobust(url);
+                            if (copied) {
+                              toaster.create({
+                                title:
+                                  "Đã copy link tin đăng. Dán vào chat để gửi card sản phẩm.",
+                                type: "success",
+                              });
+                            } else {
+                              toaster.create({
+                                title: "Không thể copy link. Vui lòng thử lại.",
+                                type: "error",
+                              });
+                            }
+                          }}
+                        >
+                          <FiShare2 style={{ marginRight: "0.5rem" }} />
+                          Chia sẻ
+                        </Button>
+                      </HStack>
+                    </VStack>
+                  </Box>
+                )}
               </Box>
 
               {/* Seller Info Card */}
@@ -741,7 +877,7 @@ export function ListingDetailPage() {
                         py={0.5}
                         fontSize="10px"
                       >
-                        {isSellerOnline ? "Đang online" : "Đang offline"}
+                        {isSellerOnline ? "Đang hoạt động" : "Ngoại tuyến"}
                       </Badge>
                       <HStack gap={3} mt={1} flexWrap="wrap">
                         <Text fontSize="xs" color="gray.600">
@@ -780,131 +916,47 @@ export function ListingDetailPage() {
           </Box>
         </Flex>
 
-        {/* Description & Location Section */}
+        {/* Description & Map Section */}
         <Box mt={8}>
-          <Flex direction={{ base: "column", lg: "row" }} gap={8} align="stretch">
-            {/* Left Column: Description & Offers */}
-            <Box w={{ base: "full", lg: "520px" }} flexShrink={0}>
-              <VStack gap={8} align="stretch">
-                {isOwnListing && (
-                  <Box
-                    bg="whiteAlpha.800"
-                    backdropFilter="blur(20px)"
-                    borderRadius="xl"
-                    boxShadow="0 10px 40px rgba(0,0,0,0.06)"
-                    border="1px"
-                    borderColor="whiteAlpha.400"
-                    p={6}
-                  >
-                    <Heading as="h2" size="md" color="gray.900" mb={4}>
-                      Offers cho tin đăng này
-                    </Heading>
-
-                    {listingOffersQuery.isLoading ? (
-                      <Flex py={6} justify="center">
-                        <Spinner size="md" color="blue.500" />
-                      </Flex>
-                    ) : listingOffersQuery.data &&
-                      listingOffersQuery.data.length > 0 ? (
-                      <VStack align="stretch" gap={3}>
-                        {listingOffersQuery.data.map((offer) => {
-                          const statusMeta = OFFER_STATUS_META[
-                            offer.status
-                          ] ?? {
-                            label: offer.status,
-                            color: "gray",
-                          };
-
-                          return (
-                            <Box
-                              key={offer.id}
-                              border="1px"
-                              borderColor="gray.200"
-                              borderRadius="lg"
-                              p={4}
-                            >
-                              <Flex
-                                justify="space-between"
-                                align={{ base: "start", md: "center" }}
-                                gap={3}
-                              >
-                                <Box>
-                                  <Text fontWeight="semibold" color="gray.900">
-                                    {formatCurrencyVnd(
-                                      Math.floor(Number(offer.offer_price)),
-                                    )}
-                                  </Text>
-                                  <Text fontSize="sm" color="gray.500">
-                                    Offer: {offer.id.slice(0, 8)}... ·{" "}
-                                    {new Date(offer.created_at).toLocaleString(
-                                      "vi-VN",
-                                    )}
-                                  </Text>
-                                </Box>
-
-                                <HStack>
-                                  <Badge colorPalette={statusMeta.color as any}>
-                                    {statusMeta.label}
-                                  </Badge>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedOfferId(offer.id);
-                                      setIsOfferDetailModalOpen(true);
-                                    }}
-                                  >
-                                    Xem chi tiết
-                                  </Button>
-                                </HStack>
-                              </Flex>
-                            </Box>
-                          );
-                        })}
-                      </VStack>
-                    ) : (
-                      <Text fontSize="sm" color="gray.500">
-                        Chưa có đề xuất giá nào cho tin đăng này.
-                      </Text>
-                    )}
-                  </Box>
-                )}
-
-                <Box
-                  bg="whiteAlpha.800"
-                  backdropFilter="blur(20px)"
-                  borderRadius="xl"
-                  boxShadow="0 10px 40px rgba(0,0,0,0.06)"
-                  border="1px"
-                  borderColor="whiteAlpha.400"
-                  p={6}
+          <Flex direction={{ base: "column", lg: "row" }} gap={6} align="start">
+            {/* Description */}
+            <Box
+              flex={{ base: "1", lg: "7" }}
+              w="full"
+              bg="whiteAlpha.800"
+              backdropFilter="blur(20px)"
+              borderRadius="xl"
+              boxShadow="0 10px 40px rgba(0,0,0,0.06)"
+              border="1px"
+              borderColor="whiteAlpha.400"
+              p={6}
+            >
+              <Heading as="h2" size="md" color="gray.900" mb={4}>
+                Mô tả sản phẩm
+              </Heading>
+              {listing.description ? (
+                <Text
+                  color="gray.700"
+                  whiteSpace="pre-wrap"
+                  lineHeight={1.8}
                 >
-                  <Heading as="h2" size="md" color="gray.900" mb={4}>
-                    Mô tả sản phẩm
-                  </Heading>
-                  {listing.description ? (
-                    <Text
-                      color="gray.700"
-                      whiteSpace="pre-wrap"
-                      lineHeight={1.8}
-                    >
-                      {listing.description}
-                    </Text>
-                  ) : (
-                    <Text color="gray.400" fontStyle="italic">
-                      Người bán chưa thêm mô tả cho sản phẩm này.
-                    </Text>
-                  )}
-                </Box>
-              </VStack>
+                  {listing.description}
+                </Text>
+              ) : (
+                <Text color="gray.400" fontStyle="italic">
+                  Người bán chưa thêm mô tả cho sản phẩm này.
+                </Text>
+              )}
             </Box>
 
-            {/* Right Column: Location Map */}
-            <Box flex={1} minW={0}>
-              <ListingLocationMap
-                province={sellerProfileQuery.data?.province ?? undefined}
-                district={sellerProfileQuery.data?.district ?? undefined}
-              />
+            {/* Map */}
+            <Box flex={{ base: "1", lg: "5" }} w="full">
+              {(sellerProfileQuery.data?.province || sellerProfileQuery.data?.district) && (
+                <ListingLocationMap
+                  province={sellerProfileQuery.data?.province ?? undefined}
+                  district={sellerProfileQuery.data?.district ?? undefined}
+                />
+              )}
             </Box>
           </Flex>
         </Box>
@@ -1026,45 +1078,76 @@ export function ListingDetailPage() {
         <Portal>
           <Dialog.Backdrop bg="blackAlpha.600" />
           <Dialog.Positioner>
-            <Dialog.Content maxW="sm" bg="white" borderRadius="lg">
+            <Dialog.Content maxW="md" bg="white" borderRadius="xl" overflow="hidden" boxShadow="2xl">
               <Dialog.Header
                 p={5}
+                bg="blue.50"
                 borderBottomWidth="1px"
+                borderColor="blue.100"
                 display="flex"
                 justifyContent="space-between"
                 alignItems="center"
               >
-                <Dialog.Title fontSize="lg" fontWeight="semibold">
-                  Gửi đề xuất giá
+                <Dialog.Title fontSize="lg" fontWeight="bold" color="blue.800">
+                  Gửi đề xuất thương lượng
                 </Dialog.Title>
                 <Dialog.CloseTrigger asChild>
-                  <CloseButton size="sm" />
+                  <CloseButton size="sm" color="blue.800" _hover={{ bg: "blue.100" }} />
                 </Dialog.CloseTrigger>
               </Dialog.Header>
-              <Dialog.Body p={5}>
-                <VStack align="stretch" gap={4}>
-                  <Text fontSize="sm" color="gray.600">
-                    Nhập mức giá bạn muốn đề xuất cho người bán.
-                  </Text>
-                  <Input
-                    type="number"
-                    min={1}
-                    step={1000}
-                    value={offerPrice}
-                    onChange={(e) => setOfferPrice(e.target.value)}
-                    placeholder="Nhập giá đề xuất"
-                  />
-                  <HStack justify="flex-end" gap={3}>
+              <Dialog.Body p={6}>
+                <VStack align="stretch" gap={5}>
+                  <Box bg="gray.50" p={4} borderRadius="lg" border="1px" borderColor="gray.100">
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                        Giá niêm yết:
+                      </Text>
+                      <Text fontSize="md" fontWeight="bold" color="gray.900">
+                        {listingQuery.data ? formatCurrencyVnd(parseInt(listingQuery.data.price, 10)) : "0 ₫"}
+                      </Text>
+                    </HStack>
+                  </Box>
+                  
+                  <Box>
+                    <Text fontSize="sm" color="gray.700" fontWeight="semibold" mb={2}>
+                      Mức giá bạn muốn đề xuất
+                    </Text>
+                    <Input
+                      type="number"
+                      size="lg"
+                      min={1}
+                      step={1000}
+                      value={offerPrice}
+                      onChange={(e) => setOfferPrice(e.target.value)}
+                      placeholder="Nhập giá (VD: 1500000)"
+                      bg="white"
+                      borderColor="gray.300"
+                      _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3b82f6" }}
+                    />
+                    {offerPrice && Number(offerPrice) > 0 && (
+                      <Text mt={2} fontSize="sm" color="blue.600" fontWeight="medium">
+                        Giá trị thực tế: {formatCurrencyVnd(Number(offerPrice))}
+                      </Text>
+                    )}
+                  </Box>
+
+                  <HStack justify="flex-end" gap={3} pt={2}>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => setIsOfferDialogOpen(false)}
+                      color="gray.600"
+                      _hover={{ bg: "gray.100" }}
                     >
-                      Hủy
+                      Hủy bỏ
                     </Button>
                     <Button
-                      colorPalette="orange"
+                      colorPalette="blue"
                       onClick={handleSubmitOffer}
                       loading={createOfferMutation.isPending}
+                      px={6}
+                      boxShadow="0 4px 14px 0 rgba(59,130,246,0.39)"
+                      _hover={{ transform: "translateY(-1px)", boxShadow: "0 6px 20px rgba(59,130,246,0.23)" }}
+                      transition="all 0.2s"
                     >
                       Gửi đề xuất
                     </Button>

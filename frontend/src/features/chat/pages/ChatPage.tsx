@@ -64,7 +64,7 @@ export function ChatPage() {
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : "Khong the tao cuoc tro chuyen"
+        error instanceof Error ? error.message : "Không thể tạo cuộc trò chuyện"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -72,11 +72,11 @@ export function ChatPage() {
   const sendMessageMutation = useMutation({
     mutationFn: async () => {
       if (!selectedConversationId) {
-        throw new Error("Chua chon cuoc tro chuyen")
+        throw new Error("Chưa chọn cuộc trò chuyện")
       }
       const content = messageInput.trim()
       if (!content) {
-        throw new Error("Noi dung tin nhan khong duoc de trong")
+        throw new Error("Nội dung tin nhắn không được để trống")
       }
       return sendChatMessage(selectedConversationId, {
         message_type: "text",
@@ -92,7 +92,7 @@ export function ChatPage() {
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : "Khong the gui tin nhan"
+        error instanceof Error ? error.message : "Không thể gửi tin nhắn"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -149,7 +149,7 @@ export function ChatPage() {
           color="blue.600"
         >
           <FiArrowLeft style={{ marginRight: "0.5rem" }} />
-          Quay lai
+          Quay lại
         </Button>
 
         <Flex gap={4} align="stretch" direction={{ base: "column", lg: "row" }}>
@@ -162,7 +162,7 @@ export function ChatPage() {
             p={3}
           >
             <Text fontWeight="bold" mb={3} color="gray.800">
-              Cuoc tro chuyen
+              Cuộc trò chuyện
             </Text>
             {conversationsQuery.isLoading ? (
               <Flex py={8} justify="center">
@@ -190,14 +190,14 @@ export function ChatPage() {
                     >
                       <VStack align="start" gap={0}>
                         <Text fontWeight="semibold">
-                          User {peerId.slice(0, 8)}
+                          Người dùng {peerId.slice(0, 8)}
                         </Text>
                         <Text fontSize="xs" color="gray.500">
                           {conversation.last_message_at
                             ? new Date(
                                 conversation.last_message_at,
                               ).toLocaleString("vi-VN")
-                            : "Chua co tin nhan"}
+                            : "Chưa có tin nhắn"}
                         </Text>
                       </VStack>
                     </Button>
@@ -205,7 +205,7 @@ export function ChatPage() {
                 })}
                 {conversationsQuery.data?.length === 0 && (
                   <Text fontSize="sm" color="gray.500">
-                    Chua co cuoc tro chuyen nao.
+                    Chưa có cuộc trò chuyện nào.
                   </Text>
                 )}
               </VStack>
@@ -225,8 +225,8 @@ export function ChatPage() {
             <Box px={4} py={3} borderBottom="1px" borderColor="gray.100">
               <Text fontWeight="bold" color="gray.800">
                 {selectedConversation
-                  ? `Chat ${selectedConversation.id.slice(0, 8)}`
-                  : "Chon cuoc tro chuyen"}
+                  ? `Trò chuyện ${selectedConversation.id.slice(0, 8)}`
+                  : "Chọn cuộc trò chuyện"}
               </Text>
             </Box>
 
@@ -263,7 +263,7 @@ export function ChatPage() {
                 })
               ) : (
                 <Flex justify="center" py={8}>
-                  <Text color="gray.500">Chua co tin nhan nao.</Text>
+                  <Text color="gray.500">Chưa có tin nhắn nào.</Text>
                 </Flex>
               )}
             </VStack>
@@ -271,7 +271,7 @@ export function ChatPage() {
             <Box borderTop="1px" borderColor="gray.100" p={3}>
               <HStack>
                 <Input
-                  placeholder="Nhap tin nhan..."
+                  placeholder="Nhập tin nhắn..."
                   value={messageInput}
                   onChange={(event) => setMessageInput(event.target.value)}
                   onKeyDown={(event) => {

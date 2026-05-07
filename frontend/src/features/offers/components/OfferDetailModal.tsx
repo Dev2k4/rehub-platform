@@ -6,12 +6,14 @@ import {
   Dialog,
   Flex,
   Heading,
+  HStack,
   Image,
   Portal,
   Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { FiArrowUp, FiArrowDown } from "react-icons/fi"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { ApiError } from "@/client"
@@ -152,21 +154,24 @@ export function OfferDetailModal({
             <Dialog.Content
               maxW="500px"
               bg="white"
-              borderRadius="lg"
-              boxShadow="xl"
+              borderRadius="xl"
+              boxShadow="2xl"
+              overflow="hidden"
             >
               <Dialog.Header
-                p={6}
+                p={5}
+                bg="blue.50"
                 borderBottomWidth="1px"
+                borderColor="blue.100"
                 display="flex"
                 justifyContent="space-between"
                 alignItems="center"
               >
-                <Dialog.Title fontSize="lg" fontWeight="semibold">
+                <Dialog.Title fontSize="lg" fontWeight="bold" color="blue.800">
                   Chi tiết đề xuất giá
                 </Dialog.Title>
                 <Dialog.CloseTrigger asChild>
-                  <CloseButton size="sm" onClick={handleClose} />
+                  <CloseButton size="sm" color="blue.800" _hover={{ bg: "blue.100" }} onClick={handleClose} />
                 </Dialog.CloseTrigger>
               </Dialog.Header>
 
@@ -199,72 +204,98 @@ export function OfferDetailModal({
                     )}
 
                     {/* Listing Info */}
-                    <Box>
-                      {currentImage && (
+                    <Flex gap={4} p={3} bg="gray.50" borderRadius="lg" border="1px" borderColor="gray.100">
+                      {currentImage ? (
                         <Image
                           src={getListingImageUrl(currentImage.image_url)}
                           alt={listing.title}
-                          w="full"
-                          h="auto"
-                          maxH="200px"
+                          w="80px"
+                          h="80px"
                           objectFit="cover"
                           borderRadius="md"
-                          mb={3}
                         />
+                      ) : (
+                        <Box w="80px" h="80px" bg="gray.200" borderRadius="md" />
                       )}
-                      <Heading as="h3" size="md" mb={2}>
-                        {listing.title}
-                      </Heading>
-                      <Text color="gray.600" fontSize="sm">
-                        Bộ sưu tập: {listing.category_id}
-                      </Text>
-                    </Box>
+                      <VStack align="start" gap={1} flex={1} justify="center">
+                        <Heading as="h3" size="sm" color="gray.900" lineClamp={2}>
+                          {listing.title}
+                        </Heading>
+                        <Text color="gray.500" fontSize="xs">
+                          Mã tin: {listing.id.slice(0, 8)}...
+                        </Text>
+                      </VStack>
+                    </Flex>
 
                     {/* Price Comparison */}
                     <Box
-                      bg="gray.50"
-                      p={4}
-                      borderRadius="md"
-                      borderLeft="4px"
-                      borderColor="blue.500"
+                      bg="white"
+                      borderRadius="xl"
+                      border="1px"
+                      borderColor="blue.100"
+                      boxShadow="sm"
+                      overflow="hidden"
                     >
-                      <VStack gap={3} align="start">
-                        <Box w="full">
-                          <Text fontSize="xs" color="gray.600" mb={1}>
+                      <Flex bg="blue.50" p={3} borderBottom="1px" borderColor="blue.100" justify="space-between" align="center">
+                         <Text fontSize="sm" fontWeight="semibold" color="blue.800">
+                           Chi tiết mức giá
+                         </Text>
+                         <Badge
+                          colorPalette={
+                            offer.status === "pending"
+                              ? "blue"
+                              : offer.status === "accepted"
+                                ? "green"
+                                : offer.status === "rejected"
+                                  ? "red"
+                                  : "purple"
+                          }
+                          variant="solid"
+                        >
+                          {offer.status === "pending"
+                            ? "Chờ phản hồi"
+                            : offer.status === "accepted"
+                              ? "Đã đồng ý"
+                              : offer.status === "rejected"
+                                ? "Đã từ chối"
+                                : "Đề xuất ngược lại"}
+                        </Badge>
+                      </Flex>
+                      <VStack gap={0} align="stretch" css={{ "& > *:not(:last-child)": { borderBottom: "1px solid", borderColor: "gray.100" } }}>
+                        <Flex p={4} justify="space-between" align="center">
+                          <Text fontSize="sm" color="gray.600">
                             Giá gốc
                           </Text>
                           <Text
-                            fontSize="lg"
+                            fontSize="md"
                             fontWeight="bold"
-                            color="gray.700"
+                            color="gray.800"
                           >
                             {formatCurrencyVnd(parseInt(listing.price, 10))}
                           </Text>
-                        </Box>
-                        <Box w="full" borderTopWidth="1px" pt={2}>
-                          <Text fontSize="xs" color="gray.600" mb={1}>
+                        </Flex>
+                        
+                        <Flex p={4} justify="space-between" align="center" bg="orange.50">
+                          <Text fontSize="sm" color="orange.800" fontWeight="medium">
                             Giá đề xuất
                           </Text>
                           <Text
                             fontSize="xl"
-                            fontWeight="bold"
-                            color="blue.600"
+                            fontWeight="black"
+                            color="orange.600"
                           >
                             {formatCurrencyVnd(
                               Math.floor(Number(offer.offer_price)),
                             )}
                           </Text>
-                        </Box>
-                        <Box w="full" borderTopWidth="1px" pt={2}>
-                          <Text fontSize="xs" color="gray.600" mb={1}>
+                        </Flex>
+
+                        <Flex p={4} justify="space-between" align="center">
+                          <Text fontSize="sm" color="gray.600">
                             Chênh lệch
                           </Text>
-                          <Flex justify="space-between" align="center">
-                            <Text fontSize="sm" fontWeight="semibold">
-                              {Math.floor(Number(offer.offer_price)) <
-                              parseInt(listing.price, 10)
-                                ? "Giảm "
-                                : "Tăng "}
+                          <HStack gap={2}>
+                            <Text fontSize="sm" fontWeight="semibold" color={Math.floor(Number(offer.offer_price)) < parseInt(listing.price, 10) ? "orange.600" : "green.600"}>
                               {formatCurrencyVnd(
                                 Math.abs(
                                   Math.floor(Number(offer.offer_price)) -
@@ -273,50 +304,30 @@ export function OfferDetailModal({
                               )}
                             </Text>
                             <Badge
-                              colorScheme={
+                              colorPalette={
                                 Math.floor(Number(offer.offer_price)) <
                                 parseInt(listing.price, 10)
                                   ? "orange"
                                   : "green"
                               }
+                              variant="subtle"
                             >
-                              {Math.floor(
-                                ((Math.floor(Number(offer.offer_price)) -
-                                  parseInt(listing.price, 10)) /
-                                  parseInt(listing.price, 10)) *
-                                  100,
-                              )}
-                              %
+                              <HStack gap={1}>
+                                {Math.floor(Number(offer.offer_price)) < parseInt(listing.price, 10) ? <FiArrowDown /> : <FiArrowUp />}
+                                <Text>
+                                  {Math.floor(
+                                    (Math.abs(Math.floor(Number(offer.offer_price)) -
+                                      parseInt(listing.price, 10)) /
+                                      parseInt(listing.price, 10)) *
+                                      100,
+                                  )}
+                                  %
+                                </Text>
+                              </HStack>
                             </Badge>
-                          </Flex>
-                        </Box>
+                          </HStack>
+                        </Flex>
                       </VStack>
-                    </Box>
-
-                    {/* Offer Status */}
-                    <Box>
-                      <Text fontSize="xs" color="gray.600" mb={2}>
-                        Trạng thái
-                      </Text>
-                      <Badge
-                        colorScheme={
-                          offer.status === "pending"
-                            ? "blue"
-                            : offer.status === "accepted"
-                              ? "green"
-                              : offer.status === "rejected"
-                                ? "red"
-                                : "purple"
-                        }
-                      >
-                        {offer.status === "pending"
-                          ? "Chờ phản hồi"
-                          : offer.status === "accepted"
-                            ? "Đã đồng ý"
-                            : offer.status === "rejected"
-                              ? "Đã từ chối"
-                              : "Đề xuất ngược lại"}
-                      </Badge>
                     </Box>
                   </VStack>
                 )}
@@ -325,16 +336,19 @@ export function OfferDetailModal({
               {/* Action Buttons */}
               {!offerQuery.isLoading && offer && (
                 <Dialog.Footer
-                  p={6}
+                  p={5}
+                  bg="gray.50"
                   borderTopWidth="1px"
+                  borderColor="gray.100"
                   display="flex"
                   gap={3}
                   justifyContent="flex-end"
                 >
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={handleClose}
                     disabled={isProcessing}
+                    color="gray.600"
                   >
                     Đóng
                   </Button>
@@ -342,7 +356,8 @@ export function OfferDetailModal({
                   {offer.status === "pending" && (
                     <>
                       <Button
-                        colorScheme="red"
+                        colorPalette="red"
+                        variant="outline"
                         onClick={handleReject}
                         loading={isProcessing}
                         loadingText="Đang xử lý..."
@@ -350,19 +365,21 @@ export function OfferDetailModal({
                         Từ chối
                       </Button>
                       <Button
-                        colorScheme="purple"
+                        colorPalette="purple"
+                        variant="outline"
                         onClick={handleCounterClick}
                         disabled={isProcessing}
                       >
-                        Đề xuất giá
+                        Đề xuất ngược lại
                       </Button>
                       <Button
-                        colorScheme="green"
+                        colorPalette="green"
                         onClick={handleAccept}
                         loading={isProcessing}
                         loadingText="Đang xử lý..."
+                        boxShadow="md"
                       >
-                        Đồng ý
+                        Đồng ý bán
                       </Button>
                     </>
                   )}
@@ -370,7 +387,8 @@ export function OfferDetailModal({
                   {offer.status === "countered" && (
                     <>
                       <Button
-                        colorScheme="red"
+                        colorPalette="red"
+                        variant="outline"
                         onClick={handleReject}
                         loading={isProcessing}
                         loadingText="Đang xử lý..."
@@ -378,12 +396,13 @@ export function OfferDetailModal({
                         Từ chối
                       </Button>
                       <Button
-                        colorScheme="green"
+                        colorPalette="green"
                         onClick={handleAccept}
                         loading={isProcessing}
                         loadingText="Đang xử lý..."
+                        boxShadow="md"
                       >
-                        Đồng ý
+                        Đồng ý mua
                       </Button>
                     </>
                   )}

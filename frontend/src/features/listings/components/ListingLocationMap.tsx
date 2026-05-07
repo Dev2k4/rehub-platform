@@ -1,6 +1,6 @@
-import { Box, Flex, Spinner, Text } from "@chakra-ui/react"
+import { Box, Flex, HStack, Spinner, Text, VStack } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { FiMapPin, FiExternalLink } from "react-icons/fi"
+import { FiMapPin, FiNavigation, FiExternalLink } from "react-icons/fi"
 import { MapContainer, Marker, TileLayer } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
@@ -25,6 +25,7 @@ const customIcon = new L.Icon({
 type ListingLocationMapProps = {
   province?: string
   district?: string
+  ward?: string
 }
 
 // Geocode using Nominatim
@@ -43,11 +44,27 @@ const geocodeAddress = async (query: string): Promise<[number, number] | null> =
   }
 }
 
-export function ListingLocationMap({ province, district }: ListingLocationMapProps) {
+/**
+ * Opens Google Maps directions from the user's current location to the seller's address.
+ * Uses the browser Geolocation API to get the buyer's current position,
+ * then opens Google Maps with driving directions.
+ */
+const openDirections = (destinationAddress: string, coords: [number, number] | null) => {
+  // Destination: use coordinates if available for precision, otherwise address string
+  const destination = coords
+    ? `${coords[0]},${coords[1]}`
+    : encodeURIComponent(destinationAddress)
+
+  // Use Google Maps directions URL – origin is left blank so Google uses the user's current location
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`
+  window.open(directionsUrl, "_blank")
+}
+
+export function ListingLocationMap({ province, district, ward }: ListingLocationMapProps) {
   // Build full address string
-  const addressParts = [district, province, "Vietnam"].filter(Boolean)
+  const addressParts = [ward, district, province, "Vietnam"].filter(Boolean)
   const fullAddress = addressParts.join(", ")
-  const displayAddress = [district, province].filter(Boolean).join(", ")
+  const displayAddress = [ward, district, province].filter(Boolean).join(", ")
 
   const { data: coords, isLoading } = useQuery({
     queryKey: ["geocode", fullAddress],
@@ -60,8 +77,6 @@ export function ListingLocationMap({ province, district }: ListingLocationMapPro
     return null
   }
 
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
-
   return (
     <Box
       bg="whiteAlpha.800"
@@ -70,36 +85,51 @@ export function ListingLocationMap({ province, district }: ListingLocationMapPro
       boxShadow="0 10px 40px rgba(0,0,0,0.06)"
       border="1px"
       borderColor="whiteAlpha.400"
-      p={6}
+      overflow="hidden"
     >
-      <Flex align="center" gap={2} mb={4}>
-        <FiMapPin size={20} color="#e53e3e" />
-        <Text fontSize="md" fontWeight="bold" color="gray.900">
-          Khu vực giao dịch
-        </Text>
-      </Flex>
+      {/* Header */}
+      <Box p={5} pb={3}>
+        <Flex align="center" gap={2} mb={2}>
+          <Box
+            w={8}
+            h={8}
+            borderRadius="lg"
+            bg="red.50"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            flexShrink={0}
+          >
+            <FiMapPin size={16} color="#e53e3e" />
+          </Box>
+          <VStack align="start" gap={0}>
+            <Text fontSize="sm" fontWeight="bold" color="gray.900">
+              Khu vực người bán
+            </Text>
+            <Text fontSize="xs" color="gray.500" lineHeight={1.3}>
+              {displayAddress}
+            </Text>
+          </VStack>
+        </Flex>
+      </Box>
 
-      <Text fontSize="sm" color="gray.700" mb={4} lineHeight={1.6}>
-        {displayAddress}
-      </Text>
-
+      {/* Map Area */}
       <Box 
         position="relative" 
         w="full" 
-        h="200px" 
-        borderRadius="lg" 
-        overflow="hidden"
-        border="1px solid"
-        borderColor="gray.200"
+        h="220px" 
         cursor="pointer"
-        onClick={() => window.open(googleMapsUrl, "_blank")}
+        onClick={() => openDirections(fullAddress, coords ?? null)}
         role="button"
         tabIndex={0}
         _hover={{ "& .map-overlay": { opacity: 1 } }}
       >
         {isLoading ? (
           <Flex h="full" w="full" bg="gray.50" align="center" justify="center">
-            <Spinner color="blue.500" />
+            <VStack gap={2}>
+              <Spinner color="blue.500" />
+              <Text fontSize="xs" color="gray.400">Đang tải bản đồ...</Text>
+            </VStack>
           </Flex>
         ) : coords ? (
           <>
@@ -120,32 +150,37 @@ export function ListingLocationMap({ province, district }: ListingLocationMapPro
               </MapContainer>
             </Box>
             
-            {/* Hover overlay that shows "Mở trong Google Maps" */}
+            {/* Hover overlay */}
             <Flex 
               className="map-overlay"
               position="absolute"
               top={0} left={0} right={0} bottom={0}
-              bg="blackAlpha.400"
+              bg="blackAlpha.500"
               zIndex={2}
               opacity={0}
-              transition="opacity 0.2s"
+              transition="opacity 0.25s ease"
               align="center"
               justify="center"
+              direction="column"
+              gap={2}
             >
               <Flex 
                 bg="white" 
-                px={4} py={2} 
+                px={5} py={2.5} 
                 borderRadius="full" 
                 align="center" 
                 gap={2}
-                boxShadow="md"
-                color="gray.800"
-                fontWeight="semibold"
+                boxShadow="0 8px 24px rgba(0,0,0,0.2)"
+                color="blue.600"
+                fontWeight="bold"
                 fontSize="sm"
               >
-                <FiExternalLink />
-                Xem trên Google Maps
+                <FiNavigation />
+                Tìm đường đến người bán
               </Flex>
+              <Text fontSize="xs" color="whiteAlpha.800" fontWeight="500">
+                Mở trong Google Maps
+              </Text>
             </Flex>
           </>
         ) : (
@@ -156,6 +191,34 @@ export function ListingLocationMap({ province, district }: ListingLocationMapPro
           </Flex>
         )}
       </Box>
+
+      {/* Footer action bar */}
+      <a 
+        href={`https://www.google.com/maps/dir/?api=1&destination=${coords ? `${coords[0]},${coords[1]}` : encodeURIComponent(fullAddress)}&travelmode=driving`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ textDecoration: "none" }}
+      >
+        <HStack
+          px={5}
+          py={3}
+          bg="gray.50"
+          borderTop="1px solid"
+          borderColor="gray.100"
+          justify="space-between"
+          cursor="pointer"
+          transition="all 0.2s"
+          _hover={{ bg: "blue.50" }}
+        >
+          <HStack gap={2}>
+            <FiNavigation size={14} color="#2563eb" />
+            <Text fontSize="xs" fontWeight="600" color="blue.600">
+              Xem đường đi trên Google Maps
+            </Text>
+          </HStack>
+          <FiExternalLink size={14} color="#2563eb" />
+        </HStack>
+      </a>
     </Box>
   )
 }

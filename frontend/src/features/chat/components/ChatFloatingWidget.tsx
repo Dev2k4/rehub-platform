@@ -107,7 +107,7 @@ function ListingSharedCard({
       ) : (
         <Flex h="120px" align="center" justify="center" bg="gray.50">
           <Text fontSize="xs" color="gray.500">
-            Khong co hinh
+            Không có hình
           </Text>
         </Flex>
       )}
@@ -152,7 +152,7 @@ function ConversationItem({
   })
 
   const displayName =
-    profileQuery.data?.full_name ?? `User ${peerId.slice(0, 6)}`
+    profileQuery.data?.full_name ?? `Người dùng ${peerId.slice(0, 6)}`
   const avatarUrl = profileQuery.data?.avatar_url ?? undefined
   const isOnline = useIsUserOnline(peerId)
 
@@ -192,7 +192,7 @@ function ConversationItem({
               ? new Date(conversation.last_message_at).toLocaleTimeString(
                   "vi-VN",
                 )
-              : "Chua co tin"}
+              : "Chưa có tin"}
           </Text>
         </VStack>
         {conversation.unread_count > 0 && (
@@ -287,7 +287,7 @@ export function ChatFloatingWidget() {
 
   const selectedPeerDisplayName =
     selectedPeerProfileQuery.data?.full_name ??
-    (selectedPeerId ? `User ${selectedPeerId.slice(0, 6)}` : "Chon cuoc tro chuyen")
+    (selectedPeerId ? `Người dùng ${selectedPeerId.slice(0, 6)}` : "Chọn cuộc trò chuyện")
 
   const selectedPeerAvatar = selectedPeerProfileQuery.data?.avatar_url ?? undefined
   const isSelectedPeerOnline = useIsUserOnline(selectedPeerId)
@@ -320,7 +320,7 @@ export function ChatFloatingWidget() {
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : "Khong the tao cuoc tro chuyen"
+        error instanceof Error ? error.message : "Không thể tạo cuộc trò chuyện"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -336,7 +336,7 @@ export function ChatFloatingWidget() {
           },
     ) => {
       if (!selectedConversationId) {
-        throw new Error("Chua chon cuoc tro chuyen")
+        throw new Error("Chưa chọn cuộc trò chuyện")
       }
       return sendChatMessage(selectedConversationId, payload)
     },
@@ -349,7 +349,7 @@ export function ChatFloatingWidget() {
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : "Khong the gui tin nhan"
+        error instanceof Error ? error.message : "Không thể gửi tin nhắn"
       toaster.create({ title: message, type: "error" })
     },
   })
@@ -365,7 +365,7 @@ export function ChatFloatingWidget() {
     const off = onChatWidgetOpenRequest((payload) => {
       if (!isAuthenticated) {
         toaster.create({
-          title: "Vui long dang nhap de nhan tin",
+          title: "Vui lòng đăng nhập để nhắn tin",
           type: "info",
         })
         return
@@ -513,7 +513,7 @@ export function ChatFloatingWidget() {
   const handleLauncherClick = useCallback(() => {
     if (!canUseChat) {
       toaster.create({
-        title: "Vui long dang nhap de su dung chat",
+        title: "Vui lòng đăng nhập để sử dụng chat",
         type: "info",
       })
       navigate({ to: "/auth/login" })
@@ -547,7 +547,7 @@ export function ChatFloatingWidget() {
             onClick={handleLauncherClick}
           >
             <FiMessageCircle style={{ marginRight: "0.5rem" }} />
-            Tin nhan
+            Tin nhắn
             {unreadCount > 0 && (
               <Badge
                 ml={2}
@@ -601,7 +601,7 @@ export function ChatFloatingWidget() {
             <HStack gap={2} minW={0}>
               {isMobile && selectedConversationId && (
                 <IconButton
-                  aria-label="Quay lai danh sach"
+                  aria-label="Quay lại danh sách"
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedConversationId(null)}
@@ -634,15 +634,15 @@ export function ChatFloatingWidget() {
                       {selectedPeerDisplayName}
                     </Text>
                     <Text fontSize="xs" color="gray.500">
-                      {isSelectedPeerOnline ? "Dang hoat dong" : "Ngoai tuyen"}
+                      {isSelectedPeerOnline ? "Đang hoạt động" : "Ngoại tuyến"}
                     </Text>
                   </VStack>
                 </HStack>
               ) : (
                 <VStack align="start" gap={0} minW={0}>
-                  <Text fontWeight="bold">Tin nhan</Text>
+                  <Text fontWeight="bold">Tin nhắn</Text>
                   <Text fontSize="xs" color="gray.500">
-                    Chon cuoc tro chuyen
+                    Chọn cuộc trò chuyện
                   </Text>
                 </VStack>
               )}
@@ -650,7 +650,7 @@ export function ChatFloatingWidget() {
             <HStack>
               {!isMobile && (
                 <IconButton
-                  aria-label="Thu gon chat"
+                  aria-label="Thu gọn chat"
                   variant="ghost"
                   size="sm"
                   onClick={closeWidget}
@@ -659,7 +659,7 @@ export function ChatFloatingWidget() {
                 </IconButton>
               )}
               <IconButton
-                aria-label="Dong chat"
+                aria-label="Đóng chat"
                 variant="ghost"
                 size="sm"
                 onClick={closeWidget}
@@ -686,7 +686,7 @@ export function ChatFloatingWidget() {
                   </Flex>
                 ) : conversationsQuery.isError ? (
                   <Text px={2} py={4} fontSize="sm" color="red.500">
-                    Khong tai duoc danh sach tro chuyen.
+                    Không tải được danh sách trò chuyện.
                   </Text>
                 ) : (
                   <VStack align="stretch" gap={1}>
@@ -705,7 +705,7 @@ export function ChatFloatingWidget() {
                     })}
                     {conversationsQuery.data?.length === 0 && (
                       <Text px={2} py={4} fontSize="sm" color="gray.500">
-                        Chua co cuoc tro chuyen.
+                        Chưa có cuộc trò chuyện.
                       </Text>
                     )}
                   </VStack>
@@ -730,7 +730,7 @@ export function ChatFloatingWidget() {
                 ) : messagesQuery.isError ? (
                   <Flex justify="center" py={8}>
                     <Text color="red.500" fontSize="sm">
-                      Khong tai duoc tin nhan.
+                      Không tải được tin nhắn.
                     </Text>
                   </Flex>
                 ) : (messagesQuery.data?.items ?? []).length > 0 ? (
@@ -784,7 +784,7 @@ export function ChatFloatingWidget() {
                 ) : (
                   <Flex justify="center" py={8}>
                     <Text color="gray.500" fontSize="sm">
-                      Chua co tin nhan.
+                      Chưa có tin nhắn.
                     </Text>
                   </Flex>
                 )}
@@ -792,7 +792,7 @@ export function ChatFloatingWidget() {
 
               <HStack borderTop="1px" borderColor="gray.100" p={3}>
                 <Input
-                  placeholder="Nhap tin nhan..."
+                  placeholder="Nhập tin nhắn..."
                   value={messageInput}
                   onChange={(event) => setMessageInput(event.target.value)}
                   onKeyDown={(event) => {
@@ -804,7 +804,7 @@ export function ChatFloatingWidget() {
                   disabled={!selectedConversationId}
                 />
                 <IconButton
-                  aria-label="Gui tin nhan"
+                  aria-label="Gửi tin nhắn"
                   colorPalette="blue"
                   onClick={handleSendMessage}
                   loading={sendMessageMutation.isPending}

@@ -432,6 +432,8 @@ import {
   useMyListings,
 } from "@/features/listings/hooks/useMyListings"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { SearchableSelect } from "@/features/shared/components/SearchableSelect"
+import { useVnAddress } from "@/features/shared/hooks/useVnAddress"
 
 type ListingSortBy = "newest" | "price_asc" | "price_desc"
 
@@ -463,6 +465,9 @@ export function HomeMarketplacePage() {
     sellerMap,
     flatCategories,
   } = useMarketplaceData()
+
+  const { provinceOptions, wardOptions, provincesLoading, wardsLoading } =
+    useVnAddress(province)
 
   const { user, isAuthenticated } = useAuthUser()
   const pendingListingsQuery = useMyListings(
@@ -609,23 +614,25 @@ export function HomeMarketplacePage() {
                     Khu vực
                   </Text>
                   <HStack gap="0.5rem">
-                    <Input
+                    <SearchableSelect
+                      options={provinceOptions}
                       value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      placeholder="Tỉnh"
-                      size="sm"
-                      borderRadius="0.6rem"
-                      border="1px solid"
-                      borderColor="gray.200"
+                      onChange={(val) => {
+                        setProvince(val)
+                        setDistrict("")
+                      }}
+                      placeholder="Tỉnh / TP"
+                      loading={provincesLoading}
+                      compact
                     />
-                    <Input
+                    <SearchableSelect
+                      options={wardOptions}
                       value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      placeholder="Huyện"
-                      size="sm"
-                      borderRadius="0.6rem"
-                      border="1px solid"
-                      borderColor="gray.200"
+                      onChange={setDistrict}
+                      placeholder="Phường / Xã"
+                      loading={wardsLoading}
+                      disabled={!province}
+                      compact
                     />
                   </HStack>
                 </Box>

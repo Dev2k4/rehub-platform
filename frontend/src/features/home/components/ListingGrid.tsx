@@ -51,23 +51,30 @@ export function ListingGrid({
     return (
       <Box
         borderRadius="1.25rem"
-        border="2px dashed"
+        border="1.5px dashed"
         borderColor="gray.200"
         bg="white"
-        py={16}
+        py={10}
+        px={6}
         textAlign="center"
       >
         <Box
-          fontSize="3.5rem"
-          mb="1rem"
-          style={{ animation: "float 3s ease-in-out infinite" }}
+          mx="auto"
+          w={12}
+          h={12}
+          borderRadius="xl"
+          bg="gray.50"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          mb={3}
         >
-          <FiInbox size="100%" color="inherit" />
+          <FiInbox size={22} color="#A0AEC0" />
         </Box>
-        <Text fontSize="md" color="gray.600" fontWeight="700" mb={2}>
+        <Text fontSize="sm" color="gray.600" fontWeight="600" mb={1}>
           Không tìm thấy sản phẩm phù hợp
         </Text>
-        <Text fontSize="sm" color="gray.400">
+        <Text fontSize="xs" color="gray.400">
           Thử thay đổi bộ lọc hoặc tìm kiếm với từ khoá khác.
         </Text>
       </Box>
