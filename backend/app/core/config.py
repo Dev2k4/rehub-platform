@@ -1,5 +1,4 @@
 import urllib.parse
-from typing import Optional
 from pathlib import Path
 
 from pydantic import model_validator
@@ -19,29 +18,11 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
-
-    # Database pool settings
-    DB_ECHO: bool = False  # Set True only for debugging
-    DB_POOL_SIZE: int = 20
-    DB_MAX_OVERFLOW: int = 10
-    DB_POOL_TIMEOUT: int = 30
-    DB_POOL_RECYCLE: int = 1800  # 30 minutes
-
+    
     @property
     def DATABASE_URL(self) -> str:
         encoded_password = urllib.parse.quote_plus(self.POSTGRES_PASSWORD)
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{encoded_password}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-
-    # CORS - comma-separated list of allowed origins
-    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
-
-    @property
-    def cors_origins(self) -> list[str]:
-        """Parse CORS origins from comma-separated string."""
-        return [origin.strip() for origin in self.BACKEND_CORS_ORIGINS.split(",") if origin.strip()]
-
-    # Redis (optional - for real-time multi-instance)
-    REDIS_URL: Optional[str] = None
     
     # Auth
     SECRET_KEY: str

@@ -70,8 +70,6 @@ async def create_direct_order(
 	seller = await crud_user.get_user_by_id(db, listing.seller_id)
 	if buyer and seller:
 		await send_order_created_email(buyer=buyer, seller=seller, order=order, listing_title=listing.title)
-
-	# Notify seller about new order
 	await crud_notification.create_notification(
 		db=db,
 		user_id=listing.seller_id,
@@ -138,8 +136,6 @@ async def complete_order(
 	seller = await crud_user.get_user_by_id(db, order.seller_id)
 	if buyer and seller:
 		await send_order_completed_email(buyer=buyer, seller=seller, order=updated_order)
-
-	# Notify seller
 	await crud_notification.create_notification(
 		db=db,
 		user_id=order.seller_id,

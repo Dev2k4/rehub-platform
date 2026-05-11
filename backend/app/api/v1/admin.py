@@ -1,12 +1,11 @@
 import uuid
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_admin, get_db
-from app.crud import crud_notification, crud_listing
+from app.crud import crud_notification
 from app.crud.crud_listing import get_listing, get_pending_listings
 from app.crud import crud_order
 from app.crud.crud_user import get_user_by_id, get_users_list, update_user_status
@@ -127,7 +126,6 @@ async def approve_listing(
         )
 
     listing.status = ListingStatus.ACTIVE
-    listing.rejection_reason = None  # Clear any previous rejection reason
     db.add(listing)
     await db.commit()
     await db.refresh(listing)
@@ -145,7 +143,6 @@ async def approve_listing(
 @router.post("/listings/{listing_id}/reject", response_model=ListingRead)
 async def reject_listing_route(
     listing_id: uuid.UUID,
-    reason: Optional[str] = Body(None, embed=True, max_length=500),
     admin_user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
@@ -162,23 +159,16 @@ async def reject_listing_route(
         )
 
     listing.status = ListingStatus.REJECTED
-    listing.rejection_reason = reason
     db.add(listing)
     await db.commit()
     await db.refresh(listing)
-
-    # Build notification message
-    message = f"Your listing '{listing.title}' has been rejected."
-    if reason:
-        message += f" Reason: {reason}"
-
     await crud_notification.create_notification(
         db=db,
         user_id=listing.seller_id,
         type=NotificationType.LISTING_REJECTED,
         title="Listing rejected",
-        message=message,
-        data={"listing_id": str(listing.id), "reason": reason or ""},
+        message=f"Your listing '{listing.title}' has been rejected.",
+        data={"listing_id": str(listing.id)},
     )
     await _broadcast_listing_status_event(listing, "listing:rejected")
     return listing

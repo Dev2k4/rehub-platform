@@ -92,7 +92,6 @@ async def _is_phone_verified_marked(user_id: uuid.UUID) -> bool:
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=RegisterResponse)
 async def register(
-    request: Request,  # Required for limiter
     data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):

@@ -209,4 +209,4 @@ app.include_router(utils_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to ReHub API"}
+    return {"message": "Welcome to ReMarket API"}
