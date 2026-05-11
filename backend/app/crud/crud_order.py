@@ -101,16 +101,16 @@ async def complete_order(db: AsyncSession, order: Order) -> Order:
 	order.status = OrderStatus.COMPLETED
 	order.updated_at = _utc_now_naive()
 
-    # Update seller's completed_orders
-    await db.execute(
-        update(User)
-        .where(User.id == order.seller_id)
-        .values(completed_orders=User.completed_orders + 1)
-    )
+	# Update seller's completed_orders
+	await db.execute(
+		update(User)
+		.where(User.id == order.seller_id)
+		.values(completed_orders=User.completed_orders + 1)
+	)
 
-    await db.commit()
-    await db.refresh(order)
-    return order
+	await db.commit()
+	await db.refresh(order)
+	return order
 
 
 async def cancel_order(db: AsyncSession, order: Order, offer_id: uuid.UUID | None = None) -> Order:
@@ -123,12 +123,12 @@ async def cancel_order(db: AsyncSession, order: Order, offer_id: uuid.UUID | Non
 	order.status = OrderStatus.CANCELLED
 	order.updated_at = _utc_now_naive()
 
-    # Revert listing status to ACTIVE
-    await db.execute(
-        update(Listing)
-        .where(Listing.id == order.listing_id)
-        .values(status=ListingStatus.ACTIVE)
-    )
+	# Revert listing status to ACTIVE
+	await db.execute(
+		update(Listing)
+		.where(Listing.id == order.listing_id)
+		.values(status=ListingStatus.ACTIVE)
+	)
 
 	# Nếu có offer_id, update offer status về REJECTED
 	if offer_id:
