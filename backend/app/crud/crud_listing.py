@@ -39,6 +39,26 @@ async def get_listing_images(db: AsyncSession, listing_id: str) -> list[ListingI
     result = await db.execute(select(ListingImage).where(ListingImage.listing_id == _to_uuid(listing_id)))
     return list(result.scalars().all())
 
+
+async def get_images_for_listings(
+    db: AsyncSession,
+    listing_ids: list[uuid.UUID],
+) -> dict[uuid.UUID, list[ListingImage]]:
+    if not listing_ids:
+        return {}
+
+    result = await db.execute(
+        select(ListingImage)
+        .where(ListingImage.listing_id.in_(listing_ids))
+        .order_by(ListingImage.is_primary.desc(), ListingImage.created_at.desc())
+    )
+    images = list(result.scalars().all())
+
+    grouped: dict[uuid.UUID, list[ListingImage]] = {}
+    for image in images:
+        grouped.setdefault(image.listing_id, []).append(image)
+    return grouped
+
 async def add_listing_image(
     db: AsyncSession,
     listing_id: str,
