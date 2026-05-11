@@ -11,7 +11,7 @@ import {
   useBreakpointValue,
   VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -223,6 +223,9 @@ export function ChatFloatingWidget() {
   >(null)
   const closeTimerRef = useRef<number | null>(null)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
+  const loadMoreInFlightRef = useRef(false)
+
+  const MESSAGE_PAGE_SIZE = 50
 
   const openWidget = useCallback(() => {
     if (closeTimerRef.current) {
@@ -259,6 +262,9 @@ export function ChatFloatingWidget() {
     queryKey: ["chat", "conversations"],
     queryFn: listMyConversations,
     enabled: isAuthenticated,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   const selectedConversation = useMemo(
@@ -302,13 +308,35 @@ export function ChatFloatingWidget() {
     )
   }, [conversationsQuery.data, isOpen])
 
-  const messagesQuery = useQuery({
+  const messagesQuery = useInfiniteQuery({
     queryKey: ["chat", "messages", selectedConversationId],
-    queryFn: () =>
-      listConversationMessages(selectedConversationId!, { skip: 0, limit: 50 }),
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listConversationMessages(selectedConversationId!, {
+        skip: pageParam,
+        limit: MESSAGE_PAGE_SIZE,
+      }),
     enabled: isAuthenticated && isOpen && !!selectedConversationId,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((acc, page) => acc + page.items.length, 0)
+      return loaded >= lastPage.total ? undefined : loaded
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     refetchInterval: isOpen ? 12000 : false,
   })
+
+  const messages = useMemo(() => {
+    const merged = messagesQuery.data?.pages.flatMap((page) => page.items) ?? []
+    return merged
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() -
+          new Date(b.created_at).getTime(),
+      )
+  }, [messagesQuery.data?.pages])
 
   const openConversationMutation = useMutation({
     mutationFn: createOrGetConversation,
@@ -442,13 +470,13 @@ export function ChatFloatingWidget() {
     if (!isOpen || !selectedConversationId) {
       return
     }
-    if (!messagesQuery.data?.items) {
+    if (messages.length === 0) {
       return
     }
     scrollMessagesToBottom("smooth")
   }, [
     isOpen,
-    messagesQuery.data?.items,
+    messages,
     scrollMessagesToBottom,
     selectedConversationId,
   ])
@@ -458,11 +486,11 @@ export function ChatFloatingWidget() {
       return
     }
 
-    if (messagesQuery.isLoading) {
+    if (messagesQuery.isPending) {
       return
     }
 
-    const existingShared = (messagesQuery.data?.items ?? []).some(
+    const existingShared = messages.some(
       (item) =>
         item.message_type === "listing_share" &&
         item.listing?.id === pendingListingShareId,
@@ -485,12 +513,42 @@ export function ChatFloatingWidget() {
     )
   }, [
     isOpen,
-    messagesQuery.data?.items,
-    messagesQuery.isLoading,
+    messages,
+    messagesQuery.isPending,
     pendingListingShareId,
     selectedConversationId,
     sendMessageMutation,
   ])
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesScrollRef.current
+    if (!container || loadMoreInFlightRef.current) {
+      return
+    }
+
+    if (container.scrollTop > 80) {
+      return
+    }
+
+    if (!messagesQuery.hasNextPage || messagesQuery.isFetchingNextPage) {
+      return
+    }
+
+    const previousHeight = container.scrollHeight
+    const previousTop = container.scrollTop
+    loadMoreInFlightRef.current = true
+
+    messagesQuery
+      .fetchNextPage()
+      .finally(() => {
+        loadMoreInFlightRef.current = false
+        window.requestAnimationFrame(() => {
+          const nextHeight = container.scrollHeight
+          const delta = nextHeight - previousHeight
+          container.scrollTop = previousTop + delta
+        })
+      })
+  }, [messagesQuery])
 
   const handleSendMessage = useCallback(() => {
     const raw = messageInput.trim()
@@ -727,8 +785,9 @@ export function ChatFloatingWidget() {
                 flex={1}
                 p={3}
                 overflowY="auto"
+                onScroll={handleMessagesScroll}
               >
-                {messagesQuery.isLoading && selectedConversationId ? (
+                {messagesQuery.isPending && selectedConversationId ? (
                   <Flex justify="center" py={8}>
                     <Spinner size="sm" color="blue.500" />
                   </Flex>
@@ -738,8 +797,8 @@ export function ChatFloatingWidget() {
                       Không tải được tin nhắn.
                     </Text>
                   </Flex>
-                ) : (messagesQuery.data?.items ?? []).length > 0 ? (
-                  (messagesQuery.data?.items ?? []).map((message) => {
+                ) : messages.length > 0 ? (
+                  messages.map((message) => {
                     const mine = message.sender_id === currentUserId
                     return (
                       <Flex

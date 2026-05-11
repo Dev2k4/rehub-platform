@@ -185,6 +185,12 @@ services:
       - traefik.http.routers.api.tls.certresolver=letsencrypt
       - traefik.http.routers.api.middlewares=security-headers@docker,api-ratelimit@docker
       - traefik.http.services.api.loadbalancer.server.port=8000
+      # Dedicated WebSocket route to avoid middleware interference
+      - traefik.http.routers.api-ws.rule=Host(`${DOMAIN}`) && Path(`/api/v1/ws`)
+      - traefik.http.routers.api-ws.entrypoints=websecure
+      - traefik.http.routers.api-ws.tls.certresolver=letsencrypt
+      - traefik.http.routers.api-ws.priority=100
+      - traefik.http.routers.api-ws.service=api
 
   frontend:
     build:
