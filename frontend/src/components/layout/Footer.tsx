@@ -102,19 +102,6 @@ export function Footer() {
           <Box gridColumn={{ base: "span 1", lg: "span 5" }}>
             <VStack align="start" gap={4}>
               <Flex align="center" gap={3}>
-                <Box 
-                  display="flex" 
-                  alignItems="center" 
-                  justifyContent="center" 
-                  bgGradient="to-br" 
-                  gradientFrom="blue.500" 
-                  gradientTo="blue.700"
-                  p={1.5} 
-                  borderRadius="lg"
-                  boxShadow="0 4px 12px rgba(37, 99, 235, 0.3)"
-                >
-                  <Icon as={FiRefreshCcw} boxSize={5} color="white" />
-                </Box>
                 <Text
                   fontWeight="900"
                   fontSize="xl"
@@ -134,8 +121,8 @@ export function Footer() {
                 lineHeight={1.7}
                 maxW="400px"
               >
-                Sàn giao dịch đồ cũ uy tín hàng đầu Việt Nam. Nơi kết nối cộng đồng yêu thích đồ cũ, 
-                lan tỏa giá trị bền vững và tiết kiệm tối đa cho mọi nhà.
+                Sàn giao dịch đồ cũ - kết nối cộng đồng yêu thích đồ cũ, 
+                Lan tỏa giá trị bền vững và tiết kiệm tối đa cho mọi nhà.
               </Text>
 
               <HStack gap={3} mt={1}>
@@ -162,7 +149,6 @@ export function Footer() {
                 <FooterLink to="/">Trang chủ</FooterLink>
                 <FooterLink to="/my-listings">Đăng tin bán</FooterLink>
                 <FooterLink to="/orders">Đơn hàng của tôi</FooterLink>
-                <FooterLink to="/wallet">Ví của tôi</FooterLink>
               </VStack>
             </VStack>
           </Box>
@@ -180,10 +166,10 @@ export function Footer() {
                 Hỗ trợ khách hàng
               </Text>
               <VStack align="start" gap={3} w="full">
-                <a href="mailto:support@rehub.vn" style={{ textDecoration: 'none' }}>
+                <a href="mailto:daranbull1112@gmail.com" style={{ textDecoration: 'none' }}>
                   <HStack color="whiteAlpha.600" _hover={{ color: "blue.400" }} transition="all 0.2s" cursor="pointer">
                     <FiMail />
-                    <Text fontSize="sm" fontWeight="500">support@rehub.vn</Text>
+                    <Text fontSize="sm" fontWeight="500">daranbull1112@gmail.com</Text>
                   </HStack>
                 </a>
                 <FooterLink href="/">Hướng dẫn mua bán</FooterLink>
@@ -206,17 +192,12 @@ export function Footer() {
         >
           <VStack align={{ base: "center", md: "start" }} gap={0.5}>
             <Text fontSize="xs" color="whiteAlpha.500" fontWeight="500">
-              © {new Date().getFullYear()} ReHub Marketplace. Bảo lưu mọi quyền.
+              © {new Date().getFullYear()} ReHub Platform.
             </Text>
 
           </VStack>
 
-          <HStack gap={2} bg="whiteAlpha.50" px={3} py={1.5} borderRadius="full" border="1px solid" borderColor="whiteAlpha.100">
-            <Icon as={FiRefreshCcw} boxSize={3} color="blue.400" />
-            <Text fontSize="10px" color="whiteAlpha.600" fontWeight="600" letterSpacing="wide">
-              NỀN TẢNG ĐỒ CŨ – LAN TỎA GIÁ TRỊ MỚI
-            </Text>
-          </HStack>
+        
         </Flex>
       </Container>
     </Box>

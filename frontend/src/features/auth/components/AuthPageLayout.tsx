@@ -199,7 +199,7 @@ export function AuthPageLayout({
           zIndex={1}
           position="relative"
         >
-          © 2025 ReHub Platform · All rights reserved
+          © 2026 ReHub Platform
         </Text>
       </Box>
 

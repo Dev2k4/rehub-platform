@@ -296,6 +296,7 @@ export function ListingForm({
               id="price"
               {...register("price")}
               type="number"
+              className="price-input"
               placeholder="0"
               bg="gray.50"
               borderRadius="xl"
@@ -432,12 +433,6 @@ export function ListingForm({
               </NativeSelect.Root>
             ) : null}
 
-            {selectedParent && (selectedParent.children?.length ?? 0) === 0 ? (
-              <Text fontSize="sm" color="gray.500">
-                Danh mục này không có danh mục con. Hệ thống sẽ dùng trực tiếp
-                danh mục mẹ đã chọn.
-              </Text>
-            ) : null}
           </VStack>
         </Field>
 
