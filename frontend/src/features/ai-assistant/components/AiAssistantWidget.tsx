@@ -392,17 +392,7 @@ export function AiAssistantWidget() {
               <Text fontSize="xs" color="gray.500">
                 Tìm sản phẩm, gợi ý giá, hướng dẫn sử dụng
               </Text>
-              {(assistantMeta?.provider || assistantMeta?.model) && (
-                <Text fontSize="xs" color="gray.500">
-                  Nguồn: {assistantMeta?.provider ?? "unknown"}
-                  {assistantMeta?.model ? ` • ${assistantMeta.model}` : ""}
-                </Text>
-              )}
-              {assistantMeta?.fallbackUsed && (
-                <Text fontSize="xs" color="orange.500">
-                  Đang dùng chế độ trả lời nhanh (ngoại tuyến)
-                </Text>
-              )}
+            
             </VStack>
             <HStack>
               {!isMobile && (

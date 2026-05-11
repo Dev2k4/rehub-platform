@@ -178,7 +178,7 @@ export function ListingCard({
         overflow="hidden"
         borderRadius="1rem"
         bg="white"
-        // SỬA TẠI ĐÂY: Thêm viền rõ rệt để tách biệt với nền xám nhạt
+
         border="1px solid"
         borderColor="gray.200"
         transition="all 0.2s ease-in-out"
@@ -203,7 +203,7 @@ export function ListingCard({
             objectFit="cover"
             w="100%"
             h="100%"
-            // fallbackSrc="https://via.placeholder.com/400?text=ReHub"
+        
           />
           <Badge
             position="absolute"

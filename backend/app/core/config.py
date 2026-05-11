@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     SENTRY_TEST_TOKEN: str = ""
 
     # Redis / cache
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://redis:6379/0"
     REDIS_CACHE_TTL_SECONDS: int = 300
 
     # Uploads
@@ -71,12 +71,12 @@ class Settings(BaseSettings):
     OFFER_EXPIRY_JOB_INTERVAL_MINUTES: int = 5
 
     # Frontend host for generated links (email verification, password reset, ...)
-    FRONTEND_HOST: str = "https://happiness-eaten-flashy.ngrok-free.dev"
-    BACKEND_PUBLIC_BASE_URL: str = "https://enduring-pope-urethane.ngrok-free.dev"
-    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://happiness-eaten-flashy.ngrok-free.dev"
+    FRONTEND_HOST: str = "https://rehub.page"
+    BACKEND_PUBLIC_BASE_URL: str = "https://rehub.page"
+    BACKEND_CORS_ORIGINS: str = "https://rehub.page,https://www.rehub.page"
 
     # SMS / OTP
-    SMS_DEBUG_MODE: bool = True
+    SMS_DEBUG_MODE: bool = False
 
     # Email / SMTP
     SMTP_HOST: str = "smtp.gmail.com"

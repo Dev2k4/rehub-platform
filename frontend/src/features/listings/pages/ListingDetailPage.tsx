@@ -158,7 +158,7 @@ const OFFER_STATUS_META: Record<string, { label: string; color: string }> = {
   pending: { label: "Chờ xử lý", color: "yellow" },
   accepted: { label: "Đã chấp nhận", color: "green" },
   rejected: { label: "Đã từ chối", color: "red" },
-  countered: { label: "Đã counter", color: "blue" },
+  countered: { label: "Giá đề xuất mới", color: "blue" },
   expired: { label: "Hết hạn", color: "gray" },
 };
 
@@ -1124,11 +1124,11 @@ export function ListingDetailPage() {
                       borderColor="gray.300"
                       _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3b82f6" }}
                     />
-                    {offerPrice && Number(offerPrice) > 0 && (
-                      <Text mt={2} fontSize="sm" color="blue.600" fontWeight="medium">
-                        Giá trị thực tế: {formatCurrencyVnd(Number(offerPrice))}
-                      </Text>
-                    )}
+                      {offerPrice && Number(offerPrice) > 0 && (
+                        <Text mt={2} fontSize="sm" color="blue.600" fontWeight="medium">
+                          Giá trị thực tế: {formatCurrencyVnd(Number(offerPrice))}
+                        </Text>
+                      )}
                   </Box>
 
                   <HStack justify="flex-end" gap={3} pt={2}>

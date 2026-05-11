@@ -379,7 +379,7 @@ export function ChatFloatingWidget() {
       }
     })
     return () => off()
-  }, [isAuthenticated, openConversationMutation, openWidget])
+  }, [isAuthenticated, openWidget])
 
   useEffect(
     () => () => {
@@ -458,6 +458,10 @@ export function ChatFloatingWidget() {
       return
     }
 
+    if (messagesQuery.isLoading) {
+      return
+    }
+
     const existingShared = (messagesQuery.data?.items ?? []).some(
       (item) =>
         item.message_type === "listing_share" &&
@@ -482,6 +486,7 @@ export function ChatFloatingWidget() {
   }, [
     isOpen,
     messagesQuery.data?.items,
+    messagesQuery.isLoading,
     pendingListingShareId,
     selectedConversationId,
     sendMessageMutation,

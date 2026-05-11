@@ -323,11 +323,12 @@ export function SellerProfilePage() {
                 )}
 
                 {/* Action Buttons */}
-                <HStack gap={3} mt={4} flexWrap="wrap">
+                <HStack gap={3} mt={6} flexWrap="wrap">
                   <Button
                     colorPalette="blue"
                     borderRadius="xl"
                     px={6}
+                    
                     className="btn-shine"
                     style={{ position: "relative", overflow: "hidden" }}
                     onClick={() => navigate({ to: "/chat" })}
@@ -336,7 +337,7 @@ export function SellerProfilePage() {
                     Nhắn tin ngay
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     colorPalette="gray"
                     borderRadius="xl"
                     px={5}
@@ -385,15 +386,6 @@ export function SellerProfilePage() {
               <div className="trust-box-icon">
                 <FiShield size={20} />
               </div>
-              <Box>
-                <Text fontWeight="700" fontSize="sm" color="gray.800">
-                  Giao dịch an toàn với ReHub Escrow
-                </Text>
-                <Text fontSize="xs" color="gray.500" mt={0.5}>
-                  Tiền của bạn được bảo vệ cho đến khi nhận hàng thành công.
-                  Điều khoản giao dịch rõ ràng và minh bạch.
-                </Text>
-              </Box>
             </div>
 
             {/* Stat Cards */}

@@ -84,10 +84,18 @@ services:
       retries: 5
     labels:
       - traefik.enable=true
+      # MinIO Console (Dashboard) - Port 9001
       - traefik.http.routers.minio-console.rule=Host(`${MINIO_CONSOLE_HOST}`)
       - traefik.http.routers.minio-console.entrypoints=websecure
       - traefik.http.routers.minio-console.tls.certresolver=letsencrypt
+      - traefik.http.routers.minio-console.service=minio-console
       - traefik.http.services.minio-console.loadbalancer.server.port=9001
+      # MinIO API (S3) - Port 9000
+      - traefik.http.routers.minio-api.rule=Host(`minio.${DOMAIN}`)
+      - traefik.http.routers.minio-api.entrypoints=websecure
+      - traefik.http.routers.minio-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.minio-api.service=minio-api
+      - traefik.http.services.minio-api.loadbalancer.server.port=9000
 
   minio-init:
     image: minio/mc:latest
