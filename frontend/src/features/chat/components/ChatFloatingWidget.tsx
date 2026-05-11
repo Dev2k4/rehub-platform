@@ -19,6 +19,7 @@ import {
   FiMessageCircle,
   FiMinimize2,
   FiSend,
+  FiTrash2,
   FiX,
 } from "react-icons/fi"
 import { Avatar } from "@/components/ui/avatar"
@@ -26,6 +27,7 @@ import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import {
   createOrGetConversation,
+  deleteConversation,
   listConversationMessages,
   listMyConversations,
   markConversationRead,
@@ -386,6 +388,21 @@ export function ChatFloatingWidget() {
     },
   })
 
+  const deleteConversationMutation = useMutation({
+    mutationFn: deleteConversation,
+    onSuccess: () => {
+      setSelectedConversationId(null)
+      queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["chat", "messages"] })
+      toaster.create({ title: "Đã xóa lịch sử chat.", type: "success" })
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : "Không thể xóa cuộc trò chuyện"
+      toaster.create({ title: message, type: "error" })
+    },
+  })
+
   useEffect(() => {
     const off = onChatWidgetOpenRequest((payload) => {
       if (!isAuthenticated) {
@@ -667,6 +684,27 @@ export function ChatFloatingWidget() {
               )}
             </HStack>
             <HStack>
+              {selectedConversationId && (
+                <IconButton
+                  aria-label="Xóa cuộc trò chuyện"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (!selectedConversationId) {
+                      return
+                    }
+                    const confirmed = window.confirm(
+                      "Xóa toàn bộ lịch sử chat với người này?",
+                    )
+                    if (!confirmed) {
+                      return
+                    }
+                    deleteConversationMutation.mutate(selectedConversationId)
+                  }}
+                >
+                  <FiTrash2 />
+                </IconButton>
+              )}
               {!isMobile && (
                 <IconButton
                   aria-label="Thu gọn chat"

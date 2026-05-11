@@ -63,3 +63,21 @@ def get_chat_blob(object_key: str) -> bytes:
             response.release_conn()
     except S3Error as exc:
         raise RuntimeError("Failed to load encrypted chat blob") from exc
+
+
+def delete_chat_blob(object_key: str) -> None:
+    if settings.STORAGE_BACKEND.lower() != "minio":
+        root = Path(settings.UPLOAD_DIR) / "chat"
+        file_path = root / object_key
+        try:
+            file_path.unlink()
+        except FileNotFoundError:
+            pass
+        return
+
+    client = _minio_client()
+    bucket = _chat_bucket()
+    try:
+        client.remove_object(bucket, object_key)
+    except S3Error as exc:
+        raise RuntimeError("Failed to delete encrypted chat blob") from exc

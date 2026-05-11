@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import and_, func, or_, update
+from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -215,3 +215,32 @@ async def count_messages(db: AsyncSession, conversation_id: uuid.UUID) -> int:
         .where(ChatMessage.conversation_id == conversation_id)
     )
     return int(result.scalar_one())
+
+
+async def list_message_object_keys(
+    db: AsyncSession,
+    conversation_id: uuid.UUID,
+) -> list[str]:
+    result = await db.execute(
+        select(ChatMessage.object_key).where(ChatMessage.conversation_id == conversation_id)
+    )
+    return [row[0] for row in result.all()]
+
+
+async def delete_messages(
+    db: AsyncSession,
+    message_ids: list[uuid.UUID],
+) -> None:
+    if not message_ids:
+        return
+    await db.execute(delete(ChatMessage).where(ChatMessage.id.in_(message_ids)))
+
+
+async def delete_conversation(db: AsyncSession, conversation_id: uuid.UUID) -> None:
+    await db.execute(delete(ChatMessage).where(ChatMessage.conversation_id == conversation_id))
+    await db.execute(
+        delete(ChatConversationReadState).where(
+            ChatConversationReadState.conversation_id == conversation_id
+        )
+    )
+    await db.execute(delete(ChatConversation).where(ChatConversation.id == conversation_id))

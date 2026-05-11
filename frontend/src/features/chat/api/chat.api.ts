@@ -149,3 +149,16 @@ export async function markConversationRead(
   )
   return parseResponse<{ ok: boolean }>(response)
 }
+
+export async function deleteConversation(
+  conversationId: string,
+): Promise<{ ok: boolean }> {
+  const response = await fetchWithAuthRetry(
+    `/chat/conversations/${conversationId}`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    },
+  )
+  return parseResponse<{ ok: boolean }>(response)
+}

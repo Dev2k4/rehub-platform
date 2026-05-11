@@ -21,7 +21,7 @@ from app.schemas.chat import (
     ChatMessageSendRequest,
 )
 from app.services.chat_crypto_service import decrypt_message_content, encrypt_message_content
-from app.services.chat_storage_service import get_chat_blob, put_chat_blob
+from app.services.chat_storage_service import delete_chat_blob, get_chat_blob, put_chat_blob
 from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -121,6 +121,7 @@ async def list_conversation_messages(
     total = await crud_chat.count_messages(db, conversation_id)
 
     items: list[ChatMessageRead] = []
+    missing_message_ids: list[uuid.UUID] = []
     for row in rows:
         aad = f"{conversation_id}:{row.id}"
         try:
@@ -128,7 +129,8 @@ async def list_conversation_messages(
             payload = json.loads(encrypted_blob.decode("utf-8"))
             content = decrypt_message_content(payload, conversation.encrypted_dek, aad)
         except Exception:
-            content = "[Tin nhan khong the giai ma]"
+            missing_message_ids.append(row.id)
+            continue
 
         decoded_payload = _payload_from_decrypted_content(content)
         message_type = decoded_payload.get("message_type")
@@ -155,6 +157,11 @@ async def list_conversation_messages(
             )
         )
 
+    if missing_message_ids:
+        await crud_chat.delete_messages(db, missing_message_ids)
+        await db.commit()
+        total = await crud_chat.count_messages(db, conversation_id)
+
     if skip == 0:
         latest_seen = items[-1].created_at if items else None
         await crud_chat.mark_conversation_read(
@@ -171,6 +178,30 @@ async def list_conversation_messages(
         page=(skip // limit) + 1,
         size=limit,
     )
+
+
+@router.delete("/conversations/{conversation_id}")
+async def delete_conversation(
+    conversation_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    conversation = await crud_chat.get_conversation_for_user(db, conversation_id, current_user.id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    object_keys = await crud_chat.list_message_object_keys(db, conversation_id)
+    await crud_chat.delete_conversation(db, conversation_id)
+    await db.commit()
+
+    # Best-effort cleanup of blobs in storage.
+    for key in object_keys:
+        try:
+            delete_chat_blob(key)
+        except Exception:
+            pass
+
+    return {"ok": True}
 
 
 @router.post("/conversations/{conversation_id}/read", response_model=ChatMarkReadResponse)
