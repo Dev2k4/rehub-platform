@@ -6,6 +6,12 @@ from sqlalchemy import Column, String
 from datetime import datetime, timezone
 from app.models.enums import ConditionGrade, ListingStatus
 
+
+def _utc_now() -> datetime:
+    """Return naive UTC datetime (compatible with 'timestamp without time zone')."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 class Listing(SQLModel, table=True):
     __tablename__ = "listings"
 
@@ -18,10 +24,9 @@ class Listing(SQLModel, table=True):
     is_negotiable: bool = Field(default=True)
     condition_grade: ConditionGrade = Field(sa_column=Column(String(50)))
     status: ListingStatus = Field(default=ListingStatus.PENDING, sa_column=Column(String(50)))
-    rejection_reason: Optional[str] = Field(default=None, max_length=500)
 
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=_utc_now)
+    updated_at: datetime = Field(default_factory=_utc_now)
 
 class ListingImage(SQLModel, table=True):
     __tablename__ = "listing_images"
@@ -29,5 +34,8 @@ class ListingImage(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     listing_id: uuid.UUID = Field(foreign_key="listings.id", ondelete="CASCADE")
     image_url: str
+    thumbnail_url: Optional[str] = None
+    perceptual_hash: Optional[str] = Field(default=None, max_length=32)
+    image_md5: Optional[str] = Field(default=None, max_length=32)
     is_primary: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=_utc_now)

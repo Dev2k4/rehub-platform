@@ -1,16 +1,21 @@
 import uuid
-import os
+import hashlib
+import json
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+import logging
+from typing import Literal
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 
-from app.api.dependencies import get_db, get_current_user
+from app.api.dependencies import get_db, get_current_user, get_current_user_optional
+from app.core.cache import cache
 from app.core.config import settings
+from app.core.rate_limit import RateLimitError, enforce_rate_limit
+from app.models.listing import Listing, ListingImage
 from app.models.user import User
-from app.models.offer import Offer
-from app.models.enums import ListingStatus, UserRole, OfferStatus
+from app.models.enums import ConditionGrade, ListingStatus, UserRole
 from app.schemas.listing import (
     ListingRead,
     ListingCreate,
@@ -19,16 +24,54 @@ from app.schemas.listing import (
     ListingPaginated,
     ListingImageRead
 )
-from app.crud import crud_listing, crud_category
+from app.crud import crud_listing
+from app.services.duplicate_image_service import DuplicateImageService
+from app.services.storage_service import upload_listing_image as upload_to_object_storage, delete_listing_image as delete_from_object_storage
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
+logger = logging.getLogger(__name__)
 
-UPLOAD_DIR = os.path.join(settings.UPLOAD_DIR, "listings")
-ABS_UPLOAD_DIR = os.path.abspath(UPLOAD_DIR)
-os.makedirs(ABS_UPLOAD_DIR, exist_ok=True)
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def _public_listing_cache_key(**params: object) -> str:
+    normalized = json.dumps(params, sort_keys=True, default=str)
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return f"listings:public:{digest}"
+
+
+async def _invalidate_public_listing_cache() -> None:
+    await cache.delete_pattern("listings:public:*")
+
+
+async def _broadcast_listing_event(listing: ListingRead, event_type: str) -> None:
+    try:
+        payload = ListingRead.model_validate(listing).model_dump(mode="json")
+        status_value = listing.status.value if hasattr(listing.status, "value") else str(listing.status)
+        await connection_manager.send_to_user(
+            listing.seller_id,
+            {
+                "type": event_type,
+                "data": {
+                    "listing": payload,
+                },
+            },
+        )
+
+        await connection_manager.broadcast(
+            {
+                "type": "listing:status_updated",
+                "data": {
+                    "listing_id": str(listing.id),
+                        "status": status_value,
+                },
+            }
+        )
+    except Exception:
+        logger.exception("Failed to broadcast listing event: %s", event_type)
 
 @router.get("", response_model=ListingPaginated, include_in_schema=False)
 @router.get("/", response_model=ListingPaginated)
@@ -36,21 +79,46 @@ async def list_listings(
     keyword: Optional[str] = None,
     category_id: Optional[uuid.UUID] = None,
     seller_id: Optional[uuid.UUID] = None,
+    condition_grade: Optional[ConditionGrade] = None,
+    province: Optional[str] = Query(None, max_length=100),
+    district: Optional[str] = Query(None, max_length=100),
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
+    sort_by: Literal["newest", "price_asc", "price_desc"] = Query("newest"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db)
 ):
     """Public Route: Get active filtered and paginated listings ONLY."""
+    cache_key = _public_listing_cache_key(
+        keyword=keyword,
+        category_id=str(category_id) if category_id else None,
+        seller_id=str(seller_id) if seller_id else None,
+        condition_grade=condition_grade.value if condition_grade else None,
+        province=province,
+        district=district,
+        min_price=min_price,
+        max_price=max_price,
+        sort_by=sort_by,
+        skip=skip,
+        limit=limit,
+    )
+    cached = await cache.get_json(cache_key)
+    if cached is not None:
+        return ListingPaginated.model_validate(cached)
+
     cat_id_str = str(category_id) if category_id else None
     items, total = await crud_listing.search_listings(
         db, 
         keyword=keyword, 
         category_id=cat_id_str, 
         seller_id=str(seller_id) if seller_id else None,
+        condition_grade=condition_grade,
+        province=province,
+        district=district,
         min_price=min_price, 
         max_price=max_price, 
+        sort_by=sort_by,
         status=ListingStatus.ACTIVE, 
         skip=skip, 
         limit=limit
@@ -124,30 +192,45 @@ async def delete_listing_image_route(
     if str(listing.seller_id) != str(current_user.id) and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized to delete this image")
 
-    # Cannot delete last image of an ACTIVE listing
-    if listing.status == ListingStatus.ACTIVE:
-        images = await crud_listing.get_listing_images(db, str(listing.id))
-        if len(images) <= 1:
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot delete the last image of an active listing"
-            )
-
+    delete_from_object_storage(image.image_url, image.thumbnail_url)
+        
     await crud_listing.delete_listing_image(db, str(image_id))
+    await _invalidate_public_listing_cache()
     return None
 
 @router.get("/{listing_id}", response_model=ListingWithImages)
 async def get_listing(
     listing_id: uuid.UUID,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get a specific listing along with its full details and images."""
+    """
+    Get a specific listing along with its full details and images.
+
+    Access rules:
+    - ACTIVE listings: anyone can view
+    - PENDING/HIDDEN/REJECTED listings: only seller or admin can view
+    - SOLD listings: anyone can view (as reference)
+    """
     item = await crud_listing.get_listing(db, str(listing_id))
     if not item:
         raise HTTPException(status_code=404, detail="Listing not found")
-        
+
+    # Check access permission based on status
+    can_view = False
+    if item.status in {ListingStatus.ACTIVE, ListingStatus.SOLD}:
+        # Public listings - anyone can view
+        can_view = True
+    elif current_user:
+        # Private listings - only seller or admin can view
+        if str(item.seller_id) == str(current_user.id) or current_user.role == UserRole.ADMIN:
+            can_view = True
+
+    if not can_view:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
     images = await crud_listing.get_listing_images(db, str(item.id))
-    
+
     listing_dict = item.model_dump()
     listing_dict["images"] = images
     return ListingWithImages(**listing_dict)
@@ -160,16 +243,182 @@ async def create_listing(
     db: AsyncSession = Depends(get_db)
 ):
     """Requires JWT: Create a new listing. Status default to PENDING."""
-    category = await crud_category.get_category_by_id(db, str(data.category_id))
-    if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
+    try:
+        await enforce_rate_limit("listings:create", str(current_user.id), limit=10, window_seconds=60)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
+    new_listing = await crud_listing.create_listing(db, data, str(current_user.id))
+    await _broadcast_listing_event(new_listing, "listing:created")
+    await _invalidate_public_listing_cache()
+    return new_listing
+
+
+@router.post("/with-images", response_model=ListingWithImages, status_code=status.HTTP_201_CREATED)
+async def create_listing_with_images_atomic(
+    title: str = Form(...),
+    description: str | None = Form(None),
+    price: str = Form(...),
+    is_negotiable: bool = Form(True),
+    condition_grade: str = Form(...),
+    category_id: str = Form(...),
+    files: list[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Atomic create endpoint: listing + all images in one request.
+    If any image fails validation/upload, no listing is persisted.
+    """
+    try:
+        await enforce_rate_limit("listings:create", str(current_user.id), limit=10, window_seconds=60)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one image is required")
+
+    # Validate and normalize listing payload via existing schema contract.
+    try:
+        payload = ListingCreate.model_validate(
+            {
+                "title": title,
+                "description": description,
+                "price": price,
+                "is_negotiable": is_negotiable,
+                "condition_grade": condition_grade,
+                "category_id": category_id,
+            }
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Invalid listing payload") from exc
+
+    prepared_images: list[dict[str, object]] = []
+    batch_md5: set[str] = set()
+
+    for file in files:
+        if file.content_type not in ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+
+        if not file.filename or "." not in file.filename:
+            raise HTTPException(status_code=400, detail="Invalid file name")
+
+        ext = file.filename.rsplit(".", 1)[-1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail="Unsupported file extension")
+
+        file_bytes = await file.read()
+        if len(file_bytes) > MAX_IMAGE_BYTES:
+            raise HTTPException(status_code=400, detail="File too large")
+
+        try:
+            duplicate_check = await DuplicateImageService.check_duplicate(
+                db=db,
+                image_bytes=file_bytes,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        if duplicate_check.is_duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "DUPLICATE_IMAGE",
+                    "message": "Image already exists in another listing",
+                    "duplicate_listing_id": str(duplicate_check.duplicate_listing_id)
+                    if duplicate_check.duplicate_listing_id is not None
+                    else None,
+                    "duplicate_image_id": str(duplicate_check.duplicate_image_id)
+                    if duplicate_check.duplicate_image_id is not None
+                    else None,
+                    "duplicate_image_url": duplicate_check.duplicate_image_url,
+                    "similarity_score": duplicate_check.similarity_score,
+                },
+            )
+
+        if duplicate_check.image_md5 in batch_md5:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "DUPLICATE_IMAGE_IN_REQUEST",
+                    "message": "Duplicate image in the same request",
+                },
+            )
+
+        batch_md5.add(duplicate_check.image_md5)
+        prepared_images.append(
+            {
+                "bytes": file_bytes,
+                "ext": ext,
+                "content_type": file.content_type,
+                "duplicate_check": duplicate_check,
+            }
+        )
+
+    listing: Listing | None = None
+    created_images: list[ListingImage] = []
+    uploaded_assets: list[tuple[str, str | None]] = []
 
     try:
-        new_listing = await crud_listing.create_listing(db, data, str(current_user.id))
-    except IntegrityError:
+        listing = Listing(
+            seller_id=current_user.id,
+            category_id=payload.category_id,
+            title=payload.title,
+            description=payload.description,
+            price=payload.price,
+            is_negotiable=payload.is_negotiable,
+            condition_grade=payload.condition_grade,
+            status=ListingStatus.PENDING,
+        )
+        db.add(listing)
+        await db.flush()
+
+        for index, image in enumerate(prepared_images):
+            duplicate_check = image["duplicate_check"]
+            try:
+                image_url, thumbnail_url = upload_to_object_storage(
+                    file_bytes=image["bytes"],
+                    ext=image["ext"],
+                    content_type=image["content_type"],
+                    user_id=str(current_user.id),
+                    listing_id=str(listing.id),
+                )
+            except RuntimeError as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+            uploaded_assets.append((image_url, thumbnail_url))
+            db_image = ListingImage(
+                listing_id=listing.id,
+                image_url=image_url,
+                thumbnail_url=thumbnail_url,
+                perceptual_hash=duplicate_check.perceptual_hash,
+                image_md5=duplicate_check.image_md5,
+                is_primary=(index == 0),
+            )
+            db.add(db_image)
+            created_images.append(db_image)
+
+        await db.commit()
+        await db.refresh(listing)
+    except HTTPException:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Invalid category_id")
-    return new_listing
+        for image_url, thumbnail_url in uploaded_assets:
+            delete_from_object_storage(image_url, thumbnail_url)
+        raise
+    except Exception:
+        await db.rollback()
+        for image_url, thumbnail_url in uploaded_assets:
+            delete_from_object_storage(image_url, thumbnail_url)
+        logger.exception("Atomic listing creation failed")
+        raise HTTPException(status_code=500, detail="Failed to create listing with images")
+
+    listing_dict = listing.model_dump()
+    listing_dict["images"] = created_images
+    listing_with_images = ListingWithImages(**listing_dict)
+
+    await _broadcast_listing_event(listing_with_images, "listing:created")
+    await _invalidate_public_listing_cache()
+    return listing_with_images
 
 @router.patch("/{listing_id}", response_model=ListingRead)
 async def update_listing(
@@ -214,6 +463,9 @@ async def update_listing(
             raise HTTPException(status_code=404, detail="Category not found")
 
     updated_listing = await crud_listing.update_listing(db, str(listing_id), data)
+    if updated_listing is not None:
+        await _broadcast_listing_event(updated_listing, "listing:updated")
+        await _invalidate_public_listing_cache()
     return updated_listing
 
 @router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -234,6 +486,10 @@ async def delete_listing(
         raise HTTPException(status_code=400, detail="Cannot delete sold listing")
         
     await crud_listing.soft_delete_listing(db, str(listing_id))
+    hidden_listing = await crud_listing.get_listing(db, str(listing_id))
+    if hidden_listing is not None:
+        await _broadcast_listing_event(hidden_listing, "listing:hidden")
+    await _invalidate_public_listing_cache()
     return None
 
 @router.post("/{listing_id}/images", response_model=ListingImageRead)
@@ -244,7 +500,7 @@ async def upload_listing_image(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upload an image to the local filesystem and map it to a listing target."""
+    """Upload an image to object storage and map it to a listing target."""
     listing = await crud_listing.get_listing(db, str(listing_id))
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
@@ -265,16 +521,52 @@ async def upload_listing_image(
     file_bytes = await file.read()
     if len(file_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=400, detail="File too large")
-        
-    unique_filename = f"{uuid.uuid4().hex}.{ext}"
-    file_path = os.path.abspath(os.path.join(ABS_UPLOAD_DIR, unique_filename))
-    if not file_path.startswith(f"{ABS_UPLOAD_DIR}{os.sep}"):
-        raise HTTPException(status_code=400, detail="Invalid upload path")
-    
-    with open(file_path, "wb") as buffer:
-        buffer.write(file_bytes)
-        
-    image_url = f"/{settings.UPLOAD_DIR}/listings/{unique_filename}"
-    new_image = await crud_listing.add_listing_image(db, str(listing_id), image_url, is_primary)
+
+    try:
+        duplicate_check = await DuplicateImageService.check_duplicate(
+            db=db,
+            image_bytes=file_bytes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if duplicate_check.is_duplicate:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "DUPLICATE_IMAGE",
+                "message": "Image already exists in another listing",
+                "duplicate_listing_id": str(duplicate_check.duplicate_listing_id)
+                if duplicate_check.duplicate_listing_id is not None
+                else None,
+                "duplicate_image_id": str(duplicate_check.duplicate_image_id)
+                if duplicate_check.duplicate_image_id is not None
+                else None,
+                "duplicate_image_url": duplicate_check.duplicate_image_url,
+                "similarity_score": duplicate_check.similarity_score,
+            },
+        )
+
+    try:
+        image_url, thumbnail_url = upload_to_object_storage(
+            file_bytes=file_bytes,
+            ext=ext,
+            content_type=file.content_type,
+            user_id=str(listing.seller_id),
+            listing_id=str(listing.id),
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    new_image = await crud_listing.add_listing_image(
+        db,
+        str(listing_id),
+        image_url,
+        thumbnail_url,
+        perceptual_hash=duplicate_check.perceptual_hash,
+        image_md5=duplicate_check.image_md5,
+        is_primary=is_primary,
+    )
+    await _invalidate_public_listing_cache()
     return new_image
 

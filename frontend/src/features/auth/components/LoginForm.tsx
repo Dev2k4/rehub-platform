@@ -1,0 +1,274 @@
+import {
+  Box,
+  Input as ChakraInput,
+  Link as ChakraLink,
+  Stack,
+  Text,
+} from "@chakra-ui/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Link, useSearch } from "@tanstack/react-router"
+import { useState } from "react"
+import { Controller, type Resolver, useForm } from "react-hook-form"
+import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
+import { InputGroup } from "@/components/ui/input-group"
+import { toaster } from "@/components/ui/toaster"
+import { useLoginMutation } from "@/features/auth/hooks/useLoginMutation"
+import { useResetPasswordMutation } from "@/features/auth/hooks/useResetPasswordMutation"
+import type { AuthError } from "@/features/auth/types/auth.types"
+import { AuthErrorCode } from "@/features/auth/types/auth.types"
+import {
+  type LoginInput,
+  loginSchema,
+} from "@/features/auth/utils/auth.schemas"
+
+interface LoginFormProps {
+  onError?: (error: string) => void
+}
+
+export function LoginForm({ onError }: LoginFormProps) {
+  const loginMutation = useLoginMutation()
+  const resetPasswordMutation = useResetPasswordMutation()
+  const search = useSearch({ from: "/auth/login" })
+  const resetToken = search.reset_token
+  const [newPassword, setNewPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema) as Resolver<LoginInput>,
+    mode: "onBlur",
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+  })
+
+  function onSubmit(data: LoginInput) {
+    loginMutation.mutate(data, {
+      onSuccess: () => {
+        toaster.create({ title: "Đăng nhập thành công!", type: "success" })
+      },
+      onError: (error: unknown) => {
+        toaster.create({ title: getErrorMessage(error), type: "error" })
+        const authError = toAuthError(error)
+        if (
+          authError?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED ||
+          authError?.code === AuthErrorCode.EMAIL_NOT_VERIFIED
+        ) {
+          if (onError) {
+            onError(authError?.message ?? "Đã xảy ra lỗi. Vui lòng thử lại.")
+          }
+        }
+      },
+    })
+  }
+
+  const toAuthError = (error: unknown): AuthError | null => {
+    if (!error || typeof error !== "object") {
+      return null
+    }
+    const maybeAuthError = error as Partial<AuthError>
+    if (typeof maybeAuthError.message === "string") {
+      return maybeAuthError as AuthError
+    }
+    return null
+  }
+
+  const getErrorMessage = (error: unknown) => {
+    const authError = toAuthError(error)
+    if (authError?.code === AuthErrorCode.EMAIL_NOT_VERIFIED) {
+      return "Email của bạn chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản."
+    }
+    if (authError?.code === AuthErrorCode.RATE_LIMIT_EXCEEDED) {
+      return "Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút."
+    }
+    return authError?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+  }
+
+  return (
+    <Box as="form" onSubmit={handleSubmit(onSubmit)}>
+      <Stack gap={5}>
+        {/* Email */}
+        <Field
+          label="Email"
+          invalid={!!errors.email}
+          errorText={errors.email?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiMail color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
+          >
+            <ChakraInput
+              {...register("email")}
+              type="email"
+              placeholder="example@email.com"
+              ps="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+        </Field>
+
+        {/* Password */}
+        <Field
+          label="Mật khẩu"
+          invalid={!!errors.password}
+          errorText={errors.password?.message}
+        >
+          <InputGroup
+            width="full"
+            startElement={<FiLock color="#9CA3AF" />}
+            startElementProps={{ ms: 3.5 }}
+            endElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  color: "#9CA3AF",
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "4px",
+                  marginRight: "8px",
+                }}
+              >
+                {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            }
+          >
+            <ChakraInput
+              {...register("password")}
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              ps="12"
+              pe="12"
+              bg="gray.50"
+              borderColor="gray.200"
+              _hover={{ borderColor: "blue.400" }}
+              _focus={{ borderColor: "blue.500", bg: "white" }}
+            />
+          </InputGroup>
+        </Field>
+
+        {/* Remember Me */}
+        <Controller
+          control={control}
+          name="rememberMe"
+          render={({ field }) => (
+            <Checkbox
+              checked={field.value}
+              onCheckedChange={(e) => field.onChange(!!e.checked)}
+              id="rememberMe"
+            >
+              <Text fontSize="sm" color="gray.600">
+                Ghi nhớ đăng nhập
+              </Text>
+            </Checkbox>
+          )}
+        />
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          loading={isSubmitting || loginMutation.isPending}
+          loadingText="Đang xử lý..."
+          bg="blue.600"
+          color="white"
+          _hover={{ bg: "blue.700" }}
+          width="full"
+          borderRadius="xl"
+          fontWeight="semibold"
+          size="lg"
+          boxShadow="0 4px 15px rgba(66,153,225,0.35)"
+        >
+          Đăng nhập
+        </Button>
+
+        {resetToken && (
+          <Box
+            bg="blue.50"
+            border="1px"
+            borderColor="blue.200"
+            borderRadius="xl"
+            p={5}
+          >
+            <Text fontSize="sm" color="blue.800" mb={3}>
+              Bạn đang đặt lại mật khẩu từ email. Nhập mật khẩu mới và bấm cập
+              nhật.
+            </Text>
+            <ChakraInput
+              type="password"
+              placeholder="Mật khẩu mới"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              bg="white"
+              borderColor="blue.300"
+            />
+            <Button
+              mt={3}
+              width="full"
+              bg="blue.700"
+              color="white"
+              _hover={{ bg: "blue.800" }}
+              borderRadius="xl"
+              loading={resetPasswordMutation.isPending}
+              loadingText="Đang cập nhật..."
+              onClick={() => {
+                if (!newPassword.trim()) {
+                  if (onError) {
+                    onError("Vui lòng nhập mật khẩu mới")
+                  }
+                  return
+                }
+                resetPasswordMutation.mutate(
+                  { token: resetToken, newPassword: newPassword.trim() },
+                  {
+                    onSuccess: () => {
+                      toaster.create({
+                        title: "Đặt lại mật khẩu thành công!",
+                        type: "success",
+                      })
+                      setNewPassword("")
+                    },
+                    onError: (err: any) => {
+                      toaster.create({
+                        title: err?.message || "Không thể đặt lại mật khẩu.",
+                        type: "error",
+                      })
+                    },
+                  },
+                )
+              }}
+            >
+              Cập nhật mật khẩu
+            </Button>
+          </Box>
+        )}
+
+        {/* Forgot Password Link */}
+        <Box textAlign="center">
+          <ChakraLink
+            asChild
+            fontSize="sm"
+            color="blue.600"
+            _hover={{ color: "blue.700" }}
+          >
+            <Link to="/auth/forgot-password">Quên mật khẩu?</Link>
+          </ChakraLink>
+        </Box>
+      </Stack>
+    </Box>
+  )
+}

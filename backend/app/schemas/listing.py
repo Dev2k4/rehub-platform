@@ -38,6 +38,7 @@ class ListingRead(ListingBase):
 class ListingImageRead(BaseModel):
     id: uuid.UUID
     image_url: str
+    thumbnail_url: Optional[str] = None
     is_primary: bool
     created_at: datetime
 

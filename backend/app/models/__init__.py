@@ -1,0 +1,11 @@
+import app.models.category  # noqa: F401
+import app.models.chat  # noqa: F401
+import app.models.escrow  # noqa: F401
+import app.models.fulfillment  # noqa: F401
+import app.models.listing  # noqa: F401
+import app.models.notification  # noqa: F401
+import app.models.offer  # noqa: F401
+import app.models.order  # noqa: F401
+import app.models.review  # noqa: F401
+import app.models.user  # noqa: F401
+import app.models.wallet  # noqa: F401

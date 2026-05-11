@@ -27,8 +27,12 @@ class OfferStatus(str, Enum):
 
 class OrderStatus(str, Enum):
     PENDING = "pending"
+    PREPARING = "preparing"
+    IN_DELIVERY = "in_delivery"
+    DELIVERED = "delivered"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    DISPUTED = "disputed"
 
 
 class NotificationType(str, Enum):
@@ -40,6 +44,61 @@ class NotificationType(str, Enum):
     ORDER_CREATED = "order_created"
     ORDER_COMPLETED = "order_completed"
     ORDER_CANCELLED = "order_cancelled"
+    ESCROW_FUNDED = "escrow_funded"
+    ESCROW_RELEASE_REQUESTED = "escrow_release_requested"
+    ESCROW_RELEASED = "escrow_released"
+    ESCROW_DISPUTED = "escrow_disputed"
+    ESCROW_RESOLVED = "escrow_resolved"
     LISTING_APPROVED = "listing_approved"
     LISTING_REJECTED = "listing_rejected"
     REVIEW_RECEIVED = "review_received"
+
+
+class WalletTransactionType(str, Enum):
+    TOPUP_DEMO = "topup_demo"
+    HOLD = "hold"
+    RELEASE = "release"
+    REFUND = "refund"
+    ADJUSTMENT = "adjustment"
+
+
+class WalletTransactionDirection(str, Enum):
+    CREDIT = "credit"
+    DEBIT = "debit"
+
+
+class EscrowStatus(str, Enum):
+    AWAITING_FUNDING = "awaiting_funding"
+    HELD = "held"
+    RELEASE_PENDING = "release_pending"
+    RELEASED = "released"
+    REFUNDED = "refunded"
+    DISPUTED = "disputed"
+
+
+class EscrowEventType(str, Enum):
+    CREATED = "created"
+    FUNDED = "funded"
+    HOLD = "hold"
+    SELLER_MARK_DELIVERED = "seller_mark_delivered"
+    BUYER_CONFIRM = "buyer_confirm"
+    DISPUTE_OPENED = "dispute_opened"
+    RELEASE = "release"
+    REFUND = "refund"
+    ADMIN_RESOLVE = "admin_resolve"
+
+
+class FulfillmentStatus(str, Enum):
+    PENDING_SELLER_START = "pending_seller_start"
+    PREPARING = "preparing"
+    IN_DELIVERY = "in_delivery"
+    DELIVERED_BY_SELLER = "delivered_by_seller"
+    BUYER_CONFIRMED_RECEIVED = "buyer_confirmed_received"
+
+
+class FulfillmentEventType(str, Enum):
+    CREATED = "created"
+    SELLER_START_PREPARING = "seller_start_preparing"
+    SELLER_MARK_SHIPPING = "seller_mark_shipping"
+    SELLER_MARK_DELIVERED = "seller_mark_delivered"
+    BUYER_CONFIRM_RECEIVED = "buyer_confirm_received"

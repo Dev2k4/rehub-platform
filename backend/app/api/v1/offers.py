@@ -1,18 +1,43 @@
 from typing import Annotated, List
 import uuid
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.api.dependencies import get_current_user, get_db
+from app.core.rate_limit import RateLimitError, enforce_rate_limit
 from app.models.user import User
 from app.models.listing import Listing
-from app.models.order import Order
-from app.models.enums import OfferStatus, ListingStatus, OrderStatus, NotificationType
+from app.models.enums import OfferStatus, NotificationType
 from app.schemas.offer import OfferCreate, OfferRead, OfferStatusUpdate
-from app.crud import crud_notification, crud_offer
+from app.crud import crud_escrow, crud_notification, crud_offer
+from app.crud import crud_fulfillment
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/offers", tags=["offers"])
+logger = logging.getLogger(__name__)
+
+
+async def _broadcast_offer_event(
+    offer: OfferRead,
+    seller_id: uuid.UUID,
+    event_type: str,
+) -> None:
+    try:
+        payload = OfferRead.model_validate(offer).model_dump(mode="json")
+        event = {
+            "type": event_type,
+            "data": {
+                "offer": payload,
+                "seller_id": str(seller_id),
+            },
+        }
+        await connection_manager.send_to_user(offer.buyer_id, event)
+        if seller_id != offer.buyer_id:
+            await connection_manager.send_to_user(seller_id, event)
+    except Exception:
+        logger.exception("Failed to broadcast offer event: %s", event_type)
 
 
 @router.post("/", response_model=OfferRead, status_code=status.HTTP_201_CREATED)
@@ -31,6 +56,11 @@ async def create_offer(
     - Buyer không được có offer PENDING/COUNTERED trên listing này
     """
     try:
+        await enforce_rate_limit("offers:create", str(current_user.id), limit=12, window_seconds=60)
+    except RateLimitError as exc:
+        raise HTTPException(status_code=429, detail=exc.message)
+
+    try:
         offer = await crud_offer.create_offer(db, offer_in, current_user.id)
 
         result = await db.execute(select(Listing).where(Listing.id == offer.listing_id))
@@ -44,6 +74,7 @@ async def create_offer(
                 message=f"You received a new offer for listing '{listing.title}'.",
                 data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
             )
+            await _broadcast_offer_event(offer, listing.seller_id, "offer:status_changed")
         return offer
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -113,30 +144,73 @@ async def update_offer_status(
 ):
     """
     Cập nhật trạng thái của offer.
-    
+
     Permission Logic:
     - Seller (của listing) có thể: ACCEPT, REJECT, COUNTER offer từ PENDING
     - Buyer (người tạo offer) có thể: ACCEPT counter offer, REJECT offer của seller
-    - Khi ACCEPT: Tự động REJECT các offer PENDING khác trên listing, và tạo Order
-    
+    - Khi ACCEPT: Tự động REJECT các offer PENDING/COUNTERED khác trên listing, và tạo Order
+
     Status transitions:
     - PENDING → ACCEPTED/REJECTED/COUNTERED (Seller only)
     - COUNTERED → ACCEPTED/REJECTED (Buyer only)
     """
+    # Nếu là ACCEPT, dùng hàm riêng với race condition protection
+    if status_update.status == OfferStatus.ACCEPTED:
+        try:
+            offer, order, listing = await crud_offer.accept_offer_with_order(
+                db, offer_id, current_user.id
+            )
+            await crud_escrow.create_escrow_for_order(db, order)
+            await crud_fulfillment.create_fulfillment_for_order(db, order)
+
+            # Gửi notification
+            is_seller = listing.seller_id == current_user.id
+            target_user_id = offer.buyer_id if is_seller else listing.seller_id
+
+            if is_seller:
+                message = f"Your offer for '{listing.title}' was accepted."
+            else:
+                message = f"Buyer accepted your counter offer for '{listing.title}'."
+
+            await crud_notification.create_notification(
+                db=db,
+                user_id=target_user_id,
+                type=NotificationType.OFFER_ACCEPTED,
+                title="Offer accepted",
+                message=message,
+                data={"offer_id": str(offer.id), "listing_id": str(listing.id), "order_id": str(order.id)},
+            )
+
+            await crud_notification.create_notification(
+                db=db,
+                user_id=offer.buyer_id,
+                type=NotificationType.ORDER_CREATED,
+                title="Escrow pending funding",
+                message="Order created with escrow. Please fund your demo wallet escrow to continue.",
+                data={"order_id": str(order.id), "listing_id": str(listing.id), "action": "fund_escrow"},
+            )
+
+            await _broadcast_offer_event(offer, listing.seller_id, "offer:status_changed")
+
+            return offer
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    # Xử lý REJECT và COUNTER bình thường
     offer = await crud_offer.get_offer_by_id(db, offer_id)
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
-    
+
     # Lấy listing info
     result = await db.execute(select(Listing).where(Listing.id == offer.listing_id))
     listing = result.scalar_one_or_none()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
-    
+
     # Kiểm tra quyền
     is_seller = listing.seller_id == current_user.id
     is_buyer = offer.buyer_id == current_user.id
-    
+
     if not is_seller and not is_buyer:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -149,7 +223,7 @@ async def update_offer_status(
             status_code=400,
             detail=f"Cannot change offer in terminal status: {offer.status}"
         )
-    
+
     # Seller: chỉ được thay đổi PENDING offer
     if is_seller and offer.status != OfferStatus.PENDING:
         raise HTTPException(
@@ -157,112 +231,43 @@ async def update_offer_status(
             detail=f"Seller can only update PENDING offers. Current status: {offer.status}"
         )
 
-    if is_seller and status_update.status not in {
-        OfferStatus.ACCEPTED,
-        OfferStatus.REJECTED,
-        OfferStatus.COUNTERED,
-    }:
-        raise HTTPException(status_code=400, detail="Seller can only set ACCEPTED/REJECTED/COUNTERED")
+    if is_seller and status_update.status not in {OfferStatus.REJECTED, OfferStatus.COUNTERED}:
+        raise HTTPException(status_code=400, detail="Seller can only set REJECTED/COUNTERED (use ACCEPTED separately)")
 
     if is_seller and status_update.status == OfferStatus.COUNTERED and status_update.offer_price is None:
         raise HTTPException(status_code=400, detail="Countered status requires offer_price")
-    
-    # Buyer: có thể cancel offer PENDING của mình, hoặc respond COUNTERED offers
-    if is_buyer:
-        # Buyer can cancel their own PENDING offer
-        if offer.status == OfferStatus.PENDING:
-            if status_update.status != OfferStatus.REJECTED:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Buyer can only cancel (REJECTED) their pending offer"
-                )
-        # Buyer can accept/reject countered offers
-        elif offer.status == OfferStatus.COUNTERED:
-            if status_update.status not in {OfferStatus.ACCEPTED, OfferStatus.REJECTED}:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Buyer can only set ACCEPTED/REJECTED for countered offer"
-                )
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Buyer cannot update offer with status: {offer.status}"
-            )
 
-    if status_update.status == OfferStatus.ACCEPTED and listing.status == ListingStatus.SOLD:
-        raise HTTPException(status_code=400, detail="Listing already sold")
+    # Buyer: chỉ được reject COUNTERED offers (accept đã xử lý ở trên)
+    if is_buyer and offer.status != OfferStatus.COUNTERED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Buyer can only reject countered offers. Current status: {offer.status}"
+        )
 
-    # Cập nhật status với locking to prevent race conditions
-    previous_status = offer.status
+    if is_buyer and status_update.status != OfferStatus.REJECTED:
+        raise HTTPException(status_code=400, detail="Buyer can only set REJECTED for countered offer (use ACCEPTED separately)")
+
+    # Cập nhật status
     try:
-        updated_offer, rejected_offers = await crud_offer.update_offer_status(db, offer_id, status_update)
+        updated_offer = await crud_offer.update_offer_status(db, offer_id, status_update)
+        await db.commit()
+        await db.refresh(updated_offer)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Nếu status là ACCEPTED, tạo Order tự động và cập nhật listing
-    if status_update.status == OfferStatus.ACCEPTED:
-        order = Order(
-            buyer_id=offer.buyer_id,
-            seller_id=listing.seller_id,
-            listing_id=offer.listing_id,
-            final_price=offer.offer_price,
-            status=OrderStatus.PENDING
-        )
-        db.add(order)
+    # Gửi notification
+    notification_type = {
+        OfferStatus.REJECTED: NotificationType.OFFER_REJECTED,
+        OfferStatus.COUNTERED: NotificationType.OFFER_COUNTERED,
+    }.get(status_update.status)
 
-        # Cập nhật listing status thành SOLD
-        listing.status = ListingStatus.SOLD
-        db.add(listing)
-
-    await db.commit()
-    await db.refresh(updated_offer)
-
-    # Gửi notification cho các buyers khác bị auto-reject
-    if rejected_offers:
-        for rejected_offer in rejected_offers:
-            await crud_notification.create_notification(
-                db=db,
-                user_id=rejected_offer.buyer_id,
-                type=NotificationType.OFFER_REJECTED,
-                title="Offer rejected",
-                message=f"Your offer for '{listing.title}' was rejected because another offer was accepted.",
-                data={"offer_id": str(rejected_offer.id), "listing_id": str(listing.id)},
-            )
-
-    # Gửi ORDER_CREATED notification khi accept offer tạo order
-    if status_update.status == OfferStatus.ACCEPTED:
-        # Notify buyer
-        await crud_notification.create_notification(
-            db=db,
-            user_id=offer.buyer_id,
-            type=NotificationType.ORDER_CREATED,
-            title="Order created",
-            message=f"Your offer for '{listing.title}' was accepted. Order has been created.",
-            data={"listing_id": str(listing.id)},
-        )
-        # Notify seller
-        await crud_notification.create_notification(
-            db=db,
-            user_id=listing.seller_id,
-            type=NotificationType.ORDER_CREATED,
-            title="Order created",
-            message=f"You accepted an offer for '{listing.title}'. Order has been created.",
-            data={"listing_id": str(listing.id)},
-        )
-
-    if status_update.status in {OfferStatus.ACCEPTED, OfferStatus.REJECTED, OfferStatus.COUNTERED}:
-        notification_type = {
-            OfferStatus.ACCEPTED: NotificationType.OFFER_ACCEPTED,
-            OfferStatus.REJECTED: NotificationType.OFFER_REJECTED,
-            OfferStatus.COUNTERED: NotificationType.OFFER_COUNTERED,
-        }[status_update.status]
-
+    if notification_type:
         if is_seller:
             target_user_id = offer.buyer_id
-            message = f"Your offer for '{listing.title}' was updated to '{status_update.status}'."
+            message = f"Your offer for '{listing.title}' was {status_update.status.value}."
         else:
             target_user_id = listing.seller_id
-            message = f"Buyer responded to a counter offer for '{listing.title}' with '{status_update.status}'."
+            message = f"Buyer rejected your counter offer for '{listing.title}'."
 
         await crud_notification.create_notification(
             db=db,
@@ -273,16 +278,8 @@ async def update_offer_status(
             data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
         )
 
-    if previous_status != OfferStatus.EXPIRED and updated_offer.status == OfferStatus.EXPIRED:
-        await crud_notification.create_notification(
-            db=db,
-            user_id=offer.buyer_id,
-            type=NotificationType.OFFER_EXPIRED,
-            title="Offer expired",
-            message="Your offer has expired due to timeout.",
-            data={"offer_id": str(offer.id), "listing_id": str(listing.id)},
-        )
-    
+    await _broadcast_offer_event(updated_offer, listing.seller_id, "offer:status_changed")
+
     return updated_offer
 
 

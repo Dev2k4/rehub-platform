@@ -1,12 +1,17 @@
+import os
 import pytest
-import asyncio
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
+os.environ.setdefault("TESTING", "true")
+os.environ.setdefault("REQUIRE_EMAIL_VERIFICATION", "false")
+
 from app.api.dependencies import get_db
+from app.api.v1.auth import limiter as auth_limiter
+from app.core.config import settings
 from app.main import app
 
 # In-memory SQLite for super fast tests
@@ -21,12 +26,21 @@ SessionLocal = sessionmaker(expire_on_commit=False,
     autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
 )
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_test_runtime() -> AsyncGenerator[None, None]:
+    """Align app runtime flags for deterministic tests."""
+    previous_require_email_verification = settings.REQUIRE_EMAIL_VERIFICATION
+    previous_limiter_enabled = auth_limiter.enabled
+
+    settings.REQUIRE_EMAIL_VERIFICATION = False
+    auth_limiter.enabled = False
+
+    try:
+        yield
+    finally:
+        settings.REQUIRE_EMAIL_VERIFICATION = previous_require_email_verification
+        auth_limiter.enabled = previous_limiter_enabled
 
 @pytest.fixture(scope="session", autouse=True)
 async def setup_db() -> AsyncGenerator[None, None]:

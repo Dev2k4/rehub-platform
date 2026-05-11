@@ -1,3 +1,4 @@
+import { ChakraProvider } from "@chakra-ui/react"
 import {
   MutationCache,
   QueryCache,
@@ -8,20 +9,34 @@ import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import ReactDOM from "react-dom/client"
 import { ApiError, OpenAPI } from "./client"
-import { ThemeProvider } from "./components/theme-provider"
-import { Toaster } from "./components/ui/sonner"
+import { Toaster } from "./components/ui/toaster"
 import "./index.css"
+import { clearTokens, getAccessToken } from "./features/auth/utils/auth.storage"
+import { RealtimeBridge } from "./features/shared/realtime/RealtimeBridge"
+import { WebSocketProvider } from "./features/shared/realtime/ws.provider"
+// Import the generated route tree
 import { routeTree } from "./routeTree.gen"
+// Import custom system theme
+import { system } from "./theme"
 
-OpenAPI.BASE = import.meta.env.VITE_API_URL
+OpenAPI.BASE = import.meta.env.VITE_API_URL || "http://10.0.0.47:8000"
 OpenAPI.TOKEN = async () => {
-  return localStorage.getItem("access_token") || ""
+  return getAccessToken() || ""
 }
 
+// Listen for auth token changes
+window.addEventListener("auth:token-changed", (event: Event) => {
+  const customEvent = event as CustomEvent<{ token: string | null }>
+  OpenAPI.TOKEN = async () => customEvent.detail.token || ""
+})
+
 const handleApiError = (error: Error) => {
-  if (error instanceof ApiError && [401, 403].includes(error.status)) {
-    localStorage.removeItem("access_token")
-    window.location.href = "/login"
+  if (error instanceof ApiError) {
+    if (error.status === 401 || error.status === 403) {
+      // Clear auth tokens and redirect to login
+      clearTokens()
+      window.location.href = "/auth/login"
+    }
   }
 }
 const queryClient = new QueryClient({
@@ -42,11 +57,14 @@ declare module "@tanstack/react-router" {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <ChakraProvider value={system}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-        <Toaster richColors closeButton />
+        <WebSocketProvider>
+          <RealtimeBridge />
+          <RouterProvider router={router} />
+          <Toaster />
+        </WebSocketProvider>
       </QueryClientProvider>
-    </ThemeProvider>
+    </ChakraProvider>
   </StrictMode>,
 )

@@ -1,6 +1,8 @@
 import urllib.parse
 from typing import Optional
 from pathlib import Path
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve .env path: project_root/.env
@@ -9,7 +11,8 @@ ENV_FILE = Path(__file__).parent.parent.parent.parent / ".env"
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ReHub API"
     API_V1_STR: str = "/api/v1"
-
+    TESTING: bool = False
+    
     # Database
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
@@ -46,15 +49,53 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    # Error tracking
+    SENTRY_DSN: str = ""
+    SENTRY_ENVIRONMENT: str = "development"
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+    SENTRY_RELEASE: str = ""
+    SENTRY_TEST_TOKEN: str = ""
+
+    # Redis / cache
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_CACHE_TTL_SECONDS: int = 300
+
     # Uploads
     UPLOAD_DIR: str = "uploads"
+    STORAGE_BACKEND: str = "local"
+    MINIO_ENDPOINT: str = "http://localhost:9000"
+    MINIO_PUBLIC_BASE_URL: str = ""
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
+    MINIO_BUCKET_NAME: str = "rehub-listing"
+    MINIO_SECURE: bool = False
+    CHAT_MASTER_KEY: str = ""
+    CHAT_MINIO_BUCKET_NAME: str = "rehub-chat"
+
+    # AI assistant
+    AI_PROVIDER_NAME: str = "openai-compatible"
+    AI_PROVIDER_BASE_URL: str = "https://api.openai.com/v1"
+    AI_API_KEY: str = "sk-3e79791a76affe4d-yexuzs-4b65b973"
+    AI_CHAT_MODEL: str = "gpt-4o-mini"
+    AI_CHAT_TEMPERATURE: float = 0.2
+    AI_CHAT_MAX_TOKENS: int = 600
+    AI_CHAT_FALLBACK_ENABLED: bool = True
+    AI_CHAT_TIMEOUT_SECONDS: float = 25.0
+    AI_PRICE_DATASET_PATH: str = ""
+    AI_PRICE_MAX_CANDIDATES: int = 8
+    AI_PRICE_MIN_MATCH_SCORE: float = 0.18
 
     # Offers
     OFFER_EXPIRE_HOURS: int = 48
     OFFER_EXPIRY_JOB_INTERVAL_MINUTES: int = 5
 
     # Frontend host for generated links (email verification, password reset, ...)
-    FRONTEND_HOST: str = "http://localhost:5173"
+    FRONTEND_HOST: str = "https://happiness-eaten-flashy.ngrok-free.dev"
+    BACKEND_PUBLIC_BASE_URL: str = "https://enduring-pope-urethane.ngrok-free.dev"
+    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://happiness-eaten-flashy.ngrok-free.dev"
+
+    # SMS / OTP
+    SMS_DEBUG_MODE: bool = True
 
     # Email / SMTP
     SMTP_HOST: str = "smtp.gmail.com"
@@ -65,8 +106,9 @@ class Settings(BaseSettings):
     SMTP_SSL: bool = False
     EMAILS_FROM_EMAIL: str = "daranbull1112@gmail.com"
     EMAILS_FROM_NAME: str = "ReHub Platform"
-    REQUIRE_EMAIL_VERIFICATION: bool = False
+    REQUIRE_EMAIL_VERIFICATION: bool = True
     EMAIL_VERIFICATION_EXPIRE_HOURS: int = 24
+    PASSWORD_RESET_EXPIRE_HOURS: int = 1
     
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
@@ -74,4 +116,31 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_blank_ai_values(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+
+        normalized = dict(values)
+        ai_defaults = {
+            "AI_CHAT_TEMPERATURE": 0.2,
+            "AI_CHAT_MAX_TOKENS": 600,
+            "AI_CHAT_TIMEOUT_SECONDS": 25.0,
+            "AI_CHAT_FALLBACK_ENABLED": True,
+            "AI_PRICE_MAX_CANDIDATES": 8,
+            "AI_PRICE_MIN_MATCH_SCORE": 0.18,
+        }
+        for key, default in ai_defaults.items():
+            if normalized.get(key) == "":
+                normalized[key] = default
+        return normalized
+
 settings = Settings()
+
+
+def get_cors_origins() -> list[str]:
+    raw = settings.BACKEND_CORS_ORIGINS.strip()
+    if not raw:
+        return []
+    return [item.strip().rstrip("/") for item in raw.split(",") if item.strip()]
