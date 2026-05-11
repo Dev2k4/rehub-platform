@@ -218,9 +218,6 @@ export function ChatFloatingWidget() {
   >(null)
   const [messageInput, setMessageInput] = useState("")
 
-  const [pendingListingShareId, setPendingListingShareId] = useState<
-    string | null
-  >(null)
   const closeTimerRef = useRef<number | null>(null)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
   const loadMoreInFlightRef = useRef(false)
@@ -399,9 +396,6 @@ export function ChatFloatingWidget() {
         return
       }
       openWidget()
-      if (payload.listingId) {
-        setPendingListingShareId(payload.listingId)
-      }
       if (payload.peerId) {
         openConversationMutation.mutate(payload.peerId)
       }
@@ -481,44 +475,6 @@ export function ChatFloatingWidget() {
     selectedConversationId,
   ])
 
-  useEffect(() => {
-    if (!isOpen || !selectedConversationId || !pendingListingShareId) {
-      return
-    }
-
-    if (messagesQuery.isPending) {
-      return
-    }
-
-    const existingShared = messages.some(
-      (item) =>
-        item.message_type === "listing_share" &&
-        item.listing?.id === pendingListingShareId,
-    )
-    if (existingShared) {
-      setPendingListingShareId(null)
-      return
-    }
-
-    sendMessageMutation.mutate(
-      {
-        message_type: "listing_share",
-        listing_id: pendingListingShareId,
-      },
-      {
-        onSettled: () => {
-          setPendingListingShareId(null)
-        },
-      },
-    )
-  }, [
-    isOpen,
-    messages,
-    messagesQuery.isPending,
-    pendingListingShareId,
-    selectedConversationId,
-    sendMessageMutation,
-  ])
 
   const handleMessagesScroll = useCallback(() => {
     const container = messagesScrollRef.current

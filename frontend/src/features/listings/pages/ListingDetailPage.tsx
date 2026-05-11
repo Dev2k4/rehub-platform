@@ -762,7 +762,7 @@ export function ListingDetailPage() {
                             if (!requireAuth()) {
                               return;
                             }
-                            openChatWidget(listing.seller_id, listing.id);
+                            openChatWidget(listing.seller_id);
                           }}
                         >
                           <FiMessageCircle style={{ marginRight: "0.5rem" }} />
