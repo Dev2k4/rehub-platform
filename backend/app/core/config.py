@@ -43,13 +43,13 @@ class Settings(BaseSettings):
 
     # Uploads
     UPLOAD_DIR: str = "uploads"
-    STORAGE_BACKEND: str = "local"
-    MINIO_ENDPOINT: str = "http://localhost:9000"
-    MINIO_PUBLIC_BASE_URL: str = ""
+    STORAGE_BACKEND: str = "minio"
+    MINIO_ENDPOINT: str = "http://minio:9000"
+    MINIO_PUBLIC_BASE_URL: str = "https://minio.rehub.page"
     MINIO_ACCESS_KEY: str = ""
     MINIO_SECRET_KEY: str = ""
     MINIO_BUCKET_NAME: str = "rehub-listing"
-    MINIO_SECURE: bool = False
+    MINIO_SECURE: bool = True
     CHAT_MASTER_KEY: str = ""
     CHAT_MINIO_BUCKET_NAME: str = "rehub-chat"
 
