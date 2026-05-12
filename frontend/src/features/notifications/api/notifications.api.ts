@@ -36,9 +36,10 @@ export async function getMyNotificationsHistory(
     searchParams.set("limit", String(params.limit))
   }
 
+  const token = localStorage.getItem("access_token")
   const url = `${OpenAPI.BASE}/api/v1/notifications/history?${searchParams.toString()}`
   const response = await fetch(url, {
-    credentials: "include",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
 
   if (response.ok) {

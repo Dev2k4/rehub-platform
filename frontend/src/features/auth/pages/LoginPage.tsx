@@ -10,13 +10,13 @@ import { useEffect } from "react"
 import { FiArrowRight } from "react-icons/fi"
 import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout"
 import { LoginForm } from "@/features/auth/components/LoginForm"
-import { isAuthenticated } from "@/features/auth/utils/auth.storage"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export function LoginPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (getAccessToken()) {
       navigate({ to: "/" })
     }
   }, [navigate])

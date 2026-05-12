@@ -1,6 +1,7 @@
 import type { CategoryRead, CategoryTree } from "@/client"
 import { CategoriesService, OpenAPI } from "@/client"
 import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface CreateCategoryInput {
   name: string
@@ -43,14 +44,17 @@ export async function updateCategory(
   data: UpdateCategoryInput,
 ): Promise<CategoryRead> {
   const base = OpenAPI.BASE.replace(/\/+$/, "")
-  const buildHeaders = () => ({
-    "Content-Type": "application/json",
-  })
+  const buildHeaders = (tokenOverride?: string | null) => {
+    const token = tokenOverride ?? getAccessToken()
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
+  }
 
   let response = await fetch(`${base}/api/v1/categories/${categoryId}`, {
     method: "PUT",
     headers: buildHeaders(),
-    credentials: "include",
     body: JSON.stringify(data),
   })
 
@@ -59,8 +63,7 @@ export async function updateCategory(
     if (refreshedToken) {
       response = await fetch(`${base}/api/v1/categories/${categoryId}`, {
         method: "PUT",
-        headers: buildHeaders(),
-        credentials: "include",
+        headers: buildHeaders(refreshedToken),
         body: JSON.stringify(data),
       })
     }

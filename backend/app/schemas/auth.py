@@ -46,7 +46,7 @@ class TokenResponse(BaseModel):
     user: UserPublicResponse
 
 class RefreshRequest(BaseModel):
-    refresh_token: Optional[str] = None
+    refresh_token: str
 
 
 class VerifyEmailRequest(BaseModel):

@@ -1,5 +1,6 @@
 import { OpenAPI } from "@/client"
 import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export type FulfillmentStatus =
   | "pending_seller_start"
@@ -32,9 +33,11 @@ interface MarkShippingPayload {
   note?: string
 }
 
-function getAuthHeaders(): HeadersInit {
+function getAuthHeaders(tokenOverride?: string | null): HeadersInit {
+  const token = tokenOverride ?? getAccessToken()
   return {
     "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }
 
@@ -66,8 +69,7 @@ async function fetchWithAuthRetry(path: string, init: RequestInit): Promise<Resp
     if (refreshedToken) {
       response = await fetch(`${getApiBase()}${path}`, {
         ...init,
-        headers: getAuthHeaders(),
-        credentials: "include",
+        headers: getAuthHeaders(refreshedToken),
       })
     }
   }
@@ -79,7 +81,6 @@ export async function getFulfillment(orderId: string): Promise<FulfillmentRead> 
   const response = await fetchWithAuthRetry(`/fulfillments/${orderId}`, {
     method: "GET",
     headers: getAuthHeaders(),
-    credentials: "include",
   })
   return parseResponse<FulfillmentRead>(response)
 }
@@ -88,7 +89,6 @@ export async function startPreparing(orderId: string): Promise<FulfillmentRead> 
   const response = await fetchWithAuthRetry(`/fulfillments/${orderId}/start-preparing`, {
     method: "POST",
     headers: getAuthHeaders(),
-    credentials: "include",
   })
   return parseResponse<FulfillmentRead>(response)
 }
@@ -100,7 +100,6 @@ export async function markShipping(
   const response = await fetchWithAuthRetry(`/fulfillments/${orderId}/mark-shipping`, {
     method: "POST",
     headers: getAuthHeaders(),
-    credentials: "include",
     body: JSON.stringify(payload),
   })
   return parseResponse<FulfillmentRead>(response)
@@ -113,7 +112,6 @@ export async function markDelivered(
   const response = await fetchWithAuthRetry(`/fulfillments/${orderId}/mark-delivered`, {
     method: "POST",
     headers: getAuthHeaders(),
-    credentials: "include",
     body: JSON.stringify(payload),
   })
   return parseResponse<FulfillmentRead>(response)
@@ -126,7 +124,6 @@ export async function buyerConfirmReceived(
   const response = await fetchWithAuthRetry(`/fulfillments/${orderId}/buyer-confirm`, {
     method: "POST",
     headers: getAuthHeaders(),
-    credentials: "include",
     body: JSON.stringify(payload),
   })
   return parseResponse<FulfillmentRead>(response)

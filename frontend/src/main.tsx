@@ -20,8 +20,9 @@ import { routeTree } from "./routeTree.gen"
 import { system } from "./theme"
 
 OpenAPI.BASE = import.meta.env.VITE_API_URL || "http://10.0.0.47:8000"
-OpenAPI.WITH_CREDENTIALS = true
-OpenAPI.TOKEN = async () => ""
+OpenAPI.TOKEN = async () => {
+  return getAccessToken() || ""
+}
 
 // Listen for auth token changes
 window.addEventListener("auth:token-changed", (event: Event) => {

@@ -1,12 +1,19 @@
-const AUTH_SESSION_KEY = "auth_session"
+const ACCESS_TOKEN_KEY = "access_token"
+const REFRESH_TOKEN_KEY = "refresh_token"
 const REMEMBER_ME_KEY = "remember_me"
 
 export function getAccessToken(): string | null {
-  return null
+  const token =
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    sessionStorage.getItem(ACCESS_TOKEN_KEY)
+  return token
 }
 
 export function getRefreshToken(): string | null {
-  return null
+  const token =
+    localStorage.getItem(REFRESH_TOKEN_KEY) ||
+    sessionStorage.getItem(REFRESH_TOKEN_KEY)
+  return token
 }
 
 export function isRememberMeEnabled(): boolean {
@@ -20,33 +27,35 @@ export function setTokens(
 ): void {
   const storage = rememberMe ? localStorage : sessionStorage
 
-  storage.setItem(AUTH_SESSION_KEY, "true")
+  // Clear tokens from both storages
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  localStorage.removeItem(REMEMBER_ME_KEY)
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY)
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY)
+
+  // Set tokens in chosen storage
+  storage.setItem(ACCESS_TOKEN_KEY, accessToken)
+  storage.setItem(REFRESH_TOKEN_KEY, refreshToken)
   localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe))
 
-  // Update OpenAPI token resolver (no token in cookie mode)
-  updateOpenAPIToken(null)
-}
-
-export function setAuthSessionFlag(rememberMe: boolean = false): void {
-  const storage = rememberMe ? localStorage : sessionStorage
-  storage.setItem(AUTH_SESSION_KEY, "true")
-  localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe))
+  // Update OpenAPI token resolver
+  updateOpenAPIToken(accessToken)
 }
 
 export function clearTokens(): void {
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(REMEMBER_ME_KEY)
-  localStorage.removeItem(AUTH_SESSION_KEY)
-  sessionStorage.removeItem(AUTH_SESSION_KEY)
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY)
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY)
 
   // Clear OpenAPI token
   updateOpenAPIToken(null)
 }
 
 export function hasAccessToken(): boolean {
-  return (
-    localStorage.getItem(AUTH_SESSION_KEY) === "true" ||
-    sessionStorage.getItem(AUTH_SESSION_KEY) === "true"
-  )
+  return !!getAccessToken()
 }
 
 export function isAuthenticated(): boolean {

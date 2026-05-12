@@ -1,5 +1,6 @@
 import { OpenAPI } from "@/client"
 import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface WalletAccountRead {
   id: string
@@ -22,9 +23,11 @@ export interface WalletTransactionRead {
   created_at: string
 }
 
-function getAuthHeaders(): HeadersInit {
+function getAuthHeaders(tokenOverride?: string | null): HeadersInit {
+  const token = tokenOverride ?? getAccessToken()
   return {
     "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }
 
@@ -59,8 +62,7 @@ async function fetchWithAuthRetry(
     if (refreshedToken) {
       response = await fetch(`${getApiBase()}${path}`, {
         ...init,
-        headers: getAuthHeaders(),
-        credentials: "include",
+        headers: getAuthHeaders(refreshedToken),
       })
     }
   }
@@ -72,7 +74,6 @@ export async function getMyWallet(): Promise<WalletAccountRead> {
   const response = await fetchWithAuthRetry(`/wallet/me`, {
     method: "GET",
     headers: getAuthHeaders(),
-    credentials: "include",
   })
   return parseResponse<WalletAccountRead>(response)
 }
@@ -83,7 +84,6 @@ export async function demoTopupWallet(
   const response = await fetchWithAuthRetry(`/wallet/demo-topup`, {
     method: "POST",
     headers: getAuthHeaders(),
-    credentials: "include",
     body: JSON.stringify({ amount }),
   })
   return parseResponse<WalletAccountRead>(response)
@@ -95,7 +95,6 @@ export async function getWalletTransactions(): Promise<
   const response = await fetchWithAuthRetry(`/wallet/transactions`, {
     method: "GET",
     headers: getAuthHeaders(),
-    credentials: "include",
   })
   return parseResponse<WalletTransactionRead[]>(response)
 }

@@ -14,14 +14,18 @@ function getApiBase(): string {
 }
 
 async function doRefresh(): Promise<string | null> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) {
+    return null
+  }
+
   try {
     const response = await fetch(`${getApiBase()}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
-      body: JSON.stringify({}),
+      body: JSON.stringify({ refresh_token: refreshToken }),
     })
 
     if (!response.ok) {
@@ -34,12 +38,13 @@ async function doRefresh(): Promise<string | null> {
       refresh_token?: string
     }
 
-    if (data.access_token && data.refresh_token) {
-      setTokens(data.access_token, data.refresh_token, isRememberMeEnabled())
-      return data.access_token
+    if (!data.access_token || !data.refresh_token) {
+      clearTokens()
+      return null
     }
 
-    return null
+    setTokens(data.access_token, data.refresh_token, isRememberMeEnabled())
+    return data.access_token
   } catch {
     return null
   }

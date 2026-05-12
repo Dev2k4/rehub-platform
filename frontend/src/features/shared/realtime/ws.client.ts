@@ -19,6 +19,9 @@ class WsClient {
 
   connect(explicitToken?: string) {
     const token = explicitToken || getAccessToken()
+    if (!token) {
+      return
+    }
 
     if (
       this.socket &&
@@ -31,7 +34,7 @@ class WsClient {
     this.manualDisconnect = false
     this.blockedByAuth = false
     const baseUrl = import.meta.env.VITE_API_URL || "http://10.0.0.47:8000"
-    const wsUrl = this.toWebSocketUrl(baseUrl, token || undefined)
+    const wsUrl = this.toWebSocketUrl(baseUrl, token)
     this.socket = new WebSocket(wsUrl)
 
     this.socket.onopen = () => {
@@ -113,6 +116,10 @@ class WsClient {
       return
     }
 
+    if (!getAccessToken()) {
+      return
+    }
+
     const delay = Math.min(1000 * 2 ** this.reconnectAttempt, 15000)
     this.reconnectAttempt += 1
     this.reconnectTimer = window.setTimeout(() => {
@@ -160,14 +167,11 @@ class WsClient {
     }
   }
 
-  private toWebSocketUrl(baseUrl: string, token?: string): string {
+  private toWebSocketUrl(baseUrl: string, token: string): string {
     const url = new URL(baseUrl)
     const protocol = url.protocol === "https:" ? "wss:" : "ws:"
     const wsBase = `${protocol}//${url.host}`
-    if (token) {
-      return `${wsBase}/api/v1/ws?token=${encodeURIComponent(token)}`
-    }
-    return `${wsBase}/api/v1/ws`
+    return `${wsBase}/api/v1/ws?token=${encodeURIComponent(token)}`
   }
 }
 

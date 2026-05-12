@@ -24,8 +24,8 @@ export function useLoginMutation() {
         rememberMe ?? false,
       )
 
-      // Update OpenAPI token (cookie-based auth)
-      OpenAPI.TOKEN = async () => ""
+      // Update OpenAPI token
+      OpenAPI.TOKEN = async () => response.access_token
 
       // Redirect to home
       navigate({ to: "/" })

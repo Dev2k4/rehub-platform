@@ -1,13 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { ApiError } from "@/client"
 import { getMyProfile } from "@/features/auth/api/auth.profile"
-import {
-  clearTokens,
-  isAuthenticated,
-  isRememberMeEnabled,
-  setAuthSessionFlag,
-} from "@/features/auth/utils/auth.storage"
+import { isAuthenticated } from "@/features/auth/utils/auth.storage"
 
 export function useAuthUser() {
   const queryClient = useQueryClient()
@@ -32,25 +26,9 @@ export function useAuthUser() {
   const userQuery = useQuery({
     queryKey: ["auth", "user"],
     queryFn: () => getMyProfile(),
-    enabled: true,
+    enabled: authenticated,
     staleTime: 0,
   })
-
-  useEffect(() => {
-    if (userQuery.isSuccess && userQuery.data) {
-      setAuthSessionFlag(isRememberMeEnabled())
-      setAuthenticated(true)
-      return
-    }
-
-    if (userQuery.isError) {
-      const error = userQuery.error
-      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        clearTokens()
-        setAuthenticated(false)
-      }
-    }
-  }, [userQuery.data, userQuery.isError, userQuery.isSuccess])
 
   return {
     user: authenticated ? userQuery.data || null : null,
