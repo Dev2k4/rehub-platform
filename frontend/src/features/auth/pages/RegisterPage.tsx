@@ -10,13 +10,13 @@ import { useEffect } from "react"
 import { FiArrowLeft } from "react-icons/fi"
 import { AuthPageLayout } from "@/features/auth/components/AuthPageLayout"
 import { RegisterForm } from "@/features/auth/components/RegisterForm"
-import { getAccessToken } from "@/features/auth/utils/auth.storage"
+import { isAuthenticated } from "@/features/auth/utils/auth.storage"
 
 export function RegisterPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (getAccessToken()) {
+    if (isAuthenticated()) {
       navigate({ to: "/" })
     }
   }, [navigate])

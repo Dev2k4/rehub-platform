@@ -1,6 +1,5 @@
 import { OpenAPI } from "@/client"
 import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
-import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface ChatConversationRead {
   id: string
@@ -41,11 +40,9 @@ function getApiBase(): string {
   return base.endsWith("/api/v1") ? base : `${base}/api/v1`
 }
 
-function getAuthHeaders(tokenOverride?: string | null): HeadersInit {
-  const token = tokenOverride ?? getAccessToken()
+function getAuthHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }
 
@@ -59,7 +56,8 @@ async function fetchWithAuthRetry(
     if (refreshedToken) {
       response = await fetch(`${getApiBase()}${path}`, {
         ...init,
-        headers: getAuthHeaders(refreshedToken),
+        headers: getAuthHeaders(),
+        credentials: "include",
       })
     }
   }
@@ -88,6 +86,7 @@ export async function createOrGetConversation(
     {
       method: "POST",
       headers: getAuthHeaders(),
+      credentials: "include",
     },
   )
   return parseResponse<ChatConversationRead>(response)
@@ -97,6 +96,7 @@ export async function listMyConversations(): Promise<ChatConversationRead[]> {
   const response = await fetchWithAuthRetry(`/chat/conversations`, {
     method: "GET",
     headers: getAuthHeaders(),
+    credentials: "include",
   })
   return parseResponse<ChatConversationRead[]>(response)
 }
@@ -115,6 +115,7 @@ export async function listConversationMessages(
     {
       method: "GET",
       headers: getAuthHeaders(),
+      credentials: "include",
     },
   )
   return parseResponse<ChatMessageHistoryRead>(response)
@@ -131,6 +132,7 @@ export async function sendChatMessage(
     {
       method: "POST",
       headers: getAuthHeaders(),
+      credentials: "include",
       body: JSON.stringify(payload),
     },
   )
@@ -145,6 +147,7 @@ export async function markConversationRead(
     {
       method: "POST",
       headers: getAuthHeaders(),
+      credentials: "include",
     },
   )
   return parseResponse<{ ok: boolean }>(response)
@@ -158,6 +161,7 @@ export async function deleteConversation(
     {
       method: "DELETE",
       headers: getAuthHeaders(),
+      credentials: "include",
     },
   )
   return parseResponse<{ ok: boolean }>(response)

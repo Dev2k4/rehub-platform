@@ -5,7 +5,6 @@ import {
   ListingsService,
   OpenAPI,
 } from "@/client"
-import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export interface CreateListingInput {
   title: string
@@ -60,10 +59,8 @@ export async function createListingWithImagesAtomic(
     formData.append("files", file)
   }
 
-  const token = getAccessToken()
   const response = await fetch(`${OpenAPI.BASE}/api/v1/listings/with-images`, {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: formData,
     credentials: OpenAPI.WITH_CREDENTIALS ? "include" : "same-origin",
   })

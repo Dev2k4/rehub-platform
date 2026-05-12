@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update
@@ -142,6 +142,7 @@ async def register(
 @limiter.limit("5/15minutes", exempt_when=lambda: settings.TESTING)
 async def login(
     request: Request,
+    response: Response,
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db)
 ):
@@ -174,6 +175,27 @@ async def login(
 
     # Update refresh token in DB
     await update_refresh_token(db, user.id, hash_token(refresh_token))
+
+    access_max_age = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    refresh_max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=access_max_age,
+        path="/",
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=refresh_max_age,
+        path="/api/v1/auth/refresh",
+    )
 
     return TokenResponse(
         access_token=access_token,
@@ -242,9 +264,22 @@ async def verify_phone_otp_route(
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_access_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
+async def refresh_access_token(
+    data: RefreshRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
     """Refresh access token using a valid refresh token. Implements token rotation."""
-    hashed_rt = hash_token(data.refresh_token)
+    refresh_token = data.refresh_token or request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    hashed_rt = hash_token(refresh_token)
 
     # Find user by refresh token
     user = await get_user_by_refresh_token(db, hashed_rt)
@@ -261,6 +296,27 @@ async def refresh_access_token(data: RefreshRequest, db: AsyncSession = Depends(
     new_refresh_token = create_refresh_token()
 
     await update_refresh_token(db, user.id, hash_token(new_refresh_token))
+
+    access_max_age = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    refresh_max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    response.set_cookie(
+        "access_token",
+        new_access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=access_max_age,
+        path="/",
+    )
+    response.set_cookie(
+        "refresh_token",
+        new_refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=refresh_max_age,
+        path="/api/v1/auth/refresh",
+    )
 
     return TokenResponse(
         access_token=new_access_token,
@@ -339,8 +395,11 @@ async def reset_password(data: ResetPasswordRequest, db: AsyncSession = Depends(
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     current_user: Annotated[User, Depends(get_current_user)],
+    response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """Logout: revoke the current refresh token."""
     await update_refresh_token(db, current_user.id, None)
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/api/v1/auth/refresh")
     return None

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { getAccessToken } from "@/features/auth/utils/auth.storage"
+import { isAuthenticated } from "@/features/auth/utils/auth.storage"
 import { wsClient } from "./ws.client"
 
 type WsContextValue = {
@@ -17,9 +17,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([])
 
   useEffect(() => {
-    const token = getAccessToken()
-    if (token) {
-      wsClient.connect(token)
+    if (isAuthenticated()) {
+      wsClient.connect()
     }
 
     const offOpen = wsClient.on("ws:open", () => setConnected(true))
@@ -60,18 +59,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       setOnlineUserIds((prev) => prev.filter((id) => id !== data.user_id))
     })
 
-    const onTokenChanged = (event: Event) => {
-      const customEvent = event as CustomEvent<{ token: string | null }>
-      const nextToken = customEvent.detail.token
-
-      if (!nextToken) {
+    const onTokenChanged = (_event: Event) => {
+      if (!isAuthenticated()) {
         wsClient.disconnect()
         setConnected(false)
         return
       }
 
       wsClient.disconnect()
-      wsClient.connect(nextToken)
+      wsClient.connect()
     }
 
     window.addEventListener("auth:token-changed", onTokenChanged)

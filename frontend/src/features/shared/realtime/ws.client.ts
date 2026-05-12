@@ -1,3 +1,4 @@
+import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
 import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 type WsHandler = (payload: unknown) => void
@@ -13,13 +14,11 @@ class WsClient {
   private manualDisconnect = false
   private blockedByAuth = false
   private reconnectAttempt = 0
+  private refreshInFlight = false
   private readonly listeners = new Map<string, Set<WsHandler>>()
 
   connect(explicitToken?: string) {
     const token = explicitToken || getAccessToken()
-    if (!token) {
-      return
-    }
 
     if (
       this.socket &&
@@ -32,7 +31,7 @@ class WsClient {
     this.manualDisconnect = false
     this.blockedByAuth = false
     const baseUrl = import.meta.env.VITE_API_URL || "http://10.0.0.47:8000"
-    const wsUrl = this.toWebSocketUrl(baseUrl, token)
+    const wsUrl = this.toWebSocketUrl(baseUrl, token || undefined)
     this.socket = new WebSocket(wsUrl)
 
     this.socket.onopen = () => {
@@ -62,6 +61,7 @@ class WsClient {
       this.socket = null
       if (event.code === 1008) {
         this.blockedByAuth = true
+        this.tryRefreshReconnect()
       }
       if (!this.manualDisconnect) {
         this.scheduleReconnect()
@@ -113,16 +113,28 @@ class WsClient {
       return
     }
 
-    if (!getAccessToken()) {
-      return
-    }
-
     const delay = Math.min(1000 * 2 ** this.reconnectAttempt, 15000)
     this.reconnectAttempt += 1
     this.reconnectTimer = window.setTimeout(() => {
       this.reconnectTimer = null
       this.connect()
     }, delay)
+  }
+
+  private async tryRefreshReconnect() {
+    if (this.refreshInFlight) {
+      return
+    }
+    this.refreshInFlight = true
+    try {
+      const refreshedToken = await refreshAccessTokenIfPossible()
+      if (refreshedToken) {
+        this.blockedByAuth = false
+        this.connect(refreshedToken)
+      }
+    } finally {
+      this.refreshInFlight = false
+    }
   }
 
   private emitLocal(eventName: string, payload: unknown) {
@@ -148,11 +160,14 @@ class WsClient {
     }
   }
 
-  private toWebSocketUrl(baseUrl: string, token: string): string {
+  private toWebSocketUrl(baseUrl: string, token?: string): string {
     const url = new URL(baseUrl)
     const protocol = url.protocol === "https:" ? "wss:" : "ws:"
     const wsBase = `${protocol}//${url.host}`
-    return `${wsBase}/api/v1/ws?token=${encodeURIComponent(token)}`
+    if (token) {
+      return `${wsBase}/api/v1/ws?token=${encodeURIComponent(token)}`
+    }
+    return `${wsBase}/api/v1/ws`
   }
 }
 

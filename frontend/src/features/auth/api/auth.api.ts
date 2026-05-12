@@ -2,7 +2,6 @@ import { ApiError, AuthService, OpenAPI } from "@/client"
 import type { AuthError, AuthResponse } from "@/features/auth/types/auth.types"
 import { AuthErrorCode } from "@/features/auth/types/auth.types"
 import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
-import { getAccessToken } from "@/features/auth/utils/auth.storage"
 import type { RegisterInput } from "../utils/auth.schemas"
 
 export async function registerUser(
@@ -267,10 +266,8 @@ async function postAuthJson<T>(
   body: Record<string, unknown>,
 ): Promise<T> {
   const getHeaders = (tokenOverride?: string | null): HeadersInit => {
-    const token = tokenOverride ?? getAccessToken()
     return {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     }
   }
 
@@ -278,6 +275,7 @@ async function postAuthJson<T>(
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify(body),
+    credentials: "include",
   })
 
   if (response.status === 401) {
@@ -287,6 +285,7 @@ async function postAuthJson<T>(
         method: "POST",
         headers: getHeaders(refreshedToken),
         body: JSON.stringify(body),
+        credentials: "include",
       })
     }
   }

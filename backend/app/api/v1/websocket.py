@@ -1,4 +1,5 @@
 import uuid
+from http.cookies import SimpleCookie
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from jose import JWTError
@@ -17,6 +18,14 @@ def _extract_token(websocket: WebSocket) -> str | None:
     query_token = websocket.query_params.get("token")
     if query_token:
         return query_token
+
+    cookie_header = websocket.headers.get("cookie")
+    if cookie_header:
+        cookie = SimpleCookie()
+        cookie.load(cookie_header)
+        access_cookie = cookie.get("access_token")
+        if access_cookie and access_cookie.value:
+            return access_cookie.value
 
     auth_header = websocket.headers.get("authorization")
     if not auth_header:

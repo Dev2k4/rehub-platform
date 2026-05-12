@@ -1,6 +1,5 @@
 import { OpenAPI } from "@/client"
 import { refreshAccessTokenIfPossible } from "@/features/auth/utils/auth.refresh"
-import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export type EscrowStatus =
   | "awaiting_funding"
@@ -33,11 +32,9 @@ interface EscrowDisputeRequest {
   note?: string
 }
 
-function getAuthHeaders(tokenOverride?: string | null): HeadersInit {
-  const token = tokenOverride ?? getAccessToken()
+function getAuthHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }
 
@@ -72,7 +69,8 @@ async function fetchWithAuthRetry(
     if (refreshedToken) {
       response = await fetch(`${getApiBase()}${path}`, {
         ...init,
-        headers: getAuthHeaders(refreshedToken),
+        headers: getAuthHeaders(),
+        credentials: "include",
       })
     }
   }
@@ -84,6 +82,7 @@ export async function getEscrow(orderId: string): Promise<EscrowRead> {
   const response = await fetchWithAuthRetry(`/escrows/${orderId}`, {
     method: "GET",
     headers: getAuthHeaders(),
+    credentials: "include",
   })
   return parseResponse<EscrowRead>(response)
 }
@@ -104,6 +103,7 @@ export async function listDisputedEscrows(params?: {
   const response = await fetchWithAuthRetry(`/escrows/disputed${suffix}`, {
     method: "GET",
     headers: getAuthHeaders(),
+    credentials: "include",
   })
   return parseResponse<EscrowRead[]>(response)
 }
@@ -112,6 +112,7 @@ export async function fundEscrow(orderId: string): Promise<EscrowRead> {
   const response = await fetchWithAuthRetry(`/escrows/${orderId}/fund`, {
     method: "POST",
     headers: getAuthHeaders(),
+    credentials: "include",
   })
   return parseResponse<EscrowRead>(response)
 }
@@ -124,6 +125,7 @@ export async function requestEscrowRelease(
     {
       method: "POST",
       headers: getAuthHeaders(),
+      credentials: "include",
     },
   )
   return parseResponse<EscrowRead>(response)
@@ -137,6 +139,7 @@ export async function confirmEscrowRelease(
     {
       method: "POST",
       headers: getAuthHeaders(),
+      credentials: "include",
     },
   )
   return parseResponse<EscrowRead>(response)
@@ -151,6 +154,7 @@ export async function openEscrowDispute(
     {
       method: "POST",
       headers: getAuthHeaders(),
+      credentials: "include",
       body: JSON.stringify(payload),
     },
   )
@@ -166,6 +170,7 @@ export async function resolveEscrowAsAdmin(
     {
       method: "POST",
       headers: getAuthHeaders(),
+      credentials: "include",
       body: JSON.stringify(payload),
     },
   )

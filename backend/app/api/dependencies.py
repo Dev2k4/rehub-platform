@@ -1,5 +1,5 @@
 from typing import AsyncGenerator, Annotated, Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError
@@ -18,7 +18,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    token: Annotated[Optional[str], Depends(oauth2_scheme_optional)],
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> User:
     credentials_exception = HTTPException(
@@ -26,6 +27,12 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if not token:
+        token = request.cookies.get("access_token")
+
+    if not token:
+        raise credentials_exception
+
     try:
         payload = decode_access_token(token)
         user_id: str = payload.get("sub")
@@ -53,12 +60,15 @@ async def get_current_user(
 
 async def get_current_user_optional(
     token: Annotated[Optional[str], Depends(oauth2_scheme_optional)],
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> Optional[User]:
     """
     Optional user dependency - returns None if no valid token provided.
     Used for endpoints that have different behavior for authenticated vs anonymous users.
     """
+    if not token:
+        token = request.cookies.get("access_token")
     if not token:
         return None
     try:
