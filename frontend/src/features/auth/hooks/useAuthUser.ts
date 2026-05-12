@@ -6,7 +6,7 @@ import {
   clearTokens,
   isAuthenticated,
   isRememberMeEnabled,
-  setTokens,
+  setAuthSessionFlag,
 } from "@/features/auth/utils/auth.storage"
 
 export function useAuthUser() {
@@ -38,7 +38,7 @@ export function useAuthUser() {
 
   useEffect(() => {
     if (userQuery.isSuccess && userQuery.data) {
-      setTokens("", "", isRememberMeEnabled())
+      setAuthSessionFlag(isRememberMeEnabled())
       setAuthenticated(true)
       return
     }

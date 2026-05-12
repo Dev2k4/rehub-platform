@@ -27,6 +27,12 @@ export function setTokens(
   updateOpenAPIToken(null)
 }
 
+export function setAuthSessionFlag(rememberMe: boolean = false): void {
+  const storage = rememberMe ? localStorage : sessionStorage
+  storage.setItem(AUTH_SESSION_KEY, "true")
+  localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe))
+}
+
 export function clearTokens(): void {
   localStorage.removeItem(REMEMBER_ME_KEY)
   localStorage.removeItem(AUTH_SESSION_KEY)
