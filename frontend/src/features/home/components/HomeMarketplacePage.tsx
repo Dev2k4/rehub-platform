@@ -429,7 +429,6 @@ import { ListingModal } from "@/features/listings/components/ListingModal"
 import {
   useCreateListing,
   useUploadListingImage,
-  useMyListings,
 } from "@/features/listings/hooks/useMyListings"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import { SearchableSelect } from "@/features/shared/components/SearchableSelect"
@@ -469,20 +468,9 @@ export function HomeMarketplacePage() {
   const { provinceOptions, wardOptions, provincesLoading, wardsLoading } =
     useVnAddress(province)
 
-  const { user, isAuthenticated } = useAuthUser()
-  const pendingListingsQuery = useMyListings(
-    { status: "pending", limit: 50 },
-    { enabled: isAuthenticated }
-  )
+  const { user } = useAuthUser()
 
-  const publicListings = listingsQuery.data?.items ?? []
-  const pendingListings = pendingListingsQuery.data?.items ?? []
-  
-  // Combine pending listings (if any) with public listings
-  const listings = [
-    ...pendingListings.map(item => ({ ...item, isPendingOverlay: true })),
-    ...publicListings
-  ]
+  const listings = listingsQuery.data?.items ?? []
   const totalListings = listingsQuery.data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(totalListings / pageSize))
   const isLoading = categoriesQuery.isLoading || listingsQuery.isLoading
