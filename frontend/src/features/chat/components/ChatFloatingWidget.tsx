@@ -13,7 +13,7 @@ import {
 } from "@chakra-ui/react"
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
 import {
   FiArrowLeft,
   FiMessageCircle,
@@ -219,6 +219,9 @@ export function ChatFloatingWidget() {
     string | null
   >(null)
   const [messageInput, setMessageInput] = useState("")
+  const [contextMenuMessageId, setContextMenuMessageId] = useState<string | null>(
+    null,
+  )
 
   const closeTimerRef = useRef<number | null>(null)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
@@ -504,6 +507,10 @@ export function ChatFloatingWidget() {
     selectedConversationId,
   ])
 
+  useEffect(() => {
+    setContextMenuMessageId(null)
+  }, [selectedConversationId])
+
 
   const handleMessagesScroll = useCallback(() => {
     const container = messagesScrollRef.current
@@ -554,6 +561,31 @@ export function ChatFloatingWidget() {
       })
     }
   }, [messageInput, selectedConversationId, sendMessageMutation])
+
+  const handleOpenMessageMenu = useCallback(
+    (event: MouseEvent, messageId: string) => {
+      event.preventDefault()
+      event.stopPropagation()
+      setContextMenuMessageId((current) =>
+        current === messageId ? null : messageId,
+      )
+    },
+    [],
+  )
+
+  const handleDeleteMessage = useCallback(
+    (messageId: string) => {
+      const confirmed = window.confirm(
+        "Xóa tin nhắn này? (Chỉ xóa ở phía bạn.)",
+      )
+      if (!confirmed) {
+        return
+      }
+      deleteMessageMutation.mutate(messageId)
+      setContextMenuMessageId(null)
+    },
+    [deleteMessageMutation],
+  )
 
 
   const canUseChat = isAuthenticated && !!user
@@ -799,10 +831,14 @@ export function ChatFloatingWidget() {
                 ) : messages.length > 0 ? (
                   messages.map((message) => {
                     const mine = message.sender_id === currentUserId
+                    const showContextMenu = contextMenuMessageId === message.id
                     return (
                       <Flex
                         key={message.id}
                         justify={mine ? "flex-end" : "flex-start"}
+                        onContextMenu={(event) =>
+                          handleOpenMessageMenu(event, message.id)
+                        }
                       >
                         {message.message_type === "listing_share" &&
                         message.listing ? (
@@ -816,26 +852,24 @@ export function ChatFloatingWidget() {
                                 })
                               }}
                             />
-                            <IconButton
-                              aria-label="Xóa tin nhắn"
-                              size="xs"
-                              variant="solid"
-                              colorPalette="red"
-                              position="absolute"
-                              top={1}
-                              right={1}
-                              onClick={() => {
-                                const confirmed = window.confirm(
-                                  "Xóa tin nhắn này? (Chỉ xóa ở phía bạn.)",
-                                )
-                                if (!confirmed) {
-                                  return
-                                }
-                                deleteMessageMutation.mutate(message.id)
-                              }}
-                            >
-                              <FiTrash2 />
-                            </IconButton>
+                            {showContextMenu && (
+                              <IconButton
+                                aria-label="Xóa tin nhắn"
+                                size="xs"
+                                variant="solid"
+                                colorPalette="red"
+                                position="absolute"
+                                top={1}
+                                right={1}
+                                onMouseDown={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleDeleteMessage(message.id)
+                                }}
+                              >
+                                <FiTrash2 />
+                              </IconButton>
+                            )}
                             <Text fontSize="xs" color="gray.500">
                               {new Date(message.created_at).toLocaleString("vi-VN")}
                             </Text>
@@ -850,26 +884,24 @@ export function ChatFloatingWidget() {
                             color={mine ? "white" : "gray.800"}
                             position="relative"
                           >
-                            <IconButton
-                              aria-label="Xóa tin nhắn"
-                              size="xs"
-                              variant="solid"
-                              colorPalette="red"
-                              position="absolute"
-                              top={1}
-                              right={1}
-                              onClick={() => {
-                                const confirmed = window.confirm(
-                                  "Xóa tin nhắn này? (Chỉ xóa ở phía bạn.)",
-                                )
-                                if (!confirmed) {
-                                  return
-                                }
-                                deleteMessageMutation.mutate(message.id)
-                              }}
-                            >
-                              <FiTrash2 />
-                            </IconButton>
+                            {showContextMenu && (
+                              <IconButton
+                                aria-label="Xóa tin nhắn"
+                                size="xs"
+                                variant="solid"
+                                colorPalette="red"
+                                position="absolute"
+                                top={1}
+                                right={1}
+                                onMouseDown={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleDeleteMessage(message.id)
+                                }}
+                              >
+                                <FiTrash2 />
+                              </IconButton>
+                            )}
                             <Text fontSize="sm" whiteSpace="pre-wrap" pr={7}>
                               {message.content ?? ""}
                             </Text>
