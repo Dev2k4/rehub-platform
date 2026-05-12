@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react"
 import { useNavigate, useRouterState } from "@tanstack/react-router"
 import { useCallback, useMemo, useRef, useState } from "react"
-import { FiCpu, FiMinimize2, FiSend, FiX } from "react-icons/fi"
+import { FiCpu, FiMinimize2, FiSend } from "react-icons/fi"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { OpenAPI } from "@/client"
@@ -271,8 +271,10 @@ export function AiAssistantWidget() {
 
   const quickPrompts = useMemo(
     () => [
+      "Chào bạn",
+      "Tôi quan tâm đến sản phẩm của bạn",
       "Cách đăng tin nhanh",
-      "Tìm iPhone đang bán",
+      "Tư vấn giá hợp lý giúp mình",
     ],
     [],
   )
@@ -405,14 +407,6 @@ export function AiAssistantWidget() {
                   <FiMinimize2 />
                 </IconButton>
               )}
-              <IconButton
-                aria-label="Đóng trợ lý"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsOpen(false)}
-              >
-                <FiX />
-              </IconButton>
             </HStack>
           </HStack>
 

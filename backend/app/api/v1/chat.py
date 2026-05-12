@@ -11,6 +11,7 @@ from sqlalchemy.future import select
 from app.api.dependencies import get_current_user, get_db
 from app.crud import crud_chat
 from app.models.listing import Listing, ListingImage
+from app.models.chat import ChatMessage
 from app.models.user import User
 from app.schemas.chat import (
     ChatConversationRead,
@@ -117,8 +118,8 @@ async def list_conversation_messages(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    rows = await crud_chat.list_messages(db, conversation_id, skip=skip, limit=limit)
-    total = await crud_chat.count_messages(db, conversation_id)
+    rows = await crud_chat.list_messages(db, conversation_id, current_user.id, skip=skip, limit=limit)
+    total = await crud_chat.count_messages(db, conversation_id, current_user.id)
 
     items: list[ChatMessageRead] = []
     missing_message_ids: list[uuid.UUID] = []
@@ -160,7 +161,7 @@ async def list_conversation_messages(
     if missing_message_ids:
         await crud_chat.delete_messages(db, missing_message_ids)
         await db.commit()
-        total = await crud_chat.count_messages(db, conversation_id)
+        total = await crud_chat.count_messages(db, conversation_id, current_user.id)
 
     if skip == 0:
         latest_seen = items[-1].created_at if items else None
@@ -181,7 +182,7 @@ async def list_conversation_messages(
 
 
 @router.delete("/conversations/{conversation_id}")
-async def delete_conversation(
+async def clear_conversation(
     conversation_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -190,16 +191,29 @@ async def delete_conversation(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    object_keys = await crud_chat.list_message_object_keys(db, conversation_id)
-    await crud_chat.delete_conversation(db, conversation_id)
+    await crud_chat.clear_conversation_for_user(db, conversation_id, current_user.id)
     await db.commit()
 
-    # Best-effort cleanup of blobs in storage.
-    for key in object_keys:
-        try:
-            delete_chat_blob(key)
-        except Exception:
-            pass
+    return {"ok": True}
+
+
+@router.delete("/messages/{message_id}")
+async def delete_message(
+    message_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(ChatMessage).where(ChatMessage.id == message_id))
+    message = result.scalar_one_or_none()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    conversation = await crud_chat.get_conversation_for_user(db, message.conversation_id, current_user.id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    await crud_chat.delete_message_for_user(db, message_id, current_user.id)
+    await db.commit()
 
     return {"ok": True}
 

@@ -37,6 +37,18 @@ class ChatMessage(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utc_now)
 
 
+class ChatMessageDeletion(SQLModel, table=True):
+    __tablename__ = "chat_message_deletions"
+    __table_args__ = (
+        UniqueConstraint("message_id", "user_id", name="uq_chat_message_deletions"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    message_id: uuid.UUID = Field(foreign_key="chat_messages.id", ondelete="CASCADE", index=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
+    deleted_at: datetime = Field(default_factory=_utc_now)
+
+
 class ChatConversationReadState(SQLModel, table=True):
     __tablename__ = "chat_conversation_reads"
     __table_args__ = (
@@ -47,5 +59,6 @@ class ChatConversationReadState(SQLModel, table=True):
     conversation_id: uuid.UUID = Field(foreign_key="chat_conversations.id", ondelete="CASCADE", index=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     last_read_at: datetime | None = None
+    cleared_at: datetime | None = None
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)

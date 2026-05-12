@@ -20,7 +20,6 @@ import {
   FiMinimize2,
   FiSend,
   FiTrash2,
-  FiX,
 } from "react-icons/fi"
 import { Avatar } from "@/components/ui/avatar"
 import { toaster } from "@/components/ui/toaster"
@@ -28,6 +27,7 @@ import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import {
   createOrGetConversation,
   deleteConversation,
+  deleteChatMessage,
   listConversationMessages,
   listMyConversations,
   markConversationRead,
@@ -403,6 +403,18 @@ export function ChatFloatingWidget() {
     },
   })
 
+  const deleteMessageMutation = useMutation({
+    mutationFn: deleteChatMessage,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chat", "messages"] })
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : "Không thể xóa tin nhắn"
+      toaster.create({ title: message, type: "error" })
+    },
+  })
+
   useEffect(() => {
     const off = onChatWidgetOpenRequest((payload) => {
       if (!isAuthenticated) {
@@ -693,8 +705,9 @@ export function ChatFloatingWidget() {
                     if (!selectedConversationId) {
                       return
                     }
+                    const targetName = selectedPeerDisplayName || "người này"
                     const confirmed = window.confirm(
-                      "Xóa toàn bộ lịch sử chat với người này?",
+                      `Xóa tin nhắn với ${targetName}? (Thao tác không thể hoàn tác. Lưu ý tin nhắn chỉ xóa ở phía bạn. ${targetName} vẫn nhìn thấy.)`,
                     )
                     if (!confirmed) {
                       return
@@ -715,14 +728,6 @@ export function ChatFloatingWidget() {
                   <FiMinimize2 />
                 </IconButton>
               )}
-              <IconButton
-                aria-label="Đóng chat"
-                variant="ghost"
-                size="sm"
-                onClick={closeWidget}
-              >
-                <FiX />
-              </IconButton>
             </HStack>
           </HStack>
 
@@ -801,7 +806,7 @@ export function ChatFloatingWidget() {
                       >
                         {message.message_type === "listing_share" &&
                         message.listing ? (
-                          <VStack align={mine ? "end" : "start"} gap={1}>
+                          <VStack align={mine ? "end" : "start"} gap={1} position="relative">
                             <ListingSharedCard
                               listing={message.listing}
                               onOpen={() => {
@@ -811,6 +816,26 @@ export function ChatFloatingWidget() {
                                 })
                               }}
                             />
+                            <IconButton
+                              aria-label="Xóa tin nhắn"
+                              size="xs"
+                              variant="solid"
+                              colorPalette="red"
+                              position="absolute"
+                              top={1}
+                              right={1}
+                              onClick={() => {
+                                const confirmed = window.confirm(
+                                  "Xóa tin nhắn này? (Chỉ xóa ở phía bạn.)",
+                                )
+                                if (!confirmed) {
+                                  return
+                                }
+                                deleteMessageMutation.mutate(message.id)
+                              }}
+                            >
+                              <FiTrash2 />
+                            </IconButton>
                             <Text fontSize="xs" color="gray.500">
                               {new Date(message.created_at).toLocaleString("vi-VN")}
                             </Text>
@@ -823,8 +848,29 @@ export function ChatFloatingWidget() {
                             borderRadius="lg"
                             bg={mine ? "blue.600" : "gray.100"}
                             color={mine ? "white" : "gray.800"}
+                            position="relative"
                           >
-                            <Text fontSize="sm" whiteSpace="pre-wrap">
+                            <IconButton
+                              aria-label="Xóa tin nhắn"
+                              size="xs"
+                              variant="solid"
+                              colorPalette="red"
+                              position="absolute"
+                              top={1}
+                              right={1}
+                              onClick={() => {
+                                const confirmed = window.confirm(
+                                  "Xóa tin nhắn này? (Chỉ xóa ở phía bạn.)",
+                                )
+                                if (!confirmed) {
+                                  return
+                                }
+                                deleteMessageMutation.mutate(message.id)
+                              }}
+                            >
+                              <FiTrash2 />
+                            </IconButton>
+                            <Text fontSize="sm" whiteSpace="pre-wrap" pr={7}>
                               {message.content ?? ""}
                             </Text>
                             <Text

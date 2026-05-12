@@ -101,13 +101,13 @@ button,
 }
 
 /* Hide number input spinners for price field */
-.price-input::-webkit-outer-spin-button,
-.price-input::-webkit-inner-spin-button {
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.price-input[type="number"] {
+input[type="number"] {
   -moz-appearance: textfield;
 }
 

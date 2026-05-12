@@ -6,11 +6,13 @@ import {
   ListingForm,
   type ListingFormSubmitPayload,
 } from "@/features/listings/components/ListingForm"
+import { useListingDetails } from "@/features/listings/hooks/useMyListings"
 
 type ListingModalProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   editingListing?: ListingRead | null
+  onDeleteExistingImage?: (imageId: string) => void
   onSubmit: (payload: ListingFormSubmitPayload) => Promise<void>
   isLoading?: boolean
 }
@@ -19,6 +21,7 @@ export function ListingModal({
   isOpen,
   onOpenChange,
   editingListing,
+  onDeleteExistingImage,
   onSubmit,
   isLoading = false,
 }: ListingModalProps) {
@@ -27,6 +30,8 @@ export function ListingModal({
     queryFn: () => getCategoriesTree(),
     enabled: isOpen,
   })
+
+  const listingDetailsQuery = useListingDetails(editingListing?.id ?? "")
 
   const categoryTree = categoriesQuery.data ?? []
   const handleFormSubmit = async (payload: ListingFormSubmitPayload) => {
@@ -89,6 +94,8 @@ export function ListingModal({
                       }
                     : undefined
                 }
+                existingImages={listingDetailsQuery.data?.images ?? []}
+                onDeleteExistingImage={onDeleteExistingImage}
                 categories={categoryTree}
                 onSubmit={handleFormSubmit}
                 onCancel={handleCancel}

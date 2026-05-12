@@ -467,10 +467,10 @@ export function ListingDetailPage() {
         <Flex direction={{ base: "column", lg: "row" }} gap={8} align="stretch">
           {/* Image Gallery */}
           <Box w={{ base: "full", lg: "520px" }} flexShrink={0}>
-            <Flex direction="column" h="full" gap={4}>
+            <Flex direction="column" gap={4}>
               {/* Main Image */}
               <Box
-                flex={1}
+                aspectRatio={1}
                 bg="transparent"
                 position="relative"
                 borderRadius="xl"

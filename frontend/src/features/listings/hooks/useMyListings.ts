@@ -217,6 +217,8 @@ export function useDeleteListingImage() {
     mutationFn: (imageId: string) => deleteListingImage(imageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["listings"] })
+      queryClient.invalidateQueries({ queryKey: ["listing"] })
+      queryClient.invalidateQueries({ queryKey: ["listings", "my-listings"] })
     },
   })
 }

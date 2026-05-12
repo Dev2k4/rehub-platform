@@ -1,11 +1,11 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import and_, delete, func, or_, update
+from sqlalchemy import and_, delete, exists, func, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.chat import ChatConversation, ChatConversationReadState, ChatMessage
+from app.models.chat import ChatConversation, ChatConversationReadState, ChatMessage, ChatMessageDeletion
 from app.services.chat_crypto_service import generate_wrapped_conversation_key
 
 
@@ -118,6 +118,16 @@ async def count_unread_messages(
             )
         )
     )
+    query = query.where(
+        ~exists().where(
+            and_(
+                ChatMessageDeletion.message_id == ChatMessage.id,
+                ChatMessageDeletion.user_id == user_id,
+            )
+        )
+    )
+    if state and state.cleared_at is not None:
+        query = query.where(ChatMessage.created_at > state.cleared_at)
     if state and state.last_read_at is not None:
         query = query.where(ChatMessage.created_at > state.last_read_at)
 
@@ -193,12 +203,27 @@ async def mark_conversation_read(
 async def list_messages(
     db: AsyncSession,
     conversation_id: uuid.UUID,
+    user_id: uuid.UUID,
     skip: int,
     limit: int,
 ) -> list[ChatMessage]:
+    state = await get_read_state(db, conversation_id, user_id)
     result = await db.execute(
         select(ChatMessage)
-        .where(ChatMessage.conversation_id == conversation_id)
+        .where(
+            and_(
+                ChatMessage.conversation_id == conversation_id,
+                ChatMessage.created_at > (state.cleared_at if state and state.cleared_at else datetime.min),
+            )
+        )
+        .where(
+            ~exists().where(
+                and_(
+                    ChatMessageDeletion.message_id == ChatMessage.id,
+                    ChatMessageDeletion.user_id == user_id,
+                )
+            )
+        )
         .order_by(ChatMessage.created_at.desc())
         .offset(skip)
         .limit(limit)
@@ -208,13 +233,57 @@ async def list_messages(
     return items
 
 
-async def count_messages(db: AsyncSession, conversation_id: uuid.UUID) -> int:
+async def count_messages(db: AsyncSession, conversation_id: uuid.UUID, user_id: uuid.UUID) -> int:
+    state = await get_read_state(db, conversation_id, user_id)
     result = await db.execute(
         select(func.count())
         .select_from(ChatMessage)
         .where(ChatMessage.conversation_id == conversation_id)
+        .where(ChatMessage.created_at > (state.cleared_at if state and state.cleared_at else datetime.min))
+        .where(
+            ~exists().where(
+                and_(
+                    ChatMessageDeletion.message_id == ChatMessage.id,
+                    ChatMessageDeletion.user_id == user_id,
+                )
+            )
+        )
     )
     return int(result.scalar_one())
+
+
+async def clear_conversation_for_user(
+    db: AsyncSession,
+    conversation_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> None:
+    now = _utc_now_naive()
+    state = await ensure_read_state(db, conversation_id, user_id)
+    state.cleared_at = now
+    state.last_read_at = now
+    state.updated_at = now
+    await db.flush()
+
+
+async def delete_message_for_user(
+    db: AsyncSession,
+    message_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> None:
+    result = await db.execute(
+        select(ChatMessageDeletion).where(
+            and_(
+                ChatMessageDeletion.message_id == message_id,
+                ChatMessageDeletion.user_id == user_id,
+            )
+        )
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        return
+
+    db.add(ChatMessageDeletion(message_id=message_id, user_id=user_id))
+    await db.flush()
 
 
 async def list_message_object_keys(

@@ -162,3 +162,13 @@ export async function deleteConversation(
   )
   return parseResponse<{ ok: boolean }>(response)
 }
+
+export async function deleteChatMessage(
+  messageId: string,
+): Promise<{ ok: boolean }> {
+  const response = await fetchWithAuthRetry(`/chat/messages/${messageId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  })
+  return parseResponse<{ ok: boolean }>(response)
+}

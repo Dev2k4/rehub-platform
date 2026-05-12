@@ -17,10 +17,11 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { FiCamera, FiStar, FiTrash2 } from "react-icons/fi"
+import { FiCamera, FiChevronDown, FiStar, FiX } from "react-icons/fi"
 import { usePriceSuggestion, PriceSuggestionResponse } from "@/features/listings/hooks/usePriceSuggestion"
 import { z } from "zod"
 import type { CategoryTree } from "@/client"
+import { getListingImageUrl } from "@/features/home/utils/marketplace.utils"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
@@ -28,7 +29,7 @@ import { InputGroup } from "@/components/ui/input-group"
 
 const listingSchema = z.object({
   title: z.string().min(5, "Tiêu đề ít nhất 5 ký tự").max(200),
-  description: z.string().min(20, "Mô tả ít nhất 20 ký tự").max(2000),
+  description: z.string().max(2000),
   price: z.coerce.number().positive("Giá phải lớn hơn 0"),
   category_id: z.string().min(1, "Chọn danh mục"),
   condition_grade: z.string().min(1, "Chọn tình trạng"),
@@ -45,6 +46,8 @@ export interface ListingFormSubmitPayload {
 interface ListingFormProps {
   initialData?: Partial<ListingFormData>
   categories?: CategoryTree[]
+  existingImages?: { id: string; image_url: string | null }[]
+  onDeleteExistingImage?: (imageId: string) => void
   onSubmit: (payload: ListingFormSubmitPayload) => Promise<void> | void
   isLoading?: boolean
   onCancel?: () => void
@@ -53,6 +56,8 @@ interface ListingFormProps {
 export function ListingForm({
   initialData,
   categories = [],
+  existingImages = [],
+  onDeleteExistingImage,
   onSubmit,
   isLoading = false,
   onCancel,
@@ -83,21 +88,19 @@ export function ListingForm({
 
   const selectedCategoryId = watch("category_id")
   const watchTitle = watch("title")
-  const watchDescription = watch("description")
   const watchCondition = watch("condition_grade")
 
   const canShowPriceIcon = useMemo(() => {
     return (
       !hasSuggestedPrice &&
       (watchTitle || "").length >= 5 &&
-      (watchDescription || "").length >= 20 &&
       !!watchCondition &&
       !isLoadingPrice
     )
-  }, [watchTitle, watchDescription, watchCondition, hasSuggestedPrice, isLoadingPrice])
+  }, [watchTitle, watchCondition, hasSuggestedPrice, isLoadingPrice])
 
   const handlePriceSuggestion = async () => {
-    const query = `${watchTitle} - ${watchDescription}`
+    const query = `${watchTitle} - ${watch("description") || ""}`
     const context = {
       category: selectedParent?.name || "",
       condition: watchCondition || "",
@@ -387,8 +390,8 @@ export function ListingForm({
                 <Text fontSize="sm" color="blue.700" fontWeight="medium">
                   Danh mục: {selectedParent.name}
                 </Text>
-                <Button
-                  type="button"
+                <IconButton
+                  aria-label="Chọn lại danh mục"
                   size="xs"
                   variant="ghost"
                   onClick={() => {
@@ -396,8 +399,8 @@ export function ListingForm({
                     setValue("category_id", "", { shouldValidate: true })
                   }}
                 >
-                  Chọn lại
-                </Button>
+                  <FiChevronDown />
+                </IconButton>
               </Flex>
             )}
 
@@ -513,17 +516,46 @@ export function ListingForm({
                   position="absolute"
                   top={1}
                   right={1}
-                  size="sm"
+                  size="xs"
                   colorPalette="red"
                   variant="solid"
                   borderRadius="full"
-                  opacity={0}
-                  _groupHover={{ opacity: 1 }}
-                  transition="opacity 0.2s"
                   onClick={() => removeImage(idx)}
                 >
-                  <FiTrash2 />
+                  <FiX />
                 </IconButton>
+              </Box>
+            ))}
+          </SimpleGrid>
+        )}
+
+        {existingImages.length > 0 && (
+          <SimpleGrid columns={4} gap={4}>
+            {existingImages.map((image) => (
+              <Box key={image.id} position="relative">
+                <Image
+                  src={getListingImageUrl(image.image_url)}
+                  alt="Current"
+                  w="full"
+                  h={32}
+                  objectFit="cover"
+                  borderRadius="lg"
+                />
+                {onDeleteExistingImage && (
+                  <IconButton
+                    aria-label="Xóa ảnh hiện có"
+                    position="absolute"
+                    top={1}
+                    right={1}
+                    size="xs"
+                    colorPalette="red"
+                    variant="solid"
+                    borderRadius="full"
+                    onClick={() => onDeleteExistingImage(image.id)}
+                  >
+                    <FiX />
+                  </IconButton>
+                )}
               </Box>
             ))}
           </SimpleGrid>

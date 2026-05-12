@@ -198,6 +198,7 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         - VITE_API_URL=https://${DOMAIN}
+        - VITE_MINIO_PUBLIC_BASE_URL=${MINIO_PUBLIC_BASE_URL}
     restart: always
     depends_on:
       backend:

@@ -65,7 +65,8 @@ export function getListingImageUrl(url?: string | null): string {
     return url
   }
 
-  const base = OpenAPI.BASE.replace(/\/$/, "")
+  const minioBase = import.meta.env.VITE_MINIO_PUBLIC_BASE_URL
+  const base = (minioBase || OpenAPI.BASE).replace(/\/$/, "")
   const path = url.startsWith("/") ? url : `/${url}`
   return `${base}${path}`
 }

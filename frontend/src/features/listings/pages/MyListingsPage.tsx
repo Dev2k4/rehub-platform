@@ -34,6 +34,7 @@ import { ListingsTable } from "@/features/listings/components/ListingsTable"
 import {
   useCreateListingWithImagesAtomic,
   useDeleteListing,
+  useDeleteListingImage,
   useMyListings,
   useUpdateListing,
   useUploadListingImage,
@@ -80,6 +81,7 @@ export function MyListingsPage() {
   const updateMutation = useUpdateListing()
   const deleteMutation = useDeleteListing()
   const uploadImageMutation = useUploadListingImage()
+  const deleteListingImageMutation = useDeleteListingImage()
 
   // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
@@ -150,6 +152,14 @@ export function MyListingsPage() {
 
       toaster.create({ type: "error", title: message })
       return
+    }
+  }
+
+  const handleDeleteListingImage = async (imageId: string) => {
+    try {
+      await deleteListingImageMutation.mutateAsync(imageId)
+    } catch (error) {
+      toaster.create({ type: "error", title: "Không thể xóa ảnh. Vui lòng thử lại." })
     }
   }
 
@@ -362,6 +372,7 @@ export function MyListingsPage() {
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         editingListing={editingListing}
+          onDeleteExistingImage={handleDeleteListingImage}
         onSubmit={handleFormSubmit}
         isLoading={
           createWithImagesAtomicMutation.isPending ||
