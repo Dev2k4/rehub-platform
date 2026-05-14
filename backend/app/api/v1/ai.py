@@ -2,16 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db
+from app.core.config import settings
 from app.schemas.ai import (
     AiChatRequest,
     AiChatResponse,
-    AiPriceComparable,
     AiPriceSuggestionRequest,
-    AiPriceSuggestionResponse,
     AiProductItem,
 )
 from app.services.ai_chat_service import generate_ai_answer
-from app.services.ai_price_service import PriceDatasetUnavailableError, get_price_suggestion_engine
+from app.services.ai_price_service import (
+    PriceDatasetUnavailableError,
+    PriceSuggestionProviderError,
+    get_price_suggestion_engine,
+    suggest_price_with_ai,
+)
 
 router = APIRouter(prefix="/ai", tags=["AI Assistant"])
 
@@ -34,33 +38,23 @@ async def ai_chat(payload: AiChatRequest, db: AsyncSession = Depends(get_db)) ->
     )
 
 
-@router.post("/price-suggestion", response_model=AiPriceSuggestionResponse)
-async def ai_price_suggestion(payload: AiPriceSuggestionRequest) -> AiPriceSuggestionResponse:
+@router.post("/price-suggestion", response_model=int)
+async def ai_price_suggestion(payload: AiPriceSuggestionRequest) -> int:
     engine = get_price_suggestion_engine()
+    provider_name = engine.provider_name
+    model_name = engine.model_name
     try:
         suggestion = engine.suggest(payload.query, payload.context, session_id=payload.session_id)
     except PriceDatasetUnavailableError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        try:
+            suggestion = await suggest_price_with_ai(payload.query, payload.context, session_id=payload.session_id)
+            provider_name = settings.AI_PROVIDER_NAME or "ai"
+            model_name = settings.AI_CHAT_MODEL or "unknown"
+        except PriceSuggestionProviderError as provider_exc:
+            raise HTTPException(status_code=503, detail=str(provider_exc)) from provider_exc
 
-    return AiPriceSuggestionResponse(
-        query=suggestion.query,
-        suggested_price=suggestion.suggested_price,
-        price_low=suggestion.price_low,
-        price_high=suggestion.price_high,
-        confidence=suggestion.confidence,
-        matched_count=suggestion.matched_count,
-        provider=engine.provider_name,
-        model=engine.model_name,
-        comparables=[
-            AiPriceComparable(
-                title=item.title,
-                price=item.price,
-                category=item.category,
-                brand=item.brand,
-                condition=item.condition,
-                score=item.score,
-            )
-            for item in suggestion.comparables
-        ],
-        summary=suggestion.summary,
-    )
+    suggested_price = suggestion.suggested_price
+    if suggested_price is None:
+        raise HTTPException(status_code=503, detail="Khong the goi y gia")
+
+    return int(suggested_price)

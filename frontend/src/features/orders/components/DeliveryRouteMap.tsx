@@ -1,7 +1,7 @@
-import { Box, Flex, Spinner, Text } from "@chakra-ui/react"
+import { Box, Flex, HStack, Spinner, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { FiTruck } from "react-icons/fi"
+import { FiTruck, FiNavigation, FiExternalLink } from "react-icons/fi"
 import { MapContainer, Marker, Polyline, TileLayer, Popup } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
@@ -34,6 +34,7 @@ type DeliveryRouteMapProps = {
   sellerDistrict?: string
   buyerProvince: string
   buyerDistrict?: string
+  compact?: boolean
 }
 
 type LatLng = [number, number]
@@ -95,6 +96,7 @@ export function DeliveryRouteMap({
   sellerDistrict,
   buyerProvince,
   buyerDistrict,
+  compact = false,
 }: DeliveryRouteMapProps) {
   // Use React Query to cache the geocoding and routing results to avoid hitting API rate limits
   const { data: routeInfo, isLoading, isError } = useQuery({
@@ -138,18 +140,18 @@ export function DeliveryRouteMap({
 
   if (isLoading) {
     return (
-      <Flex h="300px" align="center" justify="center" bg="gray.50" flexDir="column" gap={3}>
-        <Spinner color="blue.500" />
-        <Text color="gray.500" fontSize="sm">Đang tải dữ liệu bản đồ...</Text>
+      <Flex h={compact ? "100%" : "300px"} align="center" justify="center" bg="gray.50" flexDir="column" gap={2}>
+        <Spinner color="blue.500" size={compact ? "sm" : "md"} />
+        <Text color="gray.500" fontSize={compact ? "xs" : "sm"}>Đang tải dữ liệu bản đồ...</Text>
       </Flex>
     )
   }
 
   if (isError || !routeInfo) {
     return (
-      <Flex h="300px" align="center" justify="center" bg="gray.50" p={6} textAlign="center">
-        <Text color="red.500" fontSize="sm">
-          Không thể tính toán đường đi. Vui lòng kiểm tra lại địa chỉ hoặc thử lại sau.
+      <Flex h={compact ? "100%" : "300px"} align="center" justify="center" bg="gray.50" p={compact ? 2 : 6} textAlign="center">
+        <Text color="red.500" fontSize={compact ? "xs" : "sm"}>
+          {compact ? "Không thể tải bản đồ" : "Không thể tính toán đường đi. Vui lòng kiểm tra lại địa chỉ hoặc thử lại sau."}
         </Text>
       </Flex>
     )
@@ -172,45 +174,68 @@ export function DeliveryRouteMap({
       
       useEffect(() => {
         if (routeData?.path && routeData.path.length > 0) {
-          map.fitBounds(routeData.path, { padding: [30, 30] })
+          map.fitBounds(routeData.path, { padding: compact ? [15, 15] : [30, 30] })
         } else {
-          map.fitBounds([sellerCoords, buyerCoords], { padding: [50, 50] })
+          map.fitBounds([sellerCoords, buyerCoords], { padding: compact ? [20, 20] : [50, 50] })
         }
       }, [map])
     } catch (e) {
       // Ignore if useMap fails
     }
-    return null
-  }
+    return null;
+  };
+
+  const isSameLocation =
+    sellerProvince === buyerProvince && sellerDistrict === buyerDistrict;
+
+  const destStr = isSameLocation
+    ? `${sellerCoords[0]},${sellerCoords[1]}`
+    : `${buyerCoords[0]},${buyerCoords[1]}`;
+
+  const originStr = isSameLocation ? "" : `${sellerCoords[0]},${sellerCoords[1]}`;
+
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&${
+    originStr ? `origin=${originStr}&` : ""
+  }destination=${destStr}&travelmode=driving`;
+
+  const openGoogleMapsDirections = () => {
+    window.open(directionsUrl, "_blank");
+  };
 
   return (
-    <Box position="relative">
+    <Box position="relative" h={compact ? "100%" : "auto"} w="full" overflow="hidden">
       {/* Route Info Overlay */}
       {routeData && (
         <Box 
           position="absolute" 
-          top={3} 
-          right={3} 
+          top={compact ? 2 : 3} 
+          right={compact ? 2 : 3} 
           zIndex={1000} 
-          bg="white" 
-          p={3} 
-          borderRadius="lg" 
-          boxShadow="md"
+          bg="whiteAlpha.900" 
+          backdropFilter="blur(8px)"
+          p={compact ? 1.5 : 3} 
+          px={compact ? 2.5 : 3}
+          borderRadius="md" 
+          boxShadow="sm"
           border="1px"
           borderColor="gray.200"
         >
-          <Flex align="center" gap={3}>
-            <Box bg="blue.50" p={2} borderRadius="full" color="blue.500">
-              <FiTruck size={16} />
-            </Box>
+          <Flex align="center" gap={compact ? 2 : 3}>
+            {!compact && (
+              <Box bg="blue.50" p={2} borderRadius="full" color="blue.500">
+                <FiTruck size={16} />
+              </Box>
+            )}
             <Box>
-              <Text fontSize="xs" color="gray.500" fontWeight="medium">Khoảng cách ước tính</Text>
-              <Text fontSize="md" fontWeight="bold" color="gray.800">
+              <Text fontSize={compact ? "9px" : "xs"} color="gray.500" fontWeight="medium" textTransform={compact ? "uppercase" : "none"} letterSpacing={compact ? "wider" : "normal"}>
+                {compact ? "Khoảng cách" : "Khoảng cách ước tính"}
+              </Text>
+              <Text fontSize={compact ? "xs" : "md"} fontWeight="bold" color="gray.800" lineHeight={compact ? "1.2" : "normal"}>
                 {routeData.distanceKm === 0 ? "< 1 km" : `${routeData.distanceKm.toFixed(1)} km`}
               </Text>
             </Box>
           </Flex>
-          {routeData.durationMinutes > 0 && (
+          {!compact && routeData.durationMinutes > 0 && (
             <Text fontSize="xs" color="gray.500" mt={1} textAlign="right">
               ~{Math.round(routeData.durationMinutes / 60)}h {routeData.durationMinutes % 60}p di chuyển
             </Text>
@@ -219,60 +244,142 @@ export function DeliveryRouteMap({
       )}
 
       {/* Map */}
-      <Box h="350px" w="full" bg="gray.100">
-        <MapContainer 
-          center={center} 
-          zoom={6} 
-          scrollWheelZoom={true} 
-          style={{ height: "100%", width: "100%", zIndex: 1 }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          <MapFitBounds />
-          
-          {/* Route Line */}
-          {routeData && routeData.path.length > 0 && (
-            <Polyline 
-              positions={routeData.path} 
-              color="#3B82F6" 
-              weight={4} 
-              opacity={0.7} 
-              dashArray={routeData.distanceKm === 0 ? "5, 10" : undefined}
+      <Box 
+        position="relative"
+        h={compact ? "100%" : "350px"} 
+        w="full" 
+        bg="gray.100"
+        cursor="pointer"
+        onClick={openGoogleMapsDirections}
+        role="button"
+        tabIndex={0}
+        _hover={{ "& .map-overlay": { opacity: 1 } }}
+      >
+        <Box h="full" w="full" pointerEvents={compact ? "none" : "auto"}>
+          <MapContainer 
+            center={center} 
+            zoom={6} 
+            scrollWheelZoom={true} 
+            style={{ height: "100%", width: "100%", zIndex: 1 }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            
+            <MapFitBounds />
+            
+            {/* Route Line */}
+            {routeData && routeData.path.length > 0 && (
+              <Polyline 
+                positions={routeData.path} 
+                color="#3B82F6" 
+                weight={compact ? 3 : 4} 
+                opacity={0.7} 
+                dashArray={routeData.distanceKm === 0 ? "5, 10" : undefined}
+              />
+            )}
+            
+            {/* Seller Marker */}
+            <Marker position={sellerCoords} icon={sellerIcon}>
+              <Popup>
+                <strong>Người bán</strong><br/>
+                {sellerDistrict ? `${sellerDistrict}, ` : ""}{sellerProvince}
+              </Popup>
+            </Marker>
+            
+            {/* Buyer Marker */}
+            {!compact && (
+              <Marker position={buyerCoords} icon={buyerIcon}>
+                <Popup>
+                  <strong>Người mua</strong><br/>
+                  {buyerDistrict ? `${buyerDistrict}, ` : ""}{buyerProvince}
+                </Popup>
+              </Marker>
+            )}
+          </MapContainer>
+        </Box>
+
+        {/* Hover overlay */}
+        <Flex 
+          className="map-overlay"
+          position="absolute"
+          top={0} left={0} right={0} bottom={0}
+          bg="blackAlpha.500"
+          zIndex={1000}
+          opacity={0}
+          transition="opacity 0.25s ease"
+          align="center"
+          justify="center"
+          direction="column"
+          gap={2}
+          pointerEvents="none"
+        >
+          <Flex 
+            bg="white" 
+            px={4} py={2} 
+            borderRadius="full" 
+            align="center" 
+            gap={2}
+            boxShadow="0 8px 24px rgba(0,0,0,0.2)"
+            color="blue.600"
+            fontWeight="bold"
+            fontSize={compact ? "xs" : "sm"}
+          >
+            <FiNavigation />
+            {isSameLocation ? "Tìm đường đến người bán" : "Xem lộ trình trên Google Maps"}
+          </Flex>
+          {!compact && (
+            <Text fontSize="xs" color="whiteAlpha.800" fontWeight="500">
+              Mở trong Google Maps
+            </Text>
           )}
-          
-          {/* Seller Marker */}
-          <Marker position={sellerCoords} icon={sellerIcon}>
-            <Popup>
-              <strong>Người bán</strong><br/>
-              {sellerDistrict ? `${sellerDistrict}, ` : ""}{sellerProvince}
-            </Popup>
-          </Marker>
-          
-          {/* Buyer Marker */}
-          <Marker position={buyerCoords} icon={buyerIcon}>
-            <Popup>
-              <strong>Người mua</strong><br/>
-              {buyerDistrict ? `${buyerDistrict}, ` : ""}{buyerProvince}
-            </Popup>
-          </Marker>
-        </MapContainer>
+        </Flex>
       </Box>
 
       {/* Legend below map */}
-      <Flex p={2} bg="gray.50" justify="center" gap={6} fontSize="xs" color="gray.600" borderTop="1px" borderColor="gray.200">
-        <Flex align="center" gap={1}>
-          <Box w={3} h={3} borderRadius="full" bg="#2A81CB" />
-          <Text>Điểm lấy hàng (Người bán)</Text>
+      {!compact && (
+        <Flex p={2} bg="gray.50" justify="center" gap={6} fontSize="xs" color="gray.600" borderTop="1px" borderColor="gray.200">
+          <Flex align="center" gap={1}>
+            <Box w={3} h={3} borderRadius="full" bg="#2A81CB" />
+            <Text>Điểm lấy hàng</Text>
+          </Flex>
+          <Flex align="center" gap={1}>
+            <Box w={3} h={3} borderRadius="full" bg="#2AAD27" />
+            <Text>Điểm giao hàng</Text>
+          </Flex>
         </Flex>
-        <Flex align="center" gap={1}>
-          <Box w={3} h={3} borderRadius="full" bg="#2AAD27" />
-          <Text>Điểm giao hàng (Người mua)</Text>
-        </Flex>
-      </Flex>
+      )}
+
+      {/* Footer action bar */}
+      {!compact && (
+        <a 
+          href={directionsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "none" }}
+        >
+          <HStack
+            px={5}
+            py={3}
+            bg="white"
+            borderTop="1px solid"
+            borderColor="gray.100"
+            justify="space-between"
+            cursor="pointer"
+            transition="all 0.2s"
+            _hover={{ bg: "blue.50" }}
+          >
+            <HStack gap={2}>
+              <FiNavigation size={14} color="#2563eb" />
+              <Text fontSize="xs" fontWeight="600" color="blue.600">
+                Xem đường đi trên Google Maps
+              </Text>
+            </HStack>
+            <FiExternalLink size={14} color="#2563eb" />
+          </HStack>
+        </a>
+      )}
     </Box>
   )
 }

@@ -56,6 +56,7 @@ export function MyListingsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingListing, setEditingListing] = useState<ListingRead | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "24d" | "older">("all")
 
   // Queries and mutations — always fetch all to compute stats
   const { data: listingsData, isLoading: isLoadingListings } = useMyListings({
@@ -316,35 +317,73 @@ export function MyListingsPage() {
               />
             </InputGroup>
           </Box>
-          {/* Status filter tabs */}
-          <HStack gap={2} flexWrap="wrap">
-            {STATUS_TABS.map((tab) => (
-              <Box
-                key={tab.value}
-                as="button"
-                onClick={() => setSelectedStatus(tab.value)}
-                px={4}
-                py={1.5}
-                borderRadius="full"
-                fontSize="sm"
-                fontWeight="600"
-                border="1px solid"
-                cursor="pointer"
-                transition="all 0.2s"
-                bg={selectedStatus === tab.value ? "blue.600" : "white"}
-                color={selectedStatus === tab.value ? "white" : "gray.600"}
-                borderColor={
-                  selectedStatus === tab.value ? "blue.600" : "gray.200"
-                }
-                _hover={{
-                  borderColor: "blue.400",
-                  color: selectedStatus === tab.value ? "white" : "blue.600",
-                }}
-              >
-                {tab.label}
-              </Box>
-            ))}
-          </HStack>
+          {/* Status and Time filter tabs */}
+          <Flex direction="column" gap={4}>
+            <HStack gap={2} flexWrap="wrap">
+              <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" w="full" mb={1}>Trạng thái</Text>
+              {STATUS_TABS.map((tab) => (
+                <Box
+                  key={tab.value}
+                  as="button"
+                  onClick={() => setSelectedStatus(tab.value)}
+                  px={4}
+                  py={1.5}
+                  borderRadius="full"
+                  fontSize="sm"
+                  fontWeight="600"
+                  border="1px solid"
+                  cursor="pointer"
+                  transition="all 0.2s"
+                  bg={selectedStatus === tab.value ? "blue.600" : "white"}
+                  color={selectedStatus === tab.value ? "white" : "gray.600"}
+                  borderColor={
+                    selectedStatus === tab.value ? "blue.600" : "gray.200"
+                  }
+                  _hover={{
+                    borderColor: "blue.400",
+                    color: selectedStatus === tab.value ? "white" : "blue.600",
+                  }}
+                >
+                  {tab.label}
+                </Box>
+              ))}
+            </HStack>
+
+            <HStack gap={2} flexWrap="wrap">
+              <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" w="full" mb={1}>Thời gian</Text>
+              {[
+                { value: "all", label: "Tất cả" },
+                { value: "7d", label: "7 ngày gần nhất" },
+                { value: "24d", label: "24 ngày gần nhất" },
+                { value: "older", label: "Cũ hơn" },
+              ].map((tab) => (
+                <Box
+                  key={tab.value}
+                  as="button"
+                  onClick={() => setTimeFilter(tab.value as any)}
+                  px={4}
+                  py={1.5}
+                  borderRadius="full"
+                  fontSize="sm"
+                  fontWeight="600"
+                  border="1px solid"
+                  cursor="pointer"
+                  transition="all 0.2s"
+                  bg={timeFilter === tab.value ? "blue.600" : "white"}
+                  color={timeFilter === tab.value ? "white" : "gray.600"}
+                  borderColor={
+                    timeFilter === tab.value ? "blue.600" : "gray.200"
+                  }
+                  _hover={{
+                    borderColor: "blue.400",
+                    color: timeFilter === tab.value ? "white" : "blue.600",
+                  }}
+                >
+                  {tab.label}
+                </Box>
+              ))}
+            </HStack>
+          </Flex>
         </Box>
 
         {/* Listings Table Card */}
@@ -358,7 +397,18 @@ export function MyListingsPage() {
           overflow="hidden"
         >
           <ListingsTable
-            listings={listingsData?.items || []}
+            listings={useMemo(() => {
+              const raw = listingsData?.items || []
+              if (timeFilter === "all") return raw
+              const now = new Date()
+              if (timeFilter === "older") {
+                const threshold = new Date(now.getTime() - 24 * 24 * 60 * 60 * 1000)
+                return raw.filter((item) => new Date(item.created_at) < threshold)
+              }
+              const days = timeFilter === "7d" ? 7 : 24
+              const threshold = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+              return raw.filter((item) => new Date(item.created_at) >= threshold)
+            }, [listingsData?.items, timeFilter])}
             onEdit={handleEditClick}
             onDelete={handleDeleteClick}
             onView={handleViewClick}

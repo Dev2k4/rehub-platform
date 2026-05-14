@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 import unicodedata
 import hashlib
+import logging
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
@@ -11,10 +13,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Any
 
+import httpx
+
 from app.core.config import settings
 
 # Cache for price suggestions session consistency
 _PRICE_CACHE: Dict[str, Any] = {}
+logger = logging.getLogger(__name__)
 
 
 def _get_price_cache_key(session_id: str | None, query: str, context: dict | None) -> str | None:
@@ -218,6 +223,10 @@ class PriceDatasetNotConfiguredError(RuntimeError):
 
 
 class PriceDatasetUnavailableError(RuntimeError):
+    pass
+
+
+class PriceSuggestionProviderError(RuntimeError):
     pass
 
 
@@ -526,3 +535,233 @@ def compose_price_suggestion_reply(suggestion: PriceSuggestion) -> str:
         parts.append("Một vài sản phẩm tương tự:")
         parts.append(comparable_text)
     return "\n".join(parts)
+
+
+def _ai_provider_is_configured() -> bool:
+    return bool(settings.AI_API_KEY.strip()) and bool(settings.AI_PROVIDER_BASE_URL.strip()) and bool(settings.AI_CHAT_MODEL.strip())
+
+
+def _ai_chat_endpoint() -> str:
+    base = settings.AI_PROVIDER_BASE_URL.rstrip("/")
+    return f"{base}/chat/completions"
+
+
+def _supports_response_format() -> bool:
+    provider = (settings.AI_PROVIDER_NAME or "").lower()
+    return "openai" in provider or "9router" in provider
+
+
+def _condition_label_for_prompt(condition: str | None) -> str:
+    if not condition:
+        return ""
+    normalized = condition.strip().lower()
+    mapping = {
+        "brand_new": "Moi 100%",
+        "like_new": "Nhu moi",
+        "good": "Tot",
+        "fair": "Trung binh",
+        "poor": "Cu",
+        "new": "Moi 100%",
+        "like new": "Nhu moi",
+    }
+    return mapping.get(normalized, condition)
+
+
+def _build_ai_price_prompts(query: str, context: dict[str, str] | None) -> tuple[str, str]:
+    context = context or {}
+    condition_label = _condition_label_for_prompt(context.get("condition"))
+    category = (context.get("category") or "").strip()
+    brand = (context.get("brand") or "").strip()
+
+    system_prompt = (
+        "Ban la chuyen gia dinh gia do cu tren san ReHub tai Viet Nam. "
+        "Hay dua ra muc gia goi y phu hop dua tren tieu de, mo ta va tinh trang. "
+        "Tra ve DUY NHAT mot JSON object (khong text thuong). "
+        "Cac truong bat buoc: suggested_price, price_low, price_high, confidence, summary. "
+        "Gia la so nguyen VND, khong dung dau phay/chu phan tach; confidence la so trong khoang 0-1. "
+        "Dam bao price_low <= suggested_price <= price_high. "
+        "Vi du dinh dang: {\"suggested_price\": 12000000, \"price_low\": 11000000, \"price_high\": 13000000, \"confidence\": 0.62, \"summary\": \"Gia tham khao cho tinh trang tot.\"}"
+    )
+
+    user_prompt = (
+        f"Tieu de: {query}\n"
+        f"Danh muc: {category or 'Khong ro'}\n"
+        f"Thuong hieu: {brand or 'Khong ro'}\n"
+        f"Tinh trang: {condition_label or 'Khong ro'}\n"
+        "Yeu cau: dinh gia nhanh, hop ly, phu hop voi thi truong secondhand Viet Nam."
+    )
+
+    return system_prompt, user_prompt
+
+
+def _extract_json_object(text: str) -> dict[str, Any]:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError("AI response does not contain JSON object")
+    snippet = text[start : end + 1]
+    return json.loads(snippet)
+
+
+def _extract_price_from_text(text: str) -> int | None:
+    matches = re.findall(r"\d[\d.,]{2,}", text)
+    if not matches:
+        return None
+    return _parse_price(matches[0])
+
+
+def _coerce_confidence(value: Any) -> float:
+    try:
+        val = float(value)
+    except (TypeError, ValueError):
+        return 0.45
+    return max(0.05, min(1.0, val))
+
+
+async def _ask_ai_price_provider(query: str, context: dict[str, str] | None) -> dict[str, Any]:
+    if not _ai_provider_is_configured():
+        raise PriceSuggestionProviderError("AI provider chua cau hinh")
+
+    system_prompt, user_prompt = _build_ai_price_prompts(query, context)
+    payload = {
+        "model": settings.AI_CHAT_MODEL,
+        "stream": False,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.2,
+        "max_tokens": 250,
+        "max_output_tokens": 250,
+    }
+    if _supports_response_format():
+        payload["response_format"] = {"type": "json_object"}
+    headers = {
+        "Authorization": f"Bearer {settings.AI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    timeout = httpx.Timeout(settings.AI_CHAT_TIMEOUT_SECONDS, connect=10.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            response = await client.post(_ai_chat_endpoint(), json=payload, headers=headers)
+        except httpx.HTTPError as exc:
+            raise PriceSuggestionProviderError(f"Khong the ket noi AI provider: {exc}") from exc
+
+    if response.status_code >= 400:
+        detail = "AI provider tra loi loi"
+        try:
+            payload_json = response.json()
+            detail = payload_json.get("error", {}).get("message") or payload_json.get("message") or detail
+        except Exception:
+            pass
+        raise PriceSuggestionProviderError(detail)
+
+    data = response.json()
+    content = _extract_ai_content(data)
+    if not isinstance(content, str) or not content.strip():
+        logger.warning("AI price response missing content. Keys: %s", list(data.keys()))
+        raise PriceSuggestionProviderError("AI provider khong tra ve noi dung")
+
+    try:
+        return _extract_json_object(content)
+    except Exception as exc:
+        fallback_price = _extract_price_from_text(content)
+        if fallback_price is not None:
+            return {"suggested_price": fallback_price}
+
+        logger.warning("Failed to parse AI price JSON: %s. Content: %s", exc, content[:500])
+        snippet = content.strip().replace("\n", " ")[:500]
+        raise PriceSuggestionProviderError(
+            f"AI provider tra ve dinh dang du lieu khong hop le. Noi dung: {snippet}"
+        ) from exc
+
+
+def _extract_ai_content(data: dict[str, Any]) -> str | None:
+    choices = data.get("choices")
+    if isinstance(choices, list) and choices:
+        for choice in choices:
+            if not isinstance(choice, dict):
+                continue
+            message = choice.get("message")
+            if isinstance(message, dict):
+                content = message.get("content")
+                if isinstance(content, str) and content.strip():
+                    return content
+                if isinstance(content, list):
+                    text_parts = [part.get("text", "") for part in content if isinstance(part, dict)]
+                    joined = "".join(text_parts).strip()
+                    if joined:
+                        return joined
+            text = choice.get("text")
+            if isinstance(text, str) and text.strip():
+                return text
+            delta = choice.get("delta")
+            if isinstance(delta, dict):
+                delta_content = delta.get("content")
+                if isinstance(delta_content, str) and delta_content.strip():
+                    return delta_content
+
+    direct_fields = ["content", "output_text", "response", "text"]
+    for field in direct_fields:
+        value = data.get(field)
+        if isinstance(value, str) and value.strip():
+            return value
+
+    return None
+
+
+async def suggest_price_with_ai(
+    query: str,
+    context: dict[str, str] | None = None,
+    session_id: str | None = None,
+) -> PriceSuggestion:
+    cache_key = _get_price_cache_key(session_id, query, context)
+    if cache_key and cache_key in _PRICE_CACHE:
+        return _PRICE_CACHE[cache_key]
+
+    payload = await _ask_ai_price_provider(query, context)
+
+    suggested = _parse_price(payload.get("suggested_price"))
+    price_low = _parse_price(payload.get("price_low"))
+    price_high = _parse_price(payload.get("price_high"))
+    confidence = _coerce_confidence(payload.get("confidence"))
+    summary = str(payload.get("summary") or "Goi y AI dua tren thong tin tin dang da cung cap.")
+
+    if suggested is None and price_low is not None and price_high is not None:
+        suggested = _round_price((price_low + price_high) / 2)
+
+    if suggested is None:
+        raise PriceSuggestionProviderError("AI khong tra ve gia hop le")
+
+    if price_low is None and price_high is None:
+        price_low = _round_price(suggested * 0.9)
+        price_high = _round_price(suggested * 1.1)
+    elif price_low is None:
+        price_low = _round_price(min(suggested, price_high or suggested) * 0.9)
+    elif price_high is None:
+        price_high = _round_price(max(suggested, price_low or suggested) * 1.1)
+
+    if price_low is not None and price_high is not None and price_low > price_high:
+        price_low, price_high = price_high, price_low
+
+    suggested = _round_price(suggested)
+    if price_low is not None:
+        price_low = _round_price(price_low)
+    if price_high is not None:
+        price_high = _round_price(price_high)
+
+    res_obj = PriceSuggestion(
+        query=query,
+        suggested_price=suggested,
+        price_low=price_low,
+        price_high=price_high,
+        confidence=round(confidence, 4),
+        matched_count=1,
+        comparables=[],
+        summary=summary,
+    )
+
+    if cache_key:
+        _PRICE_CACHE[cache_key] = res_obj
+    return res_obj

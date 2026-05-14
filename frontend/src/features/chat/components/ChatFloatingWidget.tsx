@@ -15,6 +15,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { useNavigate } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
 import {
+  FiAlertCircle,
   FiArrowLeft,
   FiMessageCircle,
   FiMinimize2,
@@ -22,7 +23,18 @@ import {
   FiTrash2,
 } from "react-icons/fi"
 import { Avatar } from "@/components/ui/avatar"
+import {
+  DialogActionTrigger,
+  DialogBody,
+  DialogCloseTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { toaster } from "@/components/ui/toaster"
+import { Tooltip } from "@/components/ui/tooltip"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 import {
   createOrGetConversation,
@@ -222,6 +234,8 @@ export function ChatFloatingWidget() {
   const [contextMenuMessageId, setContextMenuMessageId] = useState<string | null>(
     null,
   )
+  const [chatSearch, setChatSearch] = useState("")
+  const [chatFilter, setChatFilter] = useState<"all" | "unread" | "read">("all")
 
   const closeTimerRef = useRef<number | null>(null)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
@@ -237,6 +251,8 @@ export function ChatFloatingWidget() {
     setIsPanelMounted(true)
     window.requestAnimationFrame(() => setIsOpen(true))
   }, [])
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const closeWidget = useCallback(() => {
     setIsOpen(false)
@@ -266,8 +282,37 @@ export function ChatFloatingWidget() {
     enabled: isAuthenticated,
     retry: false,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
   })
+  const currentUserId = user?.id ?? ""
+
+  const filteredConversations = useMemo(() => {
+    let list = conversationsQuery.data ?? []
+
+    // Filter by read/unread
+    if (chatFilter === "unread") {
+      list = list.filter((c) => c.unread_count > 0)
+    } else if (chatFilter === "read") {
+      list = list.filter((c) => c.unread_count === 0)
+    }
+
+    // Filter by search (ID for now, or name if we had it here)
+    if (chatSearch.trim()) {
+      const q = chatSearch.toLowerCase().trim()
+      list = list.filter((c) => {
+        const peerId = getPeerIdFromConversation(c, currentUserId).toLowerCase()
+        // Try to match peerId since name is not directly available here without cache lookup
+        if (peerId.includes(q)) return true
+        
+        // Check cache for names
+        const cachedProfile = queryClient.getQueryData<{ full_name?: string }>(["user-public", getPeerIdFromConversation(c, currentUserId)])
+        if (cachedProfile?.full_name?.toLowerCase().includes(q)) return true
+        
+        return false
+      })
+    }
+
+    return list
+  }, [conversationsQuery.data, chatFilter, chatSearch, currentUserId, queryClient])
 
   const selectedConversation = useMemo(
     () =>
@@ -277,7 +322,6 @@ export function ChatFloatingWidget() {
     [conversationsQuery.data, selectedConversationId],
   )
 
-  const currentUserId = user?.id ?? ""
 
   const selectedPeerId = useMemo(() => {
     if (!selectedConversation || !currentUserId) {
@@ -649,7 +693,7 @@ export function ChatFloatingWidget() {
           bottom={isMobile ? 0 : 5}
           top={isMobile ? 0 : "auto"}
           left={isMobile ? 0 : "auto"}
-          w={isMobile ? "100vw" : "min(92vw, 420px)"}
+          w={isMobile ? "100vw" : "min(92vw, 462px)"}
           h={isMobile ? "100vh" : "560px"}
           zIndex={1300}
           borderRadius={isMobile ? 0 : "xl"}
@@ -733,19 +777,7 @@ export function ChatFloatingWidget() {
                   aria-label="Xóa cuộc trò chuyện"
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    if (!selectedConversationId) {
-                      return
-                    }
-                    const targetName = selectedPeerDisplayName || "người này"
-                    const confirmed = window.confirm(
-                      `Xóa tin nhắn với ${targetName}? (Thao tác không thể hoàn tác. Lưu ý tin nhắn chỉ xóa ở phía bạn. ${targetName} vẫn nhìn thấy.)`,
-                    )
-                    if (!confirmed) {
-                      return
-                    }
-                    deleteConversationMutation.mutate(selectedConversationId)
-                  }}
+                  onClick={() => setIsDeleteDialogOpen(true)}
                 >
                   <FiTrash2 />
                 </IconButton>
@@ -767,11 +799,69 @@ export function ChatFloatingWidget() {
             {showConversationPane && (
               <Box
                 w={isMobile ? "100%" : "42%"}
-                borderRight={isMobile ? "none" : "1px"}
-                borderColor="gray.100"
+                borderRight={isMobile ? "none" : "1px solid"}
+                borderColor="gray.300"
+                bg="gray.50"
                 p={2}
                 overflowY="auto"
+                display="flex"
+                flexDirection="column"
               >
+                <Box px={2} mb={3} flexShrink={0}>
+                  <Input
+                    placeholder="Tìm kiếm người dùng..."
+                    size="sm"
+                    borderRadius="lg"
+                    bg="white"
+                    value={chatSearch}
+                    onChange={(e) => setChatSearch(e.target.value)}
+                    mb={2}
+                  />
+                  <HStack 
+                    gap={2} 
+                    overflowX="auto" 
+                    pb={1}
+                    css={{
+                      "&::-webkit-scrollbar": { display: "none" },
+                      "-ms-overflow-style": "none",
+                      "scrollbar-width": "none",
+                    }}
+                  >
+                    <Button
+                      size="2xs"
+                      borderRadius="full"
+                      flexShrink={0}
+                      variant={chatFilter === "all" ? "solid" : "outline"}
+                      colorPalette={chatFilter === "all" ? "blue" : "gray"}
+                      onClick={() => setChatFilter("all")}
+                      px={3}
+                    >
+                      Tất cả
+                    </Button>
+                    <Button
+                      size="2xs"
+                      borderRadius="full"
+                      flexShrink={0}
+                      variant={chatFilter === "unread" ? "solid" : "outline"}
+                      colorPalette={chatFilter === "unread" ? "blue" : "gray"}
+                      onClick={() => setChatFilter("unread")}
+                      px={3}
+                    >
+                      Chưa đọc
+                    </Button>
+                    <Button
+                      size="2xs"
+                      borderRadius="full"
+                      flexShrink={0}
+                      variant={chatFilter === "read" ? "solid" : "outline"}
+                      colorPalette={chatFilter === "read" ? "blue" : "gray"}
+                      onClick={() => setChatFilter("read")}
+                      px={3}
+                    >
+                      Đã đọc
+                    </Button>
+                  </HStack>
+                </Box>
 
 
                 {conversationsQuery.isLoading ? (
@@ -784,7 +874,7 @@ export function ChatFloatingWidget() {
                   </Text>
                 ) : (
                   <VStack align="stretch" gap={1}>
-                    {(conversationsQuery.data ?? []).map((conversation) => {
+                    {filteredConversations.map((conversation) => {
                       return (
                         <ConversationItem
                           key={conversation.id}
@@ -797,9 +887,9 @@ export function ChatFloatingWidget() {
                         />
                       )
                     })}
-                    {conversationsQuery.data?.length === 0 && (
+                    {filteredConversations.length === 0 && (
                       <Text px={2} py={4} fontSize="sm" color="gray.500">
-                        Chưa có cuộc trò chuyện.
+                        {chatSearch ? "Không tìm thấy kết quả." : "Chưa có cuộc trò chuyện."}
                       </Text>
                     )}
                   </VStack>
@@ -829,92 +919,130 @@ export function ChatFloatingWidget() {
                     </Text>
                   </Flex>
                 ) : messages.length > 0 ? (
-                  messages.map((message) => {
+                  messages.map((message, index) => {
                     const mine = message.sender_id === currentUserId
                     const showContextMenu = contextMenuMessageId === message.id
+
+                    const prevMessage = index > 0 ? messages[index - 1] : null
+                    const currentMessageTime = new Date(message.created_at)
+                    const prevMessageTime = prevMessage ? new Date(prevMessage.created_at) : null
+
+                    const sameSender = prevMessage && prevMessage.sender_id === message.sender_id
+                    const showTimeHeader = !prevMessageTime || 
+                      (currentMessageTime.getTime() - prevMessageTime.getTime() > 15 * 60 * 1000)
+
+                    const timeStr = currentMessageTime.toLocaleTimeString("vi-VN", { 
+                      hour: "2-digit", 
+                      minute: "2-digit",
+                      hour12: false 
+                    })
+
                     return (
-                      <Flex
-                        key={message.id}
-                        justify={mine ? "flex-end" : "flex-start"}
-                        onContextMenu={(event) =>
-                          handleOpenMessageMenu(event, message.id)
-                        }
+                      <VStack 
+                        key={message.id} 
+                        align="stretch" 
+                        gap={0} 
+                        w="full"
+                        mt={showTimeHeader ? 2 : sameSender ? 0.5 : 2}
                       >
+                        {showTimeHeader && (
+                          <Flex justify="center" my={3} position="relative">
+                            <Box h="1px" bg="gray.100" position="absolute" top="50%" left={4} right={4} zIndex={0} />
+                            <Text 
+                              fontSize="2xs" 
+                              color="gray.400" 
+                              bg={mine ? "transparent" : "gray.50"} 
+                              px={3} 
+                              zIndex={1}
+                              fontWeight="600"
+                            >
+                              {timeStr}
+                            </Text>
+                          </Flex>
+                        )}
+                        <Flex
+                          justify={mine ? "flex-end" : "flex-start"}
+                          onContextMenu={(event) =>
+                            handleOpenMessageMenu(event, message.id)
+                          }
+                        >
                         {message.message_type === "listing_share" &&
                         message.listing ? (
-                          <VStack align={mine ? "end" : "start"} gap={1} position="relative">
-                            <ListingSharedCard
-                              listing={message.listing}
-                              onOpen={() => {
-                                navigate({
-                                  to: "/listings/$id",
-                                  params: { id: message.listing!.id },
-                                })
-                              }}
-                            />
-                            {showContextMenu && (
-                              <IconButton
-                                aria-label="Xóa tin nhắn"
-                                size="xs"
-                                variant="solid"
-                                colorPalette="red"
-                                position="absolute"
-                                top={1}
-                                right={1}
-                                onMouseDown={(event) => event.stopPropagation()}
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  handleDeleteMessage(message.id)
-                                }}
-                              >
-                                <FiTrash2 />
-                              </IconButton>
-                            )}
-                            <Text fontSize="xs" color="gray.500">
-                              {new Date(message.created_at).toLocaleString("vi-VN")}
-                            </Text>
-                          </VStack>
-                        ) : (
-                          <Box
-                            maxW="85%"
-                            px={3}
-                            py={2}
-                            borderRadius="lg"
-                            bg={mine ? "blue.600" : "gray.100"}
-                            color={mine ? "white" : "gray.800"}
-                            position="relative"
+                          <Tooltip 
+                            content={new Date(message.created_at).toLocaleString("vi-VN")} 
+                            positioning={{ placement: mine ? "left" : "right" }}
                           >
-                            {showContextMenu && (
-                              <IconButton
-                                aria-label="Xóa tin nhắn"
-                                size="xs"
-                                variant="solid"
-                                colorPalette="red"
-                                position="absolute"
-                                top={1}
-                                right={1}
-                                onMouseDown={(event) => event.stopPropagation()}
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  handleDeleteMessage(message.id)
+                            <VStack align={mine ? "end" : "start"} gap={1} position="relative">
+                              <ListingSharedCard
+                                listing={message.listing}
+                                onOpen={() => {
+                                  navigate({
+                                    to: "/listings/$id",
+                                    params: { id: message.listing!.id },
+                                  })
                                 }}
-                              >
-                                <FiTrash2 />
-                              </IconButton>
-                            )}
-                            <Text fontSize="sm" whiteSpace="pre-wrap" pr={7}>
-                              {message.content ?? ""}
-                            </Text>
-                            <Text
-                              fontSize="xs"
-                              mt={1}
-                              color={mine ? "whiteAlpha.800" : "gray.500"}
+                              />
+                              {showContextMenu && (
+                                <IconButton
+                                  aria-label="Xóa tin nhắn"
+                                  size="xs"
+                                  variant="solid"
+                                  colorPalette="red"
+                                  position="absolute"
+                                  top={1}
+                                  right={1}
+                                  onMouseDown={(event) => event.stopPropagation()}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    handleDeleteMessage(message.id)
+                                  }}
+                                >
+                                  <FiTrash2 />
+                                </IconButton>
+                              )}
+                              <Box />
+                            </VStack>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip 
+                            content={new Date(message.created_at).toLocaleString("vi-VN")} 
+                            positioning={{ placement: mine ? "left" : "right" }}
+                          >
+                            <Box
+                              maxW="85%"
+                              px={3}
+                              py={2}
+                              borderRadius="lg"
+                              bg={mine ? "blue.600" : "gray.100"}
+                              color={mine ? "white" : "gray.800"}
+                              position="relative"
                             >
-                              {new Date(message.created_at).toLocaleString("vi-VN")}
-                            </Text>
-                          </Box>
+                              {showContextMenu && (
+                                <IconButton
+                                  aria-label="Xóa tin nhắn"
+                                  size="xs"
+                                  variant="solid"
+                                  colorPalette="red"
+                                  position="absolute"
+                                  top={1}
+                                  right={1}
+                                  onMouseDown={(event) => event.stopPropagation()}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    handleDeleteMessage(message.id)
+                                  }}
+                                >
+                                  <FiTrash2 />
+                                </IconButton>
+                              )}
+                              <Text fontSize="sm" whiteSpace="pre-wrap" pr={showContextMenu ? 7 : 0}>
+                                {message.content ?? ""}
+                              </Text>
+                            </Box>
+                          </Tooltip>
                         )}
                       </Flex>
+                    </VStack>
                     )
                   })
                 ) : (
@@ -953,7 +1081,51 @@ export function ChatFloatingWidget() {
             )}
           </Flex>
         </Box>
-      )}
+    )}
+
+    <DialogRoot 
+      open={isDeleteDialogOpen} 
+      onOpenChange={(e) => setIsDeleteDialogOpen(e.open)}
+      placement="center"
+      role="alertdialog"
+    >
+      <DialogContent borderRadius="2xl" p={4}>
+        <DialogHeader textAlign="center">
+          <Box color="red.500" mb={4} display="flex" justifyContent="center">
+            <FiAlertCircle size={48} />
+          </Box>
+          <DialogTitle fontSize="xl" fontWeight="bold">Xác nhận xóa</DialogTitle>
+        </DialogHeader>
+        <DialogBody textAlign="center">
+          <Text mb={2}>
+            Xóa tin nhắn với <strong>{selectedPeerDisplayName || "người này"}</strong>?
+          </Text>
+          <Text fontSize="sm" color="gray.500">
+            Thao tác không thể hoàn tác. Lưu ý tin nhắn chỉ xóa ở phía bạn. Đối tác vẫn nhìn thấy lịch sử trò chuyện.
+          </Text>
+        </DialogBody>
+        <DialogFooter gap={3} justifyContent="center" mt={4}>
+          <DialogActionTrigger asChild>
+            <Button variant="outline" size="md" borderRadius="xl" px={8} color="gray.600">Hủy bỏ</Button>
+          </DialogActionTrigger>
+          <Button 
+            colorPalette="red" 
+            size="md"
+            borderRadius="xl"
+            px={8}
+            onClick={() => {
+              if (selectedConversationId) {
+                deleteConversationMutation.mutate(selectedConversationId)
+              }
+              setIsDeleteDialogOpen(false)
+            }}
+          >
+            Xóa ngay
+          </Button>
+        </DialogFooter>
+        <DialogCloseTrigger />
+      </DialogContent>
+    </DialogRoot>
     </>
   )
 }

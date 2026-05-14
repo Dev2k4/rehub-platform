@@ -137,17 +137,8 @@ export function WalletPage() {
           px={4}
         >
           <FiArrowLeft style={{ marginRight: "0.5rem" }} />
-          Quay lại đơn hàng
+          Quay lại
         </Button>
-
-        <Box mb={8}>
-          <Heading size="xl" mb={2} color="gray.900">
-            Ví demo
-          </Heading>
-          <Text color="gray.500">
-            Dùng để test giao dịch thanh toán và Escrow, không phải tiền thật.
-          </Text>
-        </Box>
 
         <Box
           borderRadius="2xl"
@@ -225,7 +216,7 @@ export function WalletPage() {
                   }}
                   loading={topupMutation.isPending}
                 >
-                  Nạp ví demo
+                  Nạp Ví Rehub
                 </Button>
               </HStack>
             </Box>

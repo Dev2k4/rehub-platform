@@ -22,6 +22,8 @@ import {
   getListingImageUrl,
 } from "@/features/home/utils/marketplace.utils"
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
+import { openChatWidget } from "@/features/chat/chat-widget.events"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
 
 type ListingGridProps = {
   listings: (ListingWithImages & { isPendingOverlay?: boolean })[]
@@ -116,6 +118,7 @@ function ListingGridItem({
   currentUserProvince,
 }: ListingGridItemProps) {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuthUser()
   const isSellerOnline = useIsUserOnline(listing.seller_id)
   const firstImageUrl = getListingImageUrl(listing.images?.[0]?.image_url)
   const badge = CONDITION_BADGE[listing.condition_grade] ?? CONDITION_BADGE.poor
@@ -141,7 +144,11 @@ function ListingGridItem({
 
   const handleChatClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigate({ to: "/chat" })
+    if (!isAuthenticated) {
+      navigate({ to: "/auth/login" })
+      return
+    }
+    openChatWidget(listing.seller_id, listing.id)
   }
 
   return (

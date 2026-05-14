@@ -165,7 +165,7 @@ export function UserDropdownMenu({ user, onLogout }: UserDropdownMenuProps) {
                     cursor="pointer"
                   >
                     <FiCreditCard />
-                    <span>Ví demo</span>
+                    <span>Ví Rehub</span>
                   </Flex>
                 </Link>
               </Menu.Item>

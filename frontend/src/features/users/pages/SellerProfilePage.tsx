@@ -12,6 +12,7 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate, useParams } from "@tanstack/react-router"
 import {
@@ -22,7 +23,6 @@ import {
   FiFileText,
   FiMapPin,
   FiMessageCircle,
-  FiPhone,
   FiShield,
   FiShoppingBag,
   FiStar,
@@ -30,8 +30,11 @@ import {
   FiZap,
 } from "react-icons/fi"
 import type { CategoryTree } from "@/client"
+import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { openChatWidget } from "@/features/chat/chat-widget.events"
 import { getCategoriesTree } from "@/features/home/api/marketplace.api"
 import { flattenCategories } from "@/features/home/utils/marketplace.utils"
+import { DeliveryRouteMap } from "@/features/orders/components/DeliveryRouteMap"
 import { ReviewsList } from "@/features/reviews/components/ReviewsList"
 import { useUserReviews } from "@/features/reviews/hooks/useReviews"
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider"
@@ -40,11 +43,12 @@ import {
   getUserPublicProfile,
 } from "@/features/users/api/users.api"
 import { ListingCard } from "@/features/users/components/ListingCard"
-import { DeliveryRouteMap } from "@/features/orders/components/DeliveryRouteMap"
 
 export function SellerProfilePage() {
   const navigate = useNavigate()
   const { id } = useParams({ from: "/sellers/$id" })
+  const { isAuthenticated } = useAuthUser()
+  const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "24d" | "older">("all")
 
   const profileQuery = useQuery({
     queryKey: ["seller-profile", id],
@@ -129,10 +133,29 @@ export function SellerProfilePage() {
     )
   }
 
-  const listings = listingsQuery.data?.items ?? []
+  const listings = useMemo(() => {
+    const raw = listingsQuery.data?.items ?? []
+    if (timeFilter === "all") return raw
+    const now = new Date()
+    if (timeFilter === "older") {
+      const threshold = new Date(now.getTime() - 24 * 24 * 60 * 60 * 1000)
+      return raw.filter((item) => new Date(item.created_at) < threshold)
+    }
+    const days = timeFilter === "7d" ? 7 : 24
+    const threshold = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+    return raw.filter((item) => new Date(item.created_at) >= threshold)
+  }, [listingsQuery.data?.items, timeFilter])
 
   const locationParts = [profile.district, profile.province].filter(Boolean)
   const location = locationParts.length > 0 ? locationParts.join(", ") : null
+
+  const handleOpenChat = () => {
+    if (!isAuthenticated) {
+      navigate({ to: "/auth/login" })
+      return
+    }
+    openChatWidget(profile.id)
+  }
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -161,12 +184,12 @@ export function SellerProfilePage() {
         >
           {/* Cover — gradient */}
           <Box
-            h={32}
+            h={36}
             position="relative"
             overflow="hidden"
             style={{
               background:
-                "linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #0891b2 100%)",
+                "linear-gradient(135deg, #02457A 0%, #018ABE 50%, #97CADB 100%)",
             }}
           >
             <Box
@@ -176,7 +199,7 @@ export function SellerProfilePage() {
               w="180px"
               h="180px"
               borderRadius="full"
-              bg="whiteAlpha.100"
+              bg="whiteAlpha.200"
               filter="blur(30px)"
             />
             <Box
@@ -186,213 +209,222 @@ export function SellerProfilePage() {
               w="100px"
               h="100px"
               borderRadius="full"
-              bg="whiteAlpha.50"
+              bg="whiteAlpha.100"
               filter="blur(20px)"
             />
           </Box>
 
           {/* Profile Header */}
-          <Box px={8} mt={-11} pb={6} position="relative" zIndex={10}>
-            <Flex align="flex-end" gap={6} mb={4}>
-              {/* Avatar */}
-              <Box
-                w="88px"
-                h="88px"
-                bg="white"
-                border="4px solid"
-                borderColor="white"
-                borderRadius="full"
-                boxShadow="lg"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                bgColor="gray.100"
-                flexShrink={0}
+          <Box px={{ base: 4, sm: 8 }} pt={0} pb={6} position="relative" zIndex={10}>
+            <Flex 
+              direction={{ base: "column", lg: "row" }} 
+              align={{ base: "center", lg: "flex-start" }} 
+              justify="space-between"
+              gap={6}
+            >
+              {/* Left Side: Avatar + Info */}
+              <Flex 
+                direction={{ base: "column", sm: "row" }} 
+                align={{ base: "center", sm: "center" }} 
+                gap={5}
+                flex={1}
               >
-                {profile.avatar_url ? (
-                  <Image
-                    src={profile.avatar_url}
-                    alt={profile.full_name}
-                    w="full"
-                    h="full"
-                    objectFit="cover"
-                    borderRadius="full"
-                  />
-                ) : (
-                  <FiUser size={36} color="#9ca3af" />
-                )}
-              </Box>
+                {/* Avatar overlays cover cleanly */}
+                <Box
+                  mt={{ base: "-44px", sm: "-50px" }}
+                  w="100px"
+                  h="100px"
+                  bg="white"
+                  border="4px solid"
+                  borderColor="white"
+                  borderRadius="full"
+                  boxShadow="md"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  bgColor="gray.100"
+                  flexShrink={0}
+                  position="relative"
+                  zIndex={2}
+                >
+                  {profile.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt={profile.full_name}
+                      w="full"
+                      h="full"
+                      objectFit="cover"
+                      borderRadius="full"
+                    />
+                  ) : (
+                    <FiUser size={40} color="#9ca3af" />
+                  )}
+                </Box>
 
-              {/* Name & Trust & Seller Badges */}
-              <Box pb={1} flex={1}>
-                <HStack gap={3} align="center" flexWrap="wrap" mb={1}>
-                  <Heading as="h1" size="lg" color="gray.900">
-                    {profile.full_name}
-                  </Heading>
-                  <Badge
-                    colorPalette={isSellerOnline ? "green" : "gray"}
-                    variant="subtle"
-                    px={2}
-                    py={0.5}
-                    borderRadius="full"
-                  >
-                    {isSellerOnline ? (
-                      <>
-                        <Box
-                          as="span"
-                          display="inline-block"
-                          w={2}
-                          h={2}
-                          bg="green.500"
-                          borderRadius="full"
-                          mr={1.5}
-                        />{" "}
-                        Online
-                      </>
-                    ) : (
-                      <>
-                        <Box
-                          as="span"
-                          display="inline-block"
-                          w={2}
-                          h={2}
-                          bg="gray.400"
-                          borderRadius="full"
-                          mr={1.5}
-                        />{" "}
-                        Offline
-                      </>
+                {/* Name & Badges & Action sit entirely on clean white background */}
+                <Box pt={{ base: 0, sm: 2 }} textAlign={{ base: "center", sm: "left" }}>
+                  <HStack gap={2} align="center" justify={{ base: "center", sm: "flex-start" }} flexWrap="wrap" mb={1.5}>
+                    <Heading as="h1" size="lg" color="gray.900" fontWeight="bold">
+                      {profile.full_name}
+                    </Heading>
+                    <Badge
+                      colorPalette={isSellerOnline ? "green" : "gray"}
+                      variant="subtle"
+                      px={2}
+                      py={0.5}
+                      borderRadius="full"
+                    >
+                      {isSellerOnline ? (
+                        <>
+                          <Box
+                            as="span"
+                            display="inline-block"
+                            w={2}
+                            h={2}
+                            bg="green.500"
+                            borderRadius="full"
+                            mr={1.5}
+                          />{" "}
+                          Online
+                        </>
+                      ) : (
+                        <>
+                          <Box
+                            as="span"
+                            display="inline-block"
+                            w={2}
+                            h={2}
+                            bg="gray.400"
+                            borderRadius="full"
+                            mr={1.5}
+                          />{" "}
+                          Offline
+                        </>
+                      )}
+                    </Badge>
+                    {profile.trust_score >= 60 && (
+                      <Badge
+                        colorPalette="blue"
+                        variant="subtle"
+                        px={2}
+                        py={0.5}
+                        borderRadius="full"
+                        fontSize="xs"
+                      >
+                        <FiShield
+                          size={12}
+                          style={{ display: "inline", marginRight: "4px" }}
+                        />
+                        Đã xác minh
+                      </Badge>
                     )}
-                  </Badge>
-                  {profile.trust_score >= 60 && (
-                    <Badge
-                      colorPalette="blue"
-                      variant="subtle"
-                      px={2}
-                      py={0.5}
-                      borderRadius="full"
-                      fontSize="xs"
-                    >
-                      <FiShield
-                        size={12}
-                        style={{ display: "inline", marginRight: "4px" }}
-                      />
-                      Đã xác minh
-                    </Badge>
-                  )}
-                  {profile.trust_score >= 80 && (
-                    <Badge
-                      colorPalette="yellow"
-                      variant="subtle"
-                      px={2}
-                      py={0.5}
-                      borderRadius="full"
-                      fontSize="xs"
-                    >
-                      <FiAward
-                        size={12}
-                        style={{ display: "inline", marginRight: "4px" }}
-                      />
-                      Top Seller
-                    </Badge>
-                  )}
-                  {profile.completed_orders >= 10 && (
-                    <Badge
-                      colorPalette="purple"
-                      variant="subtle"
-                      px={2}
-                      py={0.5}
-                      borderRadius="full"
-                      fontSize="xs"
-                    >
-                      <FiZap
-                        size={12}
-                        style={{ display: "inline", marginRight: "4px" }}
-                      />
-                      Phản hồi nhanh
-                    </Badge>
-                  )}
-                </HStack>
-                {location && (
-                  <HStack gap={1} mt={1}>
-                    <Box as={FiMapPin} w={4} h={4} color="gray.400" />
-                    <Text fontSize="sm" color="gray.500">
-                      {location}
-                    </Text>
+                    {profile.trust_score >= 80 && (
+                      <Badge
+                        colorPalette="yellow"
+                        variant="subtle"
+                        px={2}
+                        py={0.5}
+                        borderRadius="full"
+                        fontSize="xs"
+                      >
+                        <FiAward
+                          size={12}
+                          style={{ display: "inline", marginRight: "4px" }}
+                        />
+                        Top Seller
+                      </Badge>
+                    )}
+                    {profile.completed_orders >= 10 && (
+                      <Badge
+                        colorPalette="purple"
+                        variant="subtle"
+                        px={2}
+                        py={0.5}
+                        borderRadius="full"
+                        fontSize="xs"
+                      >
+                        <FiZap
+                          size={12}
+                          style={{ display: "inline", marginRight: "4px" }}
+                        />
+                        Phản hồi nhanh
+                      </Badge>
+                    )}
                   </HStack>
-                )}
+                  {location && (
+                    <HStack gap={1} justify={{ base: "center", sm: "flex-start" }}>
+                      <Box as={FiMapPin} w={4} h={4} color="gray.400" />
+                      <Text fontSize="sm" color="gray.500">
+                        {location}
+                      </Text>
+                    </HStack>
+                  )}
 
-                {/* Action Buttons */}
-                <HStack gap={3} mt={6} flexWrap="wrap">
-                  <Button
-                    colorPalette="blue"
-                    borderRadius="xl"
-                    px={6}
-                    
-                    className="btn-shine"
-                    style={{ position: "relative", overflow: "hidden" }}
-                    onClick={() => navigate({ to: "/chat" })}
-                  >
-                    <FiMessageCircle size={16} style={{ marginRight: "6px" }} />
-                    Nhắn tin ngay
-                  </Button>
-                  <Button
-                    variant="outline"
-                    colorPalette="gray"
-                    borderRadius="xl"
-                    px={5}
-                  >
-                    <FiPhone size={16} style={{ marginRight: "6px" }} />
-                    Xem SĐT
-                  </Button>
-                </HStack>
-              </Box>
+                  {/* Chat Action Button */}
+                  <Box mt={3}>
+                    <Button
+                      colorPalette="blue"
+                      borderRadius="xl"
+                      px={6}
+                      size="sm"
+                      className="btn-shine"
+                      style={{ 
+                        background: "linear-gradient(135deg, #02457A 0%, #018ABE 100%)",
+                        color: "white",
+                        position: "relative", 
+                        overflow: "hidden",
+                        fontWeight: "bold",
+                      }}
+                      boxShadow="0 4px 12px rgba(2,69,122,0.25)"
+                      _hover={{ transform: "translateY(-1px)", opacity: 0.95 }}
+                      transition="all 0.2s"
+                      onClick={handleOpenChat}
+                    >
+                      <FiMessageCircle size={16} style={{ marginRight: "6px" }} />
+                      Nhắn tin ngay
+                    </Button>
+                  </Box>
+                </Box>
+              </Flex>
 
-              {/* Map Widget Column */}
+              {/* Right Side: Map Widget Column in compact mode */}
               {profile.province && (
                 <Box 
-                  display={{ base: "none", lg: "block" }} 
-                  w="350px" 
-                  h="160px" 
+                  mt={{ base: 4, lg: 3 }}
+                  w={{ base: "full", sm: "320px" }} 
+                  h="140px" 
                   borderRadius="xl" 
                   overflow="hidden" 
                   border="1px" 
                   borderColor="gray.200"
                   flexShrink={0}
                   boxShadow="sm"
+                  alignSelf={{ base: "center", lg: "flex-start" }}
                 >
-                  <Box position="relative" w="full" h="full">
-                    <DeliveryRouteMap 
-                      sellerProvince={profile.province}
-                      sellerDistrict={profile.district || undefined}
-                      buyerProvince={profile.province}
-                      buyerDistrict={profile.district || undefined}
-                    />
-                    {/* Overlay to hide the route legend and info box since we only want to show the location marker */}
-                    <Box 
-                      position="absolute" 
-                      top={0} left={0} right={0} bottom={0} 
-                      pointerEvents="none" 
-                      boxShadow="inset 0 0 20px rgba(0,0,0,0.05)"
-                      zIndex={1001}
-                    />
-                  </Box>
+                  <DeliveryRouteMap 
+                    sellerProvince={profile.province}
+                    sellerDistrict={profile.district || undefined}
+                    buyerProvince={profile.province}
+                    buyerDistrict={profile.district || undefined}
+                    compact={true}
+                  />
                 </Box>
               )}
             </Flex>
 
             {/* Safe Trading Trust Box */}
-            <div className="trust-box" style={{ marginTop: "1rem" }}>
-              <div className="trust-box-icon">
-                <FiShield size={20} />
-              </div>
-            </div>
+           
 
             {/* Stat Cards */}
             <SimpleGrid columns={{ base: 2, md: 4 }} gap={3} mt={4}>
-              <div
+              <Box
                 className="stat-card animate-fadeinup delay-0"
-                style={{ padding: "0.85rem" }}
+                p="0.85rem"
+                border="1px solid"
+                borderColor="#018ABE"
+                borderRadius="xl"
+                transition="all 0.2s"
+                _hover={{ borderColor: "#02457A", boxShadow: "sm" }}
               >
                 <div
                   className="stat-card-icon"
@@ -408,10 +440,15 @@ export function SellerProfilePage() {
                   {profile.completed_orders}
                 </div>
                 <div className="stat-card-label">Đơn hoàn thành</div>
-              </div>
-              <div
+              </Box>
+              <Box
                 className="stat-card animate-fadeinup delay-1"
-                style={{ padding: "0.85rem" }}
+                p="0.85rem"
+                border="1px solid"
+                borderColor="#018ABE"
+                borderRadius="xl"
+                transition="all 0.2s"
+                _hover={{ borderColor: "#02457A", boxShadow: "sm" }}
               >
                 <div
                   className="stat-card-icon"
@@ -432,10 +469,15 @@ export function SellerProfilePage() {
                 <div className="stat-card-label">
                   Đánh giá ({profile.rating_count})
                 </div>
-              </div>
-              <div
+              </Box>
+              <Box
                 className="stat-card animate-fadeinup delay-2"
-                style={{ padding: "0.85rem" }}
+                p="0.85rem"
+                border="1px solid"
+                borderColor="#018ABE"
+                borderRadius="xl"
+                transition="all 0.2s"
+                _hover={{ borderColor: "#02457A", boxShadow: "sm" }}
               >
                 <div
                   className="stat-card-icon"
@@ -454,10 +496,15 @@ export function SellerProfilePage() {
                   {profile.trust_score}%
                 </div>
                 <div className="stat-card-label">Độ tin cậy</div>
-              </div>
-              <div
+              </Box>
+              <Box
                 className="stat-card animate-fadeinup delay-3"
-                style={{ padding: "0.85rem" }}
+                p="0.85rem"
+                border="1px solid"
+                borderColor="#018ABE"
+                borderRadius="xl"
+                transition="all 0.2s"
+                _hover={{ borderColor: "#02457A", boxShadow: "sm" }}
               >
                 <div
                   className="stat-card-icon"
@@ -483,7 +530,7 @@ export function SellerProfilePage() {
                   })}
                 </div>
                 <div className="stat-card-label">Thành viên từ</div>
-              </div>
+              </Box>
             </SimpleGrid>
           </Box>
 
@@ -521,9 +568,53 @@ export function SellerProfilePage() {
                 Sản phẩm đang bán
               </Heading>
             </HStack>
-            <Text fontSize="sm" color="gray.500">
-              {listingsQuery.data?.total ?? 0} sản phẩm
-            </Text>
+            <HStack gap={3}>
+              <HStack gap={1} bg="white" p={1} borderRadius="lg" border="1px solid" borderColor="gray.200">
+                <Button
+                  size="2xs"
+                  variant={timeFilter === "all" ? "solid" : "ghost"}
+                  colorPalette={timeFilter === "all" ? "blue" : "gray"}
+                  onClick={() => setTimeFilter("all")}
+                  borderRadius="md"
+                  px={3}
+                >
+                  Tất cả
+                </Button>
+                <Button
+                  size="2xs"
+                  variant={timeFilter === "7d" ? "solid" : "ghost"}
+                  colorPalette={timeFilter === "7d" ? "blue" : "gray"}
+                  onClick={() => setTimeFilter("7d")}
+                  borderRadius="md"
+                  px={3}
+                >
+                  7 ngày
+                </Button>
+                <Button
+                  size="2xs"
+                  variant={timeFilter === "24d" ? "solid" : "ghost"}
+                  colorPalette={timeFilter === "24d" ? "blue" : "gray"}
+                  onClick={() => setTimeFilter("24d")}
+                  borderRadius="md"
+                  px={3}
+                >
+                  24 ngày
+                </Button>
+                <Button
+                  size="2xs"
+                  variant={timeFilter === "older" ? "solid" : "ghost"}
+                  colorPalette={timeFilter === "older" ? "blue" : "gray"}
+                  onClick={() => setTimeFilter("older")}
+                  borderRadius="md"
+                  px={3}
+                >
+                  Cũ hơn
+                </Button>
+              </HStack>
+              <Text fontSize="sm" color="gray.500">
+                {listings.length} / {listingsQuery.data?.total ?? 0} sản phẩm
+              </Text>
+            </HStack>
           </Flex>
 
           {listingsQuery.isLoading ? (
@@ -554,7 +645,7 @@ export function SellerProfilePage() {
             </Box>
           ) : (
             <SimpleGrid columns={{ base: 2, sm: 2, lg: 3, xl: 4 }} gap={3}>
-              {listings.map((listing) => (
+              {listings.map((listing: any) => (
                 <ListingCard
                   key={listing.id}
                   listing={listing}

@@ -1,5 +1,6 @@
-import { CloseButton, Dialog, Portal } from "@chakra-ui/react"
+import { Dialog, Portal } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 import type { ListingRead } from "@/client"
 import { getCategoriesTree } from "@/features/home/api/marketplace.api"
 import {
@@ -25,6 +26,14 @@ export function ListingModal({
   onSubmit,
   isLoading = false,
 }: ListingModalProps) {
+  const [showAiPanel, setShowAiPanel] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) {
+      setShowAiPanel(false)
+    }
+  }, [isOpen])
+
   const categoriesQuery = useQuery({
     queryKey: ["categories", "tree"],
     queryFn: () => getCategoriesTree(),
@@ -54,54 +63,43 @@ export function ListingModal({
         <Dialog.Backdrop bg="blackAlpha.600" />
         <Dialog.Positioner>
           <Dialog.Content
-            maxW="2xl"
+            maxW={showAiPanel ? "1080px" : "2xl"}
+            w="full"
             maxH="90vh"
-            overflow="hidden"
+            bg="transparent"
+            boxShadow="none"
+            borderRadius="none"
+            overflow="visible"
             display="flex"
-            flexDirection="column"
-            bg="white"
-            borderRadius="2xl"
-            boxShadow="0 20px 60px rgba(0,0,0,0.12)"
+            flexDirection={{ base: "column", lg: "row" }}
+            alignItems="stretch"
+            justifyContent="center"
+            gap={6}
+            transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
           >
-            <Dialog.Header
-              p={6}
-              pb={4}
-              borderBottomWidth="1px"
-              borderColor="gray.100"
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              flexShrink={0}
-            >
-              <Dialog.Title fontSize="xl" fontWeight="bold" color="gray.900">
-                {editingListing ? "Sửa tin đăng" : "Đăng tin mới"}
-              </Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <CloseButton size="sm" onClick={handleCancel} />
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body p={6} pt={5} overflowY="auto" flex="1">
-              <ListingForm
-                initialData={
-                  editingListing
-                    ? {
-                        title: editingListing.title,
-                        description: editingListing.description || "",
-                        price: parseInt(editingListing.price, 10),
-                        category_id: editingListing.category_id,
-                        condition_grade: editingListing.condition_grade,
-                        is_negotiable: editingListing.is_negotiable,
-                      }
-                    : undefined
-                }
-                existingImages={listingDetailsQuery.data?.images ?? []}
-                onDeleteExistingImage={onDeleteExistingImage}
-                categories={categoryTree}
-                onSubmit={handleFormSubmit}
-                onCancel={handleCancel}
-                isLoading={isLoading}
-              />
-            </Dialog.Body>
+            <ListingForm
+              initialData={
+                editingListing
+                  ? {
+                      title: editingListing.title,
+                      description: editingListing.description || "",
+                      price: parseInt(editingListing.price, 10),
+                      category_id: editingListing.category_id,
+                      condition_grade: editingListing.condition_grade,
+                      is_negotiable: editingListing.is_negotiable,
+                    }
+                  : undefined
+              }
+              existingImages={listingDetailsQuery.data?.images ?? []}
+              onDeleteExistingImage={onDeleteExistingImage}
+              categories={categoryTree}
+              onSubmit={handleFormSubmit}
+              onCancel={handleCancel}
+              isLoading={isLoading}
+              title={editingListing ? "Sửa tin đăng" : "Đăng tin mới"}
+              showAiPanel={showAiPanel}
+              setShowAiPanel={setShowAiPanel}
+            />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

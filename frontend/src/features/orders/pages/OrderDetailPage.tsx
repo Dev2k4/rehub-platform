@@ -12,10 +12,11 @@ import {
   Stack,
 } from "@chakra-ui/react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { FiArrowLeft, FiCreditCard, FiShield, FiMap } from "react-icons/fi";
+import { UsersService } from "@/client";
 import { Button } from "@/components/ui/button";
 import { toaster } from "@/components/ui/toaster";
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser";
@@ -45,6 +46,8 @@ import { useOrderReviews } from "@/features/reviews/hooks/useReviews";
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 import { getUserPublicProfile } from "@/features/users/api/users.api";
 import { DeliveryRouteMap } from "@/features/orders/components/DeliveryRouteMap";
+import { SearchableSelect } from "@/features/shared/components/SearchableSelect";
+import { useVnAddress } from "@/features/shared/hooks/useVnAddress";
 
 function statusMeta(status: string): { label: string; color: string } {
   switch (status) {
@@ -123,7 +126,29 @@ export function OrderDetailPage() {
   const [sellerProofUrl, setSellerProofUrl] = useState("");
   const [buyerProofUrl, setBuyerProofUrl] = useState("");
   const [showMap, setShowMap] = useState(false);
-  
+
+  const [buyerProvinceInput, setBuyerProvinceInput] = useState("");
+  const [buyerDistrictInput, setBuyerDistrictInput] = useState("");
+  const { provinceOptions, wardOptions, provincesLoading, wardsLoading } =
+    useVnAddress(buyerProvinceInput);
+
+  const queryClient = useQueryClient();
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: { province: string; district: string }) =>
+      UsersService.updateMyProfileApiV1UsersMePut({ requestBody: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      toaster.create({ title: "Cập nhật địa chỉ thành công!", type: "success" });
+    },
+    onError: (err: any) => {
+      toaster.create({
+        title: err?.message || "Cập nhật địa chỉ thất bại",
+        type: "error",
+      });
+    },
+  });
+
   // Explicitly fetch both profiles for addresses
   const buyerId = orderQuery.data?.buyer_id;
   const sellerId = orderQuery.data?.seller_id;
@@ -259,7 +284,7 @@ export function OrderDetailPage() {
     isBuyer &&
     !alreadyReviewed;
   const paymentModeLabel = hasEscrow
-    ? "Escrow bảo chứng"
+    ? "Ví Rehub bảo chứng"
     : "Thanh toán trực tiếp";
   const buyerActionHint = (() => {
     if (!isBuyer) {
@@ -267,7 +292,7 @@ export function OrderDetailPage() {
     }
 
     if (hasEscrow && escrow?.status === "awaiting_funding") {
-      return "Bạn cần nạp tiền vào escrow để người bán có thể bắt đầu giao hàng.";
+      return "Bạn cần nạp tiền vào Ví Rehub để người bán có thể bắt đầu giao hàng.";
     }
     if (fulfillment?.status === "pending_seller_start") {
       return "Chờ người bán xác nhận bắt đầu giao hàng.";
@@ -321,7 +346,7 @@ export function OrderDetailPage() {
             borderRadius="xl"
           >
             <FiCreditCard style={{ marginRight: "0.5rem" }} />
-            Xem ví demo
+            Ví Rehub
           </Button>
         </HStack>
 
@@ -489,15 +514,52 @@ export function OrderDetailPage() {
                       <FiMap style={{ marginRight: "0.5rem" }} />
                       {showMap ? "Ẩn bản đồ" : "Xem đường đi giao hàng"}
                     </Button>
-                  ) : (
-                    <Box mt={3} p={2} bg="orange.50" borderRadius="md" border="1px solid" borderColor="orange.100">
-                      <Text fontSize="xs" color="orange.700" textAlign="center">
-                        {!buyerProfile?.province 
-                          ? "Vui lòng nhắc đối tác (người mua) cập nhật địa chỉ để xem lộ trình và giao hàng." 
-                          : "Bạn cần cập nhật địa chỉ trong Hồ sơ để xem lộ trình."}
+                  ) : isBuyer ? (
+                    <Box mt={3} pt={3} borderTop="1px dashed" borderColor="gray.200">
+                      <Text fontSize="xs" color="gray.600" mb={2}>
+                        Vui lòng cập nhật địa chỉ nhận hàng để xem lộ trình và giao hàng:
                       </Text>
+                      <VStack align="stretch" gap={2}>
+                        <HStack gap={2}>
+                          <SearchableSelect
+                            options={provinceOptions}
+                            value={buyerProvinceInput}
+                            onChange={(val) => {
+                              setBuyerProvinceInput(val);
+                              setBuyerDistrictInput("");
+                            }}
+                            placeholder="Tỉnh / TP"
+                            loading={provincesLoading}
+                            compact
+                          />
+                          <SearchableSelect
+                            options={wardOptions}
+                            value={buyerDistrictInput}
+                            onChange={setBuyerDistrictInput}
+                            placeholder="Quận / Huyện"
+                            loading={wardsLoading}
+                            disabled={!buyerProvinceInput}
+                            compact
+                          />
+                        </HStack>
+                        <Button
+                          size="sm"
+                          colorPalette="blue"
+                          borderRadius="lg"
+                          disabled={!buyerProvinceInput || !buyerDistrictInput}
+                          loading={updateProfileMutation.isPending}
+                          onClick={() =>
+                            updateProfileMutation.mutate({
+                              province: buyerProvinceInput,
+                              district: buyerDistrictInput,
+                            })
+                          }
+                        >
+                          Cập nhật địa chỉ
+                        </Button>
+                      </VStack>
                     </Box>
-                  )}
+                  ) : null}
                 </Box>
               </VStack>
 
@@ -564,14 +626,14 @@ export function OrderDetailPage() {
               <HStack mb={4} gap={2}>
                 <FiShield color="#2563EB" size={20} />
                 <Heading size="md" color="blue.900">
-                  {isSeller ? "Tiến độ giao hàng" : "Quy trình Escrow"}
+                  {isSeller ? "Tiến độ giao hàng" : "Thanh toán qua Ví Rehub"}
                 </Heading>
               </HStack>
 
               <VStack align="stretch" gap={0}>
                 <HStack justify="space-between" py={2.5}>
                   <Text color="blue.700" fontSize="sm">
-                    {isSeller ? "Trạng thái giao hàng" : "Trạng thái Escrow"}
+                    {isSeller ? "Trạng thái giao hàng" : "Trạng thái thanh toán"}
                   </Text>
                   <Badge
                     colorPalette="blue"
@@ -600,7 +662,7 @@ export function OrderDetailPage() {
                 )}
                 <HStack justify="space-between" py={2.5}>
                   <Text color="blue.700" fontSize="sm">
-                    {isBuyer ? "Số dư ví demo của bạn" : "Tiền đã được người mua ký quỹ"}
+                    {isBuyer ? "Số dư Ví Rehub của bạn" : "Tiền đã được người mua ký quỹ"}
                   </Text>
                   {isBuyer ? (
                     <Text fontWeight="medium" color="blue.800">
@@ -646,7 +708,7 @@ export function OrderDetailPage() {
                     }}
                     loading={topupMutation.isPending}
                   >
-                    Nạp ví demo {formatCurrencyVnd(String(topupAmountNeeded))}
+                    Nạp Ví Rehub {formatCurrencyVnd(String(topupAmountNeeded))}
                   </Button>
                 )}
 
@@ -659,12 +721,12 @@ export function OrderDetailPage() {
                       try {
                         await fundEscrowMutation.mutateAsync(order.id);
                         toaster.create({
-                          title: "Đã nạp tiền vào Escrow",
+                          title: "Đã thanh toán đảm bảo qua Ví Rehub",
                           type: "success",
                         });
                       } catch (e: any) {
                         toaster.create({
-                          title: e?.message || "Lỗi nạp tiền Escrow",
+                          title: e?.message || "Lỗi thanh toán Ví Rehub",
                           type: "error",
                         });
                       }
@@ -672,7 +734,7 @@ export function OrderDetailPage() {
                     loading={fundEscrowMutation.isPending}
                     disabled={walletAvailable < escrowAmount}
                   >
-                    Nạp tiền Escrow
+                    Thanh toán qua Ví Rehub
                   </Button>
                 )}
 

@@ -416,6 +416,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { Button } from "@/components/ui/button"
 import { toaster } from "@/components/ui/toaster"
 import { CategoryOverlay } from "@/features/home/components/CategoryOverlay"
 import { CategoryQuickAccess } from "@/features/home/components/CategoryQuickAccess"
@@ -439,6 +440,7 @@ type ListingSortBy = "newest" | "price_asc" | "price_desc"
 export function HomeMarketplacePage() {
   const [categoryOverlayOpen, setCategoryOverlayOpen] = useState(false)
   const [isListingModalOpen, setIsListingModalOpen] = useState(false)
+  const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "24d" | "older">("all")
 
   const {
     selectedCategoryId,
@@ -470,9 +472,23 @@ export function HomeMarketplacePage() {
 
   const { user } = useAuthUser()
 
-  const listings = listingsQuery.data?.items ?? []
-  const totalListings = listingsQuery.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalListings / pageSize))
+  const listings = useMemo(() => {
+    const raw = listingsQuery.data?.items ?? []
+    if (timeFilter === "all") return raw
+
+    const now = new Date()
+    if (timeFilter === "older") {
+      const threshold = new Date(now.getTime() - 24 * 24 * 60 * 60 * 1000)
+      return raw.filter((item) => new Date(item.created_at) < threshold)
+    }
+    const days = timeFilter === "7d" ? 7 : 24
+    const threshold = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+
+    return raw.filter((item) => new Date(item.created_at) >= threshold)
+  }, [listingsQuery.data?.items, timeFilter])
+
+  const totalListings = listings.length
+  const totalPages = Math.max(1, Math.ceil((listingsQuery.data?.total ?? 0) / pageSize))
   const isLoading = categoriesQuery.isLoading || listingsQuery.isLoading
 
   const selectedCategoryName = useMemo(() => {
@@ -590,7 +606,7 @@ export function HomeMarketplacePage() {
               borderColor="gray.200"
               boxShadow="sm"
             >
-              <SimpleGrid columns={{ base: 1, md: 3 }} gap="1.25rem">
+              <SimpleGrid columns={{ base: 1, md: 4 }} gap="1.25rem">
                 <Box>
                   <Text
                     fontSize="0.7rem"
@@ -657,6 +673,65 @@ export function HomeMarketplacePage() {
                     />
                   </HStack>
                 </Box>
+
+                <Box>
+                  <Text
+                    fontSize="0.7rem"
+                    fontWeight="800"
+                    color="gray.500"
+                    mb="0.5rem"
+                    textTransform="uppercase"
+                  >
+                    Thời gian
+                  </Text>
+                  <HStack gap="0.4rem">
+                    <Button
+                      size="xs"
+                      variant={timeFilter === "all" ? "solid" : "outline"}
+                      colorPalette={timeFilter === "all" ? "blue" : "gray"}
+                      onClick={() => setTimeFilter("all")}
+                      borderRadius="0.6rem"
+                      flex={1}
+                      fontSize="2xs"
+                    >
+                      Tất cả
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant={timeFilter === "7d" ? "solid" : "outline"}
+                      colorPalette={timeFilter === "7d" ? "blue" : "gray"}
+                      onClick={() => setTimeFilter("7d")}
+                      borderRadius="0.6rem"
+                      flex={1}
+                      fontSize="2xs"
+                    >
+                      7 ngày
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant={timeFilter === "24d" ? "solid" : "outline"}
+                      colorPalette={timeFilter === "24d" ? "blue" : "gray"}
+                      onClick={() => setTimeFilter("24d")}
+                      borderRadius="0.6rem"
+                      flex={1}
+                      fontSize="2xs"
+                    >
+                      24 ngày
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant={timeFilter === "older" ? "solid" : "outline"}
+                      colorPalette={timeFilter === "older" ? "blue" : "gray"}
+                      onClick={() => setTimeFilter("older")}
+                      borderRadius="0.6rem"
+                      flex={1}
+                      fontSize="2xs"
+                    >
+                      Cũ hơn
+                    </Button>
+                  </HStack>
+                </Box>
+
                 <Box>
                   <Text
                     fontSize="0.7rem"

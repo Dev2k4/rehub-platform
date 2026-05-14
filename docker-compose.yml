@@ -30,6 +30,8 @@ services:
         condition: service_healthy
       router9:
         condition: service_started
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
     env_file:
@@ -39,6 +41,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_DB=rehub
       - POSTGRES_USER=postgres
+      - REDIS_URL=redis://redis:6379/0
       - POSTGRES_PASSWORD=Hieu2004@
       - MINIO_ENDPOINT=http://minio:9000
       - AI_PROVIDER_NAME=9router
@@ -102,6 +105,17 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "127.0.0.1:5050:80"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   app-db-data:

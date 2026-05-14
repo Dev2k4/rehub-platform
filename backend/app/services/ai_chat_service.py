@@ -124,6 +124,17 @@ _INVENTORY_KEYWORDS = (
     "mua",
 )
 
+_INVENTORY_SHORT_BLOCKLIST = {
+    "chao",
+    "xin chao",
+    "hi",
+    "hello",
+    "alo",
+    "cam on",
+    "cảm ơn",
+    "thanks",
+}
+
 _PRICING_KEYWORDS = (
     "gia bao nhieu",
     "giá bao nhiêu",
@@ -173,9 +184,27 @@ def detect_intent(message: str, mode: str = "auto") -> AIIntent:
         return "pricing"
     if any(keyword in normalized for keyword in _HOWTO_KEYWORDS):
         return "howto"
-    if any(keyword in normalized for keyword in _INVENTORY_KEYWORDS):
+    if _looks_like_inventory_query(message):
         return "inventory"
     return "assistant"
+
+
+def _looks_like_inventory_query(message: str) -> bool:
+    normalized = _normalize_text(message)
+    if any(keyword in normalized for keyword in _INVENTORY_KEYWORDS):
+        return True
+
+    if re.search(r"\b(co|có|con|còn)\b.*\b(khong|không|ko|kh)\b", message, flags=re.IGNORECASE):
+        return True
+
+    tokens = normalized.split()
+    if len(tokens) <= 6:
+        keywords = extract_product_keywords(message)
+        normalized_keywords = [kw.strip().lower() for kw in keywords if kw.strip()]
+        if normalized_keywords and all(kw not in _INVENTORY_SHORT_BLOCKLIST for kw in normalized_keywords):
+            return True
+
+    return False
 
 
 def _current_path(context: dict[str, str]) -> str:
@@ -237,7 +266,8 @@ def _build_system_prompt(
     if intent == "inventory":
         return (
             base_prompt
-            + "\n\nNgười dùng đang tìm sản phẩm. Hãy liệt kê các sản phẩm phù hợp từ dữ liệu trên nếu có, kèm giá và tình trạng."
+            + "\n\nNgười dùng đang tìm sản phẩm. Chỉ trả về danh sách 4-5 sản phẩm phù hợp từ dữ liệu trên (nếu có), kèm giá và tình trạng. "
+            "KHÔNG thêm hướng dẫn mua bán, escrow, trả giá, hay mẹo đăng tin. KHÔNG viết đoạn giải thích dài."
         )
     return base_prompt
 
@@ -351,80 +381,92 @@ async def _ask_provider(
         except httpx.HTTPError as exc:
             raise HTTPException(status_code=502, detail=f"Không thể kết nối AI provider: {exc}") from exc
 
-    if response.status_code >= 400:
-        detail = "AI provider trả lỗi"
-        try:
-            payload_json = response.json()
-            detail = payload_json.get("error", {}).get("message") or payload_json.get("message") or detail
-        except Exception:
-            pass
-        raise HTTPException(status_code=response.status_code if response.status_code < 500 else 502, detail=detail)
+        if response.status_code >= 400:
+            detail = "AI provider trả lỗi"
+            try:
+                payload_json = response.json()
+                detail = payload_json.get("error", {}).get("message") or payload_json.get("message") or detail
+            except Exception:
+                pass
+            raise HTTPException(status_code=response.status_code if response.status_code < 500 else 502, detail=detail)
 
-    data = response.json()
-    choices = data.get("choices")
-    if not isinstance(choices, list) or not choices:
-        raise HTTPException(status_code=502, detail="AI provider trả dữ liệu không hợp lệ")
+        data = response.json()
+        choices = data.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise HTTPException(status_code=502, detail="AI provider trả dữ liệu không hợp lệ")
 
-    first = choices[0] if isinstance(choices[0], dict) else {}
-    message_data = first.get("message") if isinstance(first, dict) else {}
-    content = message_data.get("content") if isinstance(message_data, dict) else None
-    if not isinstance(content, str) or not content.strip():
-        raise HTTPException(status_code=502, detail="AI provider không trả về nội dung trả lời")
+        first = choices[0] if isinstance(choices[0], dict) else {}
+        message_data = first.get("message") if isinstance(first, dict) else {}
+        content = message_data.get("content") if isinstance(message_data, dict) else None
+        if not isinstance(content, str) or not content.strip():
+            raise HTTPException(status_code=502, detail="AI provider không trả về nội dung trả lời")
 
-    finish_reason = None
-    if isinstance(first, dict):
-        finish_reason = first.get("finish_reason") or first.get("finishReason")
-        if not finish_reason:
-            finish_reason = first.get("stop_reason") or first.get("stopReason")
+        finish_reason = None
+        if isinstance(first, dict):
+            finish_reason = first.get("finish_reason") or first.get("finishReason")
+            if not finish_reason:
+                finish_reason = first.get("stop_reason") or first.get("stopReason")
 
-    def _looks_truncated(text: str) -> bool:
-        stripped = text.strip()
-        if not stripped:
+        def _looks_truncated(text: str) -> bool:
+            stripped = text.strip()
+            if not stripped:
+                return False
+            if stripped.endswith(("*", "**", ":")):
+                return True
+            if (
+                stripped[-1] not in ".!?…"
+                and len(stripped.splitlines()) >= 2
+                and len(stripped) > 60
+            ):
+                return True
             return False
-        if stripped.endswith(("*", "**", ":")):
-            return True
-        if (
-            stripped[-1] not in ".!?…"
-            and len(stripped.splitlines()) >= 2
-            and len(stripped) > 60
-        ):
-            return True
-        return False
 
-    if str(finish_reason).lower() in {"length", "max_tokens", "max_output_tokens", "token_limit"} or _looks_truncated(content):
-        continuation_messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": message},
-            {"role": "assistant", "content": content.strip()},
-            {
-                "role": "user",
-                "content": "Tiếp tục trả lời, viết nốt phần còn lại. Không lặp lại nội dung đã trả lời.",
-            },
-        ]
-        try:
-            cont_response = await client.post(
-                _chat_endpoint(),
-                json=_build_payload(continuation_messages),
-                headers=headers,
-            )
-            cont_data = cont_response.json()
-            cont_choices = cont_data.get("choices")
-            if isinstance(cont_choices, list) and cont_choices:
-                cont_first = cont_choices[0] if isinstance(cont_choices[0], dict) else {}
-                cont_msg = cont_first.get("message") if isinstance(cont_first, dict) else {}
-                cont_content = cont_msg.get("content") if isinstance(cont_msg, dict) else None
-                if isinstance(cont_content, str) and cont_content.strip():
-                    return f"{content.strip()}\n\n{cont_content.strip()}"
-        except Exception:
-            logger.exception("Failed to continue truncated AI response")
+        if str(finish_reason).lower() in {"length", "max_tokens", "max_output_tokens", "token_limit"} or _looks_truncated(content):
+            continuation_messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": content.strip()},
+                {
+                    "role": "user",
+                    "content": "Tiếp tục trả lời, viết nốt phần còn lại. Không lặp lại nội dung đã trả lời.",
+                },
+            ]
+            try:
+                cont_response = await client.post(
+                    _chat_endpoint(),
+                    json=_build_payload(continuation_messages),
+                    headers=headers,
+                )
+                cont_data = cont_response.json()
+                cont_choices = cont_data.get("choices")
+                if isinstance(cont_choices, list) and cont_choices:
+                    cont_first = cont_choices[0] if isinstance(cont_choices[0], dict) else {}
+                    cont_msg = cont_first.get("message") if isinstance(cont_first, dict) else {}
+                    cont_content = cont_msg.get("content") if isinstance(cont_msg, dict) else None
+                    if isinstance(cont_content, str) and cont_content.strip():
+                        return f"{content.strip()}\n\n{cont_content.strip()}"
+            except Exception:
+                logger.exception("Failed to continue truncated AI response")
 
-    return content.strip()
+        return content.strip()
 
 
 def _clean_trailing_questions(text: str) -> str:
     """Remove trailing follow-up questions and fix persona myths."""
     # Fix identity issues directly in the string (case-insensitive)
     result = re.sub(r"antigravity|deepmind|google deepmind", "Rehub AI", text, flags=re.IGNORECASE)
+
+    # Remove generic guidance blocks that are not requested
+    _GUIDANCE_BLOCKS = [
+        r"Để sở hữu[^\n]*(?:\n.+){1,12}",
+        r"Cách tìm mua[^\n]*(?:\n.+){1,12}",
+        r"Các bước để đăng tin[^\n]*(?:\n.+){1,12}",
+        r"Lưu ý khi đăng tin[^\n]*(?:\n.+){1,12}",
+        r"Lời khuyên khi đăng tin[^\n]*(?:\n.+){1,12}",
+        r"📝[^\n]*(?:\n.+){1,12}",
+    ]
+    for pattern in _GUIDANCE_BLOCKS:
+        result = re.sub(pattern, "", result, flags=re.IGNORECASE).strip()
 
     # Patterns to strip from the end of the response
     # We use "$" and ensure we only match if it's actually at the very end

@@ -27,6 +27,7 @@ import {
 import type { OrderRead } from "@/client"
 import { toaster } from "@/components/ui/toaster"
 import { useAuthUser } from "@/features/auth/hooks/useAuthUser"
+import { openChatWidget } from "@/features/chat/chat-widget.events"
 import { useEscrow } from "@/features/escrow/hooks/useEscrow"
 import { formatCurrencyVnd } from "@/features/home/utils/marketplace.utils"
 import {
@@ -205,7 +206,7 @@ function OrderListItem({
                 size={10}
                 style={{ marginRight: "3px", display: "inline" }}
               />
-              Escrow
+              Ví Rehub
             </Badge>
           )}
         </Flex>
@@ -215,7 +216,7 @@ function OrderListItem({
             variant="ghost"
             colorPalette="blue"
             borderRadius="lg"
-            onClick={() => navigate({ to: "/chat" })}
+            onClick={() => openChatWidget(counterpartyId, order.listing_id)}
           >
             <FiMessageSquare size={14} style={{ marginRight: "4px" }} />
             Nhắn tin
@@ -327,7 +328,7 @@ function OrderListItem({
               size={12}
               style={{ display: "inline", marginRight: "4px" }}
             />
-            Đơn dùng escrow — vào chi tiết đơn để xử lý release/dispute.
+            Đơn dùng thanh toán đảm bảo qua Ví Rehub.
           </Text>
         )}
     </Box>
@@ -338,6 +339,7 @@ export function OrdersPage() {
   const navigate = useNavigate()
   const { user, isAuthenticated, isLoading: authLoading } = useAuthUser()
   const [tab, setTab] = useState<OrderTab>("buying")
+  const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "24d" | "older">("all")
 
   const ordersQuery = useMyOrders()
   const completeMutation = useCompleteOrder()
@@ -345,14 +347,27 @@ export function OrdersPage() {
 
   const allOrders = ordersQuery.data ?? []
   const filteredOrders = useMemo(() => {
+    let list = allOrders
     if (tab === "buying") {
-      return allOrders.filter((order) => order.buyer_id === user?.id)
+      list = list.filter((order) => order.buyer_id === user?.id)
+    } else if (tab === "selling") {
+      list = list.filter((order) => order.seller_id === user?.id)
     }
-    if (tab === "selling") {
-      return allOrders.filter((order) => order.seller_id === user?.id)
+
+    if (timeFilter !== "all") {
+      const now = new Date()
+      if (timeFilter === "older") {
+        const threshold = new Date(now.getTime() - 24 * 24 * 60 * 60 * 1000)
+        list = list.filter((item) => new Date(item.created_at) < threshold)
+      } else {
+        const days = timeFilter === "7d" ? 7 : 24
+        const threshold = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+        list = list.filter((item) => new Date(item.created_at) >= threshold)
+      }
     }
-    return allOrders
-  }, [allOrders, tab, user?.id])
+
+    return list
+  }, [allOrders, tab, user?.id, timeFilter])
 
   const orderStats = useMemo(() => {
     return {
@@ -429,7 +444,7 @@ export function OrdersPage() {
             onClick={() => navigate({ to: "/wallet" })}
             borderRadius="xl"
           >
-            Ví demo
+            Ví Rehub
           </Button>
         </Flex>
 
@@ -515,6 +530,65 @@ export function OrdersPage() {
             _hover={tab === "selling" ? { bg: "blue.700" } : { bg: "blue.50" }}
           >
             Đơn bán
+          </Button>
+        </HStack>
+
+        <HStack
+          mb={8}
+          ml={{ base: 0, md: 4 }}
+          gap={1.5}
+          bg="whiteAlpha.800"
+          backdropFilter="blur(20px)"
+          p={1.5}
+          borderRadius="2xl"
+          display="inline-flex"
+          border="1px"
+          borderColor="whiteAlpha.400"
+          boxShadow="0 4px 15px rgba(0,0,0,0.04)"
+        >
+          <Button
+            size="md"
+            borderRadius="xl"
+            variant={timeFilter === "all" ? "solid" : "ghost"}
+            bg={timeFilter === "all" ? "blue.600" : "transparent"}
+            color={timeFilter === "all" ? "white" : "gray.600"}
+            onClick={() => setTimeFilter("all")}
+            px={6}
+          >
+            Tất cả
+          </Button>
+          <Button
+            size="md"
+            borderRadius="xl"
+            variant={timeFilter === "7d" ? "solid" : "ghost"}
+            bg={timeFilter === "7d" ? "blue.600" : "transparent"}
+            color={timeFilter === "7d" ? "white" : "gray.600"}
+            onClick={() => setTimeFilter("7d")}
+            px={6}
+          >
+            7 ngày
+          </Button>
+          <Button
+            size="md"
+            borderRadius="xl"
+            variant={timeFilter === "24d" ? "solid" : "ghost"}
+            bg={timeFilter === "24d" ? "blue.600" : "transparent"}
+            color={timeFilter === "24d" ? "white" : "gray.600"}
+            onClick={() => setTimeFilter("24d")}
+            px={6}
+          >
+            24 ngày
+          </Button>
+          <Button
+            size="md"
+            borderRadius="xl"
+            variant={timeFilter === "older" ? "solid" : "ghost"}
+            bg={timeFilter === "older" ? "blue.600" : "transparent"}
+            color={timeFilter === "older" ? "white" : "gray.600"}
+            onClick={() => setTimeFilter("older")}
+            px={6}
+          >
+            Cũ hơn
           </Button>
         </HStack>
 

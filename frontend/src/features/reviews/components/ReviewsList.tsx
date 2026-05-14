@@ -83,8 +83,8 @@ export function ReviewsList({
   if (reviews.length === 0) {
     return (
       <Box
-        border="1px"
-        borderColor="gray.200"
+        border="1px solid"
+        borderColor="#018ABE"
         borderRadius="lg"
         p={4}
         bg="white"
@@ -101,11 +101,13 @@ export function ReviewsList({
       {reviews.map((review) => (
         <Box
           key={review.id}
-          border="1px"
-          borderColor="gray.200"
+          border="1px solid"
+          borderColor="#018ABE"
           borderRadius="lg"
           p={4}
           bg="white"
+          transition="all 0.2s"
+          _hover={{ boxShadow: "sm", borderColor: "#02457A" }}
         >
           <Flex
             justify="space-between"

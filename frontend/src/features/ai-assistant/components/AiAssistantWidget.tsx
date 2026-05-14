@@ -369,7 +369,7 @@ export function AiAssistantWidget() {
           bottom={isMobile ? 0 : 24}
           top={isMobile ? 0 : "auto"}
           left={isMobile ? 0 : "auto"}
-          w={isMobile ? "100vw" : "min(92vw, 420px)"}
+          w={isMobile ? "100vw" : "min(92vw, 462px)"}
           h={isMobile ? "100vh" : "560px"}
           zIndex={1295}
           borderRadius={isMobile ? 0 : "xl"}

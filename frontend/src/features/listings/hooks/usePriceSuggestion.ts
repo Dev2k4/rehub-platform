@@ -1,32 +1,10 @@
 import { useState } from "react"
 import { OpenAPI } from "@/client"
 
-export interface PriceComparable {
-  title: string
-  price: number
-  category?: string | null
-  brand?: string | null
-  condition?: string | null
-  score: number
-}
-
-export interface PriceSuggestionResponse {
-  query: string
-  suggested_price?: number | null
-  price_low?: number | null
-  price_high?: number | null
-  confidence: number
-  matched_count: number
-  provider: string
-  model: string
-  comparables: PriceComparable[]
-  summary: string
-}
-
 export interface UsePriceSuggestionState {
   isLoading: boolean
   error: string | null
-  data: PriceSuggestionResponse | null
+  data: number | null
 }
 
 export function usePriceSuggestion() {
@@ -39,7 +17,7 @@ export function usePriceSuggestion() {
   const suggestPrice = async (
     query: string,
     context?: Record<string, string>,
-  ): Promise<PriceSuggestionResponse | null> => {
+  ): Promise<number | null> => {
     setState({ isLoading: true, error: null, data: null })
 
     try {
@@ -69,9 +47,25 @@ export function usePriceSuggestion() {
         return null
       }
 
-      const data = (await response.json()) as PriceSuggestionResponse
-      setState({ isLoading: false, error: null, data })
-      return data
+      const payload = (await response.json()) as unknown
+      let price: number | null = null
+      if (typeof payload === "number") {
+        price = payload
+      } else if (payload && typeof payload === "object") {
+        const map = payload as { suggested_price?: unknown }
+        if (typeof map.suggested_price === "number") {
+          price = map.suggested_price
+        }
+      }
+
+      if (price === null) {
+        const errorMsg = "Dữ liệu gợi ý giá không hợp lệ"
+        setState({ isLoading: false, error: errorMsg, data: null })
+        return null
+      }
+
+      setState({ isLoading: false, error: null, data: price })
+      return price
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Lỗi không xác định"
       setState({ isLoading: false, error: errorMsg, data: null })

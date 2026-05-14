@@ -17,14 +17,14 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,
   useNavigate,
   useParams,
   useSearch,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowLeft,
@@ -56,6 +56,7 @@ import { createOffer } from "@/features/offers/api/offers.api";
 import { OfferDetailModal } from "@/features/offers/components/OfferDetailModal";
 import { useOffersForListing } from "@/features/offers/hooks/useOffers";
 import { createOrder } from "@/features/orders/api/orders.api";
+import { useMyOrders } from "@/features/orders/hooks/useOrders";
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 import {
   getSellerListings,
@@ -226,7 +227,10 @@ export function ListingDetailPage() {
   const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(
     undefined,
   );
+  const [isBuyConfirmModalOpen, setIsBuyConfirmModalOpen] = useState(false);
   const { user, isAuthenticated } = useAuthUser();
+  const queryClient = useQueryClient();
+  const myOrdersQuery = useMyOrders();
 
   // Auto-open offer detail modal if offerId is in URL search params
   useEffect(() => {
@@ -287,6 +291,13 @@ export function ListingDetailPage() {
       limit: 20,
     },
   );
+
+  const existingOrderForListing = useMemo(() => {
+    if (!myOrdersQuery.data || !listingQuery.data) return undefined;
+    return myOrdersQuery.data.find(
+      (o) => o.listing_id === listingQuery.data.id && o.status !== "cancelled"
+    );
+  }, [myOrdersQuery.data, listingQuery.data]);
 
   const categoryMap = new Map<string, CategoryTree>();
   if (categoriesQuery.data) {
@@ -381,15 +392,22 @@ export function ListingDetailPage() {
       return;
     }
 
+    setIsBuyConfirmModalOpen(true);
+  };
+
+  const handleConfirmBuyNow = async () => {
     try {
       const order = await createOrderMutation.mutateAsync({
         listing_id: listing.id,
         use_escrow: true,
       });
+      setIsBuyConfirmModalOpen(false);
       toaster.create({
-        title: `Đặt hàng thành công. Mã đơn: ${order.id.slice(0, 8)}... Vào trang đơn hàng để fund ví demo.`,
+        title: `Đơn hàng ${order.id.slice(0, 8)}... đã được tạo thành công!`,
         type: "success",
       });
+      queryClient.invalidateQueries({ queryKey: ["orders", "me"] });
+      myOrdersQuery.refetch();
     } catch (error) {
       toaster.create({
         title: getErrorMessage(
@@ -636,6 +654,37 @@ export function ListingDetailPage() {
                 {/* Action Buttons / Offers */}
                 {isOwnListing ? (
                   <Box p={4}>
+                    {existingOrderForListing && (
+                      <Box mb={4}>
+                        <Button
+                          w="full"
+                          size="lg"
+                          colorPalette="blue"
+                          borderRadius="lg"
+                          onClick={() =>
+                            navigate({
+                              to: "/orders/$id",
+                              params: { id: existingOrderForListing.id },
+                            })
+                          }
+                          className="btn-shine"
+                          boxShadow="0 4px 15px rgba(37,99,235,0.35)"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, #2563eb, #0ea5e9)",
+                            color: "white",
+                            position: "relative",
+                            overflow: "hidden",
+                            border: "none",
+                          }}
+                          _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                          transition="all 0.2s"
+                        >
+                          <FiCheckCircle style={{ marginRight: "0.5rem" }} />
+                          Xem đơn hàng
+                        </Button>
+                      </Box>
+                    )}
                     <Heading as="h3" size="sm" color="gray.900" mb={3}>
                       Đề xuất thương lượng cho tin đăng này
                     </Heading>
@@ -697,40 +746,22 @@ export function ListingDetailPage() {
                 ) : (
                   <Box p={4}>
                     <VStack gap={3}>
-                      <Button
-                        w="full"
-                        size="lg"
-                        borderRadius="lg"
-                        onClick={handleBuyNow}
-                        loading={createOrderMutation.isPending}
-                        disabled={!canTransact}
-                        className="btn-shine"
-                        boxShadow="0 4px 15px rgba(37,99,235,0.35)"
-                        style={{
-                          background: "linear-gradient(135deg, #2563eb, #7c3aed)",
-                          color: "white",
-                          position: "relative",
-                          overflow: "hidden",
-                          border: "none",
-                        }}
-                        _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
-                        transition="all 0.2s"
-                      >
-                        Mua ngay
-                      </Button>
-                      {listing.is_negotiable && (
+                      {existingOrderForListing ? (
                         <Button
                           w="full"
                           size="lg"
                           borderRadius="lg"
-                          onClick={handleOpenOfferDialog}
-                          loading={createOfferMutation.isPending}
-                          disabled={!canTransact}
+                          onClick={() =>
+                            navigate({
+                              to: "/orders/$id",
+                              params: { id: existingOrderForListing.id },
+                            })
+                          }
                           className="btn-shine"
-                          boxShadow="0 4px 15px rgba(249,115,22,0.35)"
+                          boxShadow="0 4px 15px rgba(37,99,235,0.35)"
                           style={{
                             background:
-                              "linear-gradient(135deg, #f97316, #eab308)",
+                              "linear-gradient(135deg, #2563eb, #0ea5e9)",
                             color: "white",
                             position: "relative",
                             overflow: "hidden",
@@ -739,8 +770,57 @@ export function ListingDetailPage() {
                           _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
                           transition="all 0.2s"
                         >
-                          Thương lượng
+                          <FiCheckCircle style={{ marginRight: "0.5rem" }} />
+                          Xem đơn hàng
                         </Button>
+                      ) : (
+                        <>
+                          <Button
+                            w="full"
+                            size="lg"
+                            borderRadius="lg"
+                            onClick={handleBuyNow}
+                            loading={createOrderMutation.isPending}
+                            disabled={!canTransact}
+                            className="btn-shine"
+                            boxShadow="0 4px 15px rgba(37,99,235,0.35)"
+                            style={{
+                              background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+                              color: "white",
+                              position: "relative",
+                              overflow: "hidden",
+                              border: "none",
+                            }}
+                            _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                            transition="all 0.2s"
+                          >
+                            Mua ngay
+                          </Button>
+                          {listing.is_negotiable && (
+                            <Button
+                              w="full"
+                              size="lg"
+                              borderRadius="lg"
+                              onClick={handleOpenOfferDialog}
+                              loading={createOfferMutation.isPending}
+                              disabled={!canTransact}
+                              className="btn-shine"
+                              boxShadow="0 4px 15px rgba(249,115,22,0.35)"
+                              style={{
+                                background:
+                                  "linear-gradient(135deg, #f97316, #eab308)",
+                                color: "white",
+                                position: "relative",
+                                overflow: "hidden",
+                                border: "none",
+                              }}
+                              _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                              transition="all 0.2s"
+                            >
+                              Thương lượng
+                            </Button>
+                          )}
+                        </>
                       )}
 
                       <HStack w="full" gap={3}>
@@ -900,14 +980,14 @@ export function ListingDetailPage() {
                           Đang tải thông tin người bán...
                         </Text>
                       )}
-                      <Text
+                      {/* <Text
                         fontSize="sm"
                         color="blue.600"
                         mt={1}
                         _hover={{ textDecoration: "underline" }}
                       >
                         Xem trang cá nhân
-                      </Text>
+                      </Text> */}
                     </Box>
                   </Box>
                 </Box>
@@ -1150,6 +1230,62 @@ export function ListingDetailPage() {
                       transition="all 0.2s"
                     >
                       Gửi đề xuất
+                    </Button>
+                  </HStack>
+                </VStack>
+              </Dialog.Body>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+
+      {/* Buy Confirm Modal */}
+      <Dialog.Root
+        open={isBuyConfirmModalOpen}
+        onOpenChange={(e) => setIsBuyConfirmModalOpen(e.open)}
+        placement="center"
+      >
+        <Portal>
+          <Dialog.Backdrop bg="blackAlpha.600" />
+          <Dialog.Positioner>
+            <Dialog.Content maxW="md" bg="white" borderRadius="xl" overflow="hidden" boxShadow="2xl">
+              <Dialog.Header
+                p={5}
+                bg="blue.50"
+                borderBottomWidth="1px"
+                borderColor="blue.100"
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <Dialog.Title fontSize="lg" fontWeight="bold" color="blue.800">
+                  Xác nhận mua sản phẩm
+                </Dialog.Title>
+                <Dialog.CloseTrigger asChild>
+                  <CloseButton size="sm" color="blue.800" _hover={{ bg: "blue.100" }} />
+                </Dialog.CloseTrigger>
+              </Dialog.Header>
+              <Dialog.Body p={6}>
+                <VStack align="stretch" gap={4}>
+                  <Text fontSize="md" color="gray.700">
+                    Bạn có chắc chắn muốn mua sản phẩm <b>{listingQuery.data?.title}</b> với giá <b>{listingQuery.data ? formatCurrencyVnd(parseInt(listingQuery.data.price, 10)) : "0 ₫"}</b>?
+                  </Text>
+                  <HStack justify="flex-end" gap={3} pt={4}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setIsBuyConfirmModalOpen(false)}
+                      color="gray.600"
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      Không
+                    </Button>
+                    <Button
+                      colorPalette="blue"
+                      onClick={handleConfirmBuyNow}
+                      loading={createOrderMutation.isPending}
+                      px={6}
+                    >
+                      Có
                     </Button>
                   </HStack>
                 </VStack>
