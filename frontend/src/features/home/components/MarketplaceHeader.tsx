@@ -952,13 +952,19 @@ export function MarketplaceHeader({
               <Button
                 onClick={(e) => {
                   e.preventDefault();
+                  if (!isAuthenticated) {
+                    toaster.create({
+                      title: "Vui lòng đăng nhập để đăng tin",
+                      type: "info",
+                    });
+                    navigate({ to: "/auth/login" });
+                    return;
+                  }
+
                   if (onOpenListingModal) {
                     onOpenListingModal();
-                  } else if (isAuthenticated) {
-                    setIsLocalModalOpen(true);
                   } else {
-                    toaster.create({ title: "Vui lòng đăng nhập để đăng tin", type: "info" });
-                    navigate({ to: "/auth/login" });
+                    setIsLocalModalOpen(true);
                   }
                 }}
                 borderRadius="2rem"

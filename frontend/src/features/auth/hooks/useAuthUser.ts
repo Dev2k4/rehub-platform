@@ -27,7 +27,10 @@ export function useAuthUser() {
     queryKey: ["auth", "user"],
     queryFn: () => getMyProfile(),
     enabled: authenticated,
-    staleTime: 0,
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   return {
