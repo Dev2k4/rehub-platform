@@ -67,7 +67,7 @@ async def create_escrow_for_order(db: AsyncSession, order: Order) -> Escrow:
         escrow_id=escrow.id,
         actor_id=order.buyer_id,
         event_type=EscrowEventType.CREATED,
-        note="Escrow created for order",
+        note="Giao dịch Ví Rehub được tạo cho đơn hàng",
         data={"order_id": str(order.id)},
     )
     db.add(event)
@@ -89,7 +89,7 @@ async def fund_escrow(db: AsyncSession, order: Order, buyer_id: uuid.UUID) -> Es
 
     wallet = await crud_wallet.get_wallet_with_lock(db, buyer_id)
     if wallet.available_balance < escrow.amount:
-        raise ValueError("Insufficient demo wallet balance to fund escrow")
+        raise ValueError("Số dư Ví Rehub không đủ để thực hiện thanh toán")
 
     wallet.available_balance -= escrow.amount
     wallet.locked_balance += escrow.amount

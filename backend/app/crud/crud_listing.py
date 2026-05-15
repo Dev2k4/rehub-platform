@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import and_, delete, func, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -182,6 +182,9 @@ async def delete_listing_image(db: AsyncSession, image_id: str) -> None:
 
 
 async def get_pending_listings(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[Listing]:
+    # Auto-delete REJECTED listings older than 15 days before returning results.
+    await delete_expired_rejected_listings(db)
+
     result = await db.execute(
         select(Listing)
         .where(Listing.status == ListingStatus.PENDING)
@@ -189,3 +192,21 @@ async def get_pending_listings(db: AsyncSession, skip: int = 0, limit: int = 100
         .limit(limit)
     )
     return list(result.scalars().all())
+
+
+async def delete_expired_rejected_listings(db: AsyncSession) -> int:
+    """Delete REJECTED listings whose rejected_at is older than 15 days.
+    Returns the number of deleted rows.
+    """
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=15)
+    result = await db.execute(
+        delete(Listing).where(
+            and_(
+                Listing.status == ListingStatus.REJECTED,
+                Listing.rejected_at != None,  # noqa: E711
+                Listing.rejected_at <= cutoff,
+            )
+        )
+    )
+    await db.commit()
+    return result.rowcount

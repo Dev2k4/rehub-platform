@@ -12,13 +12,12 @@ import { FiCheck, FiX } from "react-icons/fi"
 import type { ListingRead } from "@/client"
 import { useApproveListing, useRejectListing } from "../hooks/useAdminListings"
 import { ConfirmDialog } from "./ConfirmDialog"
+import { RejectListingDialog } from "./RejectListingDialog"
 
 interface PendingListingsTableProps {
   listings: ListingRead[]
   isLoading: boolean
 }
-
-type ActionType = "approve" | "reject" | null
 
 export function PendingListingsTable({
   listings,
@@ -27,27 +26,43 @@ export function PendingListingsTable({
   const [selectedListing, setSelectedListing] = useState<ListingRead | null>(
     null,
   )
-  const [actionType, setActionType] = useState<ActionType>(null)
+  const [isApproveOpen, setIsApproveOpen] = useState(false)
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
 
   const approveMutation = useApproveListing()
   const rejectMutation = useRejectListing()
 
-  const handleAction = (listing: ListingRead, type: "approve" | "reject") => {
+  const handleApproveClick = (listing: ListingRead) => {
     setSelectedListing(listing)
-    setActionType(type)
+    setIsApproveOpen(true)
   }
 
-  const handleConfirm = () => {
-    if (!selectedListing || !actionType) return
+  const handleRejectClick = (listing: ListingRead) => {
+    setSelectedListing(listing)
+    setIsRejectOpen(true)
+  }
 
-    const mutation = actionType === "approve" ? approveMutation : rejectMutation
-
-    mutation.mutate(selectedListing.id, {
+  const handleApproveConfirm = () => {
+    if (!selectedListing) return
+    approveMutation.mutate(selectedListing.id, {
       onSuccess: () => {
         setSelectedListing(null)
-        setActionType(null)
+        setIsApproveOpen(false)
       },
     })
+  }
+
+  const handleRejectConfirm = (reason: string) => {
+    if (!selectedListing) return
+    rejectMutation.mutate(
+      { listingId: selectedListing.id, reason: reason || undefined },
+      {
+        onSuccess: () => {
+          setSelectedListing(null)
+          setIsRejectOpen(false)
+        },
+      },
+    )
   }
 
   const formatPrice = (price: string) => {
@@ -188,7 +203,7 @@ export function PendingListingsTable({
                   <Flex gap={2}>
                     <IconButton
                       aria-label="Phê duyệt"
-                      onClick={() => handleAction(listing, "approve")}
+                      onClick={() => handleApproveClick(listing)}
                       variant="ghost"
                       size="sm"
                       color="green.600"
@@ -199,7 +214,7 @@ export function PendingListingsTable({
                     </IconButton>
                     <IconButton
                       aria-label="Từ chối"
-                      onClick={() => handleAction(listing, "reject")}
+                      onClick={() => handleRejectClick(listing)}
                       variant="ghost"
                       size="sm"
                       color="red.600"
@@ -216,27 +231,37 @@ export function PendingListingsTable({
         </Table.Root>
       </Box>
 
+      {/* Approve dialog — dùng ConfirmDialog gốc */}
       <ConfirmDialog
-        open={!!selectedListing && !!actionType}
+        open={isApproveOpen}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedListing(null)
-            setActionType(null)
+            setIsApproveOpen(false)
           }
         }}
-        title={
-          actionType === "approve" ? "Phê duyệt tin đăng?" : "Từ chối tin đăng?"
-        }
-        description={
-          actionType === "approve"
-            ? `Xác nhận phê duyệt tin đăng "${selectedListing?.title}"?`
-            : `Xác nhận từ chối tin đăng "${selectedListing?.title}"?`
-        }
-        confirmText={actionType === "approve" ? "Phê duyệt" : "Từ chối"}
-        confirmColorPalette={actionType === "approve" ? "green" : "red"}
-        onConfirm={handleConfirm}
-        isLoading={approveMutation.isPending || rejectMutation.isPending}
+        title="Phê duyệt tin đăng?"
+        description={`Xác nhận phê duyệt tin đăng "${selectedListing?.title}"?`}
+        confirmText="Phê duyệt"
+        confirmColorPalette="green"
+        onConfirm={handleApproveConfirm}
+        isLoading={approveMutation.isPending}
+      />
+
+      {/* Reject dialog — dùng RejectListingDialog mới có nhập lý do */}
+      <RejectListingDialog
+        open={isRejectOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedListing(null)
+            setIsRejectOpen(false)
+          }
+        }}
+        listing={selectedListing}
+        onConfirm={handleRejectConfirm}
+        isLoading={rejectMutation.isPending}
       />
     </>
   )
 }
+

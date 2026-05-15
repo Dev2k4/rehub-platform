@@ -23,14 +23,14 @@ def _utc_now_naive() -> datetime:
 
 
 async def get_fulfillment_by_order_id(db: AsyncSession, order_id: uuid.UUID) -> Fulfillment | None:
-    result = await db.execute(select(Fulfillment).where(Fulfillment.order_id == order_id))
+    result = await db.execute(select(Fulfillment).where(Fulfillment.order_id == order_id))  # type: ignore[arg-type]
     return result.scalar_one_or_none()
 
 
 async def get_fulfillment_by_order_id_with_lock(db: AsyncSession, order_id: uuid.UUID) -> Fulfillment | None:
     result = await db.execute(
         select(Fulfillment)
-        .where(Fulfillment.order_id == order_id)
+        .where(Fulfillment.order_id == order_id)  # type: ignore[arg-type]
         .with_for_update()
     )
     return result.scalar_one_or_none()
@@ -167,6 +167,7 @@ async def seller_mark_delivered(
         raise ValueError("Seller delivery proof images are required")
 
     fulfillment.status = FulfillmentStatus.DELIVERED_BY_SELLER
+    fulfillment.seller_proof_image_urls = proof_image_urls
     fulfillment.updated_at = _utc_now_naive()
     crud_order.set_order_status(order, OrderStatus.DELIVERED)
 
@@ -228,6 +229,7 @@ async def buyer_confirm_received(
         raise ValueError("Buyer receipt proof images are required")
 
     fulfillment.status = FulfillmentStatus.BUYER_CONFIRMED_RECEIVED
+    fulfillment.buyer_proof_image_urls = proof_image_urls
     fulfillment.updated_at = _utc_now_naive()
 
     db.add(

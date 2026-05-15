@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import type { NotificationRead } from "@/client"
 import { toaster } from "@/components/ui/toaster"
 import { wsClient } from "@/features/shared/realtime/ws.client"
+import { translateNotification } from "../utils/notificationTranslation"
 
 const seenToastIds = new Set<string>()
 
@@ -70,10 +71,15 @@ export function useRealtimeNotifications(enabled: boolean) {
           seenToastIds.delete(incoming.id)
         }, 60_000)
 
+        const { title, message } = translateNotification(
+          incoming.title,
+          incoming.message || "",
+        )
+
         toaster.create({
-          title: incoming.title,
-          description: incoming.message,
-          type: "info",
+          title: title,
+          description: message,
+          type: "success",
         })
       }
     })

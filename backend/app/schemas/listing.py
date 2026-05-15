@@ -29,6 +29,8 @@ class ListingRead(ListingBase):
     id: uuid.UUID
     seller_id: uuid.UUID
     status: ListingStatus
+    reason_reject: Optional[str] = None
+    rejected_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     

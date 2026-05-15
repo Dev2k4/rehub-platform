@@ -1,7 +1,9 @@
 import uuid
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_admin, get_db
@@ -18,6 +20,10 @@ from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 logger = logging.getLogger(__name__)
+
+
+class RejectListingRequest(BaseModel):
+    reason: str | None = None
 
 
 async def _broadcast_listing_status_event(listing: ListingRead, event_type: str) -> None:
@@ -126,6 +132,9 @@ async def approve_listing(
         )
 
     listing.status = ListingStatus.ACTIVE
+    # Reset rejection fields when re-approving
+    listing.reason_reject = None
+    listing.rejected_at = None
     db.add(listing)
     await db.commit()
     await db.refresh(listing)
@@ -143,10 +152,11 @@ async def approve_listing(
 @router.post("/listings/{listing_id}/reject", response_model=ListingRead)
 async def reject_listing_route(
     listing_id: uuid.UUID,
+    request: RejectListingRequest = RejectListingRequest(),
     admin_user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """Admin only: Reject a listing (PENDING or ACTIVE)."""
+    """Admin only: Reject a listing (PENDING or ACTIVE) with optional reason."""
     listing = await get_listing(db, str(listing_id))
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
@@ -159,6 +169,8 @@ async def reject_listing_route(
         )
 
     listing.status = ListingStatus.REJECTED
+    listing.reason_reject = request.reason or None
+    listing.rejected_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.add(listing)
     await db.commit()
     await db.refresh(listing)
@@ -168,7 +180,10 @@ async def reject_listing_route(
         type=NotificationType.LISTING_REJECTED,
         title="Listing rejected",
         message=f"Your listing '{listing.title}' has been rejected.",
-        data={"listing_id": str(listing.id)},
+        data={
+            "listing_id": str(listing.id),
+            "reason_reject": listing.reason_reject or "",
+        },
     )
     await _broadcast_listing_status_event(listing, "listing:rejected")
     return listing

@@ -47,22 +47,29 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "rgba(15, 23, 42, 0.88)",
-          "--normal-text": "#ffffff",
-          "--muted-text": "rgba(255, 255, 255, 0.9)",
-          "--normal-border": "rgba(255, 255, 255, 0.15)",
-          "--border-radius": "14px",
+          "--normal-bg": "#ffffff",
+          "--normal-text": "#1e293b",
+          "--muted-text": "#64748b",
+          "--normal-border": "#e2e8f0",
+          "--border-radius": "12px",
+          "--success-bg": "#f0fdf4",
+          "--success-text": "#166534",
+          "--success-border": "#bbf7d0",
+          "--error-bg": "#fef2f2",
+          "--error-text": "#991b1b",
+          "--error-border": "#fecaca",
+          "--info-bg": "#eff6ff",
+          "--info-text": "#1e40af",
+          "--info-border": "#bfdbfe",
         } as React.CSSProperties
       }
       toastOptions={{
         style: {
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: "0 20px 50px -15px rgba(0,0,0,0.5)",
+          border: "1px solid var(--normal-border)",
+          boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
           padding: "1rem 1.25rem",
           fontWeight: 500,
-          color: "#ffffff",
+          color: "var(--normal-text)",
         },
       }}
       {...props}

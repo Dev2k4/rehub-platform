@@ -40,7 +40,8 @@ export function useRejectListing() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (listingId: string) => rejectListing(listingId),
+    mutationFn: ({ listingId, reason }: { listingId: string; reason?: string }) =>
+      rejectListing(listingId, reason),
     onSuccess: (listing) => {
       queryClient.setQueryData(["listings", listing.id], (old: any) => {
         if (!old) {

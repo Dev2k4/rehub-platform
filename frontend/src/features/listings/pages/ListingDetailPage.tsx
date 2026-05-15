@@ -1095,7 +1095,7 @@ export function ListingDetailPage() {
                     fontWeight="800"
                     color="gray.900"
                   >
-                    Tin rao khác của người bán
+                    Tin đăng khác của người bán
                   </Heading>
                 </Flex>
                 <SimpleGrid

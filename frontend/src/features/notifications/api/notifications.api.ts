@@ -1,5 +1,6 @@
 import type { NotificationRead } from "@/client"
 import { NotificationsService, OpenAPI } from "@/client"
+import { getAccessToken } from "@/features/auth/utils/auth.storage"
 
 export type NotificationsHistoryParams = {
   readFilter?: "all" | "unread" | "read"
@@ -36,7 +37,7 @@ export async function getMyNotificationsHistory(
     searchParams.set("limit", String(params.limit))
   }
 
-  const token = localStorage.getItem("access_token")
+  const token = getAccessToken()
   const url = `${OpenAPI.BASE}/api/v1/notifications/history?${searchParams.toString()}`
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},

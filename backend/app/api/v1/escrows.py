@@ -97,8 +97,8 @@ async def fund_escrow(
             db=db,
             user_id=order.seller_id,
             type=NotificationType.ESCROW_FUNDED,
-            title="Escrow funded",
-            message="Buyer funded escrow. You can proceed to delivery.",
+            title="Đã thanh toán qua Ví Rehub",
+            message="Người mua đã nạp tiền vào hệ thống đảm bảo. Bạn có thể tiến hành giao hàng.",
             data={"order_id": str(order.id)},
         )
         await _broadcast_escrow_event(escrow, "escrow:state_changed")
@@ -125,8 +125,8 @@ async def request_release(
             db=db,
             user_id=order.buyer_id,
             type=NotificationType.ESCROW_RELEASE_REQUESTED,
-            title="Delivery marked",
-            message="Seller marked this order as delivered. Please confirm receipt.",
+            title="Đã chuyển hàng",
+            message="Người bán đã thông báo chuyển hàng. Vui lòng kiểm tra và xác nhận nhận hàng qua Ví Rehub.",
             data={"order_id": str(order.id)},
         )
         await _broadcast_escrow_event(escrow, "escrow:state_changed")
@@ -151,8 +151,8 @@ async def confirm_release(
             db=db,
             user_id=order.seller_id,
             type=NotificationType.ESCROW_RELEASED,
-            title="Escrow released",
-            message="Buyer confirmed delivery. Funds were released to your demo wallet.",
+            title="Ví Rehub đã giải ngân",
+            message="Người mua xác nhận đã nhận hàng. Tiền đã được cộng vào Ví Rehub của bạn.",
             data={"order_id": str(order.id)},
         )
         await _broadcast_escrow_event(escrow, "escrow:state_changed")
@@ -181,8 +181,8 @@ async def open_dispute(
             db=db,
             user_id=target_user_id,
             type=NotificationType.ESCROW_DISPUTED,
-            title="Escrow disputed",
-            message="A dispute has been opened for this order.",
+            title="Tranh chấp Ví Rehub",
+            message="Đã có yêu cầu khiếu nại liên quan đến thanh toán qua Ví Rehub.",
             data={"order_id": str(order.id)},
         )
         await _broadcast_escrow_event(escrow, "escrow:state_changed")
@@ -214,8 +214,8 @@ async def admin_resolve_escrow(
             db=db,
             user_id=target_user_id,
             type=NotificationType.ESCROW_RESOLVED,
-            title="Escrow resolved",
-            message=f"Admin resolved escrow with result: {payload.result}.",
+            title="Đã giải quyết giao dịch Ví Rehub",
+            message=f"Admin đã giải quyết giao dịch với kết quả: {payload.result}.",
             data={"order_id": str(order.id), "result": payload.result},
         )
         await _broadcast_escrow_event(escrow, "escrow:state_changed")

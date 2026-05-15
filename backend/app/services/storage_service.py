@@ -206,3 +206,62 @@ def delete_listing_image(image_url: str, thumbnail_url: str | None = None) -> No
             client.remove_object(bucket, object_name)
     except S3Error:
         logger.exception("Failed to delete one or more MinIO objects for listing image")
+
+
+PROOF_BUCKET_NAME = settings.PROOF_MINIO_BUCKET_NAME
+
+
+def upload_proof_image(
+    file_bytes: bytes,
+    ext: str,
+    content_type: str,
+    user_id: str,
+    order_id: str,
+) -> str:
+    """Upload a delivery/receipt proof image to the dedicated proof bucket.
+
+    Returns the public URL of the uploaded image.
+    """
+    object_name = f"{order_id}/{user_id}/{uuid.uuid4().hex}.{ext}"
+
+    if settings.STORAGE_BACKEND.lower() != "minio":
+        # Local fallback
+        root = Path(settings.UPLOAD_DIR) / "proofs"
+        dest = root / object_name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(file_bytes)
+        return f"{settings.BACKEND_PUBLIC_BASE_URL.rstrip('/')}/uploads/proofs/{object_name}"
+
+    client = _minio_client()
+    bucket = PROOF_BUCKET_NAME
+
+    try:
+        if not client.bucket_exists(bucket):
+            client.make_bucket(bucket)
+            # Set bucket policy to public-read so URLs are accessible without auth
+            import json
+            policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"AWS": ["*"]},
+                        "Action": ["s3:GetObject"],
+                        "Resource": [f"arn:aws:s3:::{bucket}/*"],
+                    }
+                ],
+            }
+            client.set_bucket_policy(bucket, json.dumps(policy))
+
+        client.put_object(
+            bucket,
+            object_name,
+            BytesIO(file_bytes),
+            length=len(file_bytes),
+            content_type=content_type,
+        )
+    except S3Error:
+        logger.exception("Failed to upload proof image to MinIO")
+        raise RuntimeError("Failed to upload proof image to MinIO")
+
+    return f"{_public_base_url()}/{bucket}/{object_name}"

@@ -39,12 +39,14 @@ import {
   useUpdateListing,
   useUploadListingImage,
 } from "@/features/listings/hooks/useMyListings"
+import { RejectedListingDetailModal } from "@/features/notifications/components/RejectedListingDetailModal"
 
 const STATUS_TABS = [
   { value: "active", label: "Đang bán" },
   { value: "pending", label: "Chờ duyệt" },
   { value: "sold", label: "Đã bán" },
   { value: "hidden", label: "Đã ẩn" },
+  { value: "rejected", label: "Bị từ chối" },
 ]
 
 export function MyListingsPage() {
@@ -57,6 +59,10 @@ export function MyListingsPage() {
   const [editingListing, setEditingListing] = useState<ListingRead | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [timeFilter, setTimeFilter] = useState<"all" | "7d" | "24d" | "older">("all")
+  const [rejectedModal, setRejectedModal] = useState<{
+    listingId: string
+    reasonReject: string
+  } | null>(null)
 
   // Queries and mutations — always fetch all to compute stats
   const { data: listingsData, isLoading: isLoadingListings } = useMyListings({
@@ -105,6 +111,14 @@ export function MyListingsPage() {
   }
 
   const handleViewClick = (listing: ListingRead) => {
+    // Tin đăng bị từ chối: mở modal chi tiết + lý do thay vì navigate sang listing page
+    if (listing.status === "rejected") {
+      setRejectedModal({
+        listingId: listing.id,
+        reasonReject: (listing as any).reason_reject ?? "",
+      })
+      return
+    }
     navigate({ to: `/listings/${listing.id}` })
   }
 
@@ -476,6 +490,16 @@ export function MyListingsPage() {
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
+
+      {/* Modal chi tiết tin đăng bị từ chối */}
+      <RejectedListingDetailModal
+        open={!!rejectedModal}
+        onOpenChange={(open) => {
+          if (!open) setRejectedModal(null)
+        }}
+        listingId={rejectedModal?.listingId ?? null}
+        reasonReject={rejectedModal?.reasonReject}
+      />
     </Box>
   )
 }

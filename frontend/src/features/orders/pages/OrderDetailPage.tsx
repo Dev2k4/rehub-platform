@@ -10,6 +10,8 @@ import {
   Text,
   VStack,
   Stack,
+  Image,
+  SimpleGrid,
 } from "@chakra-ui/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -46,6 +48,8 @@ import { useOrderReviews } from "@/features/reviews/hooks/useReviews";
 import { useIsUserOnline } from "@/features/shared/realtime/ws.provider";
 import { getUserPublicProfile } from "@/features/users/api/users.api";
 import { DeliveryRouteMap } from "@/features/orders/components/DeliveryRouteMap";
+import { ProofImageUploader } from "@/features/orders/components/ProofImageUploader";
+import { uploadProofImage } from "@/features/orders/api/uploads.api";
 import { SearchableSelect } from "@/features/shared/components/SearchableSelect";
 import { useVnAddress } from "@/features/shared/hooks/useVnAddress";
 
@@ -123,8 +127,9 @@ export function OrderDetailPage() {
   const markDeliveredMutation = useMarkDelivered();
   const buyerConfirmMutation = useBuyerConfirmReceived();
   const disputeMutation = useOpenEscrowDispute();
-  const [sellerProofUrl, setSellerProofUrl] = useState("");
-  const [buyerProofUrl, setBuyerProofUrl] = useState("");
+  const [sellerProofFile, setSellerProofFile] = useState<File | null>(null);
+  const [buyerProofFile, setBuyerProofFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
   const [buyerProvinceInput, setBuyerProvinceInput] = useState("");
@@ -244,7 +249,7 @@ export function OrderDetailPage() {
   const hasEscrow = !!escrow;
   const fulfillment = fulfillmentQuery.data;
   const canComplete = !hasEscrow && order.status === "pending" && isBuyer;
-  const canCancel = !hasEscrow && order.status === "pending";
+  const canCancel = order.status === "pending" && (!hasEscrow || escrow?.status === "awaiting_funding");
 
   const walletAvailable = Number(walletQuery.data?.available_balance ?? 0);
   const escrowAmount = Number(escrow?.amount ?? 0);
@@ -806,30 +811,29 @@ export function OrderDetailPage() {
 
                 {canMarkDelivered && (
                   <>
-                    <Input
-                      value={sellerProofUrl}
-                      onChange={(e) => setSellerProofUrl(e.target.value)}
-                      placeholder="Link ảnh bằng chứng giao hàng (seller)"
-                      size="sm"
-                      maxW="360px"
-                      bg="white"
+                    <ProofImageUploader 
+                      onFileSelect={setSellerProofFile} 
+                      label="Ảnh bằng chứng giao hàng (seller)" 
+                      disabled={isUploading || markDeliveredMutation.isPending}
                     />
                     <Button
                       size="sm"
                       colorPalette="orange"
                       borderRadius="xl"
                       onClick={async () => {
-                        if (!sellerProofUrl.trim()) {
+                        if (!sellerProofFile) {
                           toaster.create({
-                            title: "Bạn cần cung cấp ảnh bằng chứng giao hàng",
+                            title: "Bạn cần chọn ảnh bằng chứng giao hàng",
                             type: "error",
                           });
                           return;
                         }
                         try {
+                          setIsUploading(true);
+                          const url = await uploadProofImage(order.id, sellerProofFile);
                           await markDeliveredMutation.mutateAsync({
                             orderId: order.id,
-                            proofImageUrls: [sellerProofUrl.trim()],
+                            proofImageUrls: [url],
                           });
                           toaster.create({
                             title: "Đã đánh dấu đã giao hàng",
@@ -840,9 +844,11 @@ export function OrderDetailPage() {
                             title: e?.message || "Lỗi đánh dấu đã giao",
                             type: "error",
                           });
+                        } finally {
+                          setIsUploading(false);
                         }
                       }}
-                      loading={markDeliveredMutation.isPending}
+                      loading={isUploading || markDeliveredMutation.isPending}
                     >
                       Đã giao hàng
                     </Button>
@@ -851,30 +857,29 @@ export function OrderDetailPage() {
 
                 {canBuyerConfirmReceived && (
                   <>
-                    <Input
-                      value={buyerProofUrl}
-                      onChange={(e) => setBuyerProofUrl(e.target.value)}
-                      placeholder="Link ảnh bằng chứng đã nhận (buyer)"
-                      size="sm"
-                      maxW="360px"
-                      bg="white"
+                    <ProofImageUploader 
+                      onFileSelect={setBuyerProofFile} 
+                      label="Ảnh bằng chứng đã nhận (buyer)" 
+                      disabled={isUploading || buyerConfirmMutation.isPending}
                     />
                     <Button
                       size="sm"
                       colorPalette="green"
                       borderRadius="xl"
                       onClick={async () => {
-                        if (!buyerProofUrl.trim()) {
+                        if (!buyerProofFile) {
                           toaster.create({
-                            title: "Bạn cần cung cấp ảnh bằng chứng đã nhận",
+                            title: "Bạn cần chọn ảnh bằng chứng đã nhận",
                             type: "error",
                           });
                           return;
                         }
                         try {
+                          setIsUploading(true);
+                          const url = await uploadProofImage(order.id, buyerProofFile);
                           await buyerConfirmMutation.mutateAsync({
                             orderId: order.id,
-                            proofImageUrls: [buyerProofUrl.trim()],
+                            proofImageUrls: [url],
                           });
                           toaster.create({
                             title: "Đã xác nhận đã nhận hàng",
@@ -885,9 +890,11 @@ export function OrderDetailPage() {
                             title: e?.message || "Lỗi xác nhận đã nhận hàng",
                             type: "error",
                           });
+                        } finally {
+                          setIsUploading(false);
                         }
                       }}
-                      loading={buyerConfirmMutation.isPending}
+                      loading={isUploading || buyerConfirmMutation.isPending}
                     >
                       Xác nhận đã nhận
                     </Button>
@@ -985,7 +992,37 @@ export function OrderDetailPage() {
             </HStack>
           )}
 
+          {/* Proof Images Gallery */}
+          {fulfillment && ((fulfillment as any).seller_proof_image_urls?.length > 0 || (fulfillment as any).buyer_proof_image_urls?.length > 0) && (
+            <Box mt={6} p={6} borderRadius="xl" border="1px" borderColor="gray.100" bg="white">
+              <Heading size="md" mb={4} color="gray.900">Ảnh bằng chứng giao dịch</Heading>
+              <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+                {(fulfillment as any).seller_proof_image_urls?.length > 0 && (
+                  <Box>
+                    <Text fontWeight="medium" mb={2} color="gray.700">Người bán đã giao:</Text>
+                    <Flex gap={2} wrap="wrap">
+                      {(fulfillment as any).seller_proof_image_urls.map((url: string, idx: number) => (
+                        <Image key={idx} src={url} alt="Bằng chứng người bán" borderRadius="lg" boxSize="150px" objectFit="cover" border="1px solid" borderColor="gray.200" />
+                      ))}
+                    </Flex>
+                  </Box>
+                )}
+                {(fulfillment as any).buyer_proof_image_urls?.length > 0 && (
+                  <Box>
+                    <Text fontWeight="medium" mb={2} color="gray.700">Người mua đã nhận:</Text>
+                    <Flex gap={2} wrap="wrap">
+                      {(fulfillment as any).buyer_proof_image_urls.map((url: string, idx: number) => (
+                        <Image key={idx} src={url} alt="Bằng chứng người mua" borderRadius="lg" boxSize="150px" objectFit="cover" border="1px solid" borderColor="gray.200" />
+                      ))}
+                    </Flex>
+                  </Box>
+                )}
+              </SimpleGrid>
+            </Box>
+          )}
+
           {/* Reviews Section */}
+
           <Box
             mt={6}
             p={6}

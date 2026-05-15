@@ -12,7 +12,15 @@ function getDataField(
   return typeof value === "string" && value.trim() ? value : null
 }
 
+/** Signal đặc biệt: không navigate mà mở modal chi tiết tin đăng bị từ chối. */
+export interface RejectedListingSignal {
+  type: "rejected_listing_modal"
+  listingId: string
+  reasonReject: string
+}
+
 export function getNotificationDestination(notification: NotificationRead):
+  | RejectedListingSignal
   | {
       to: "/listings/$id"
       params: { id: string }
@@ -28,6 +36,16 @@ export function getNotificationDestination(notification: NotificationRead):
   const listingId = getDataField(notification.data, "listing_id")
   const offerId = getDataField(notification.data, "offer_id")
   const sellerId = getDataField(notification.data, "seller_id")
+  const reasonReject = getDataField(notification.data, "reason_reject") ?? ""
+
+  // Intercept tin đăng bị từ chối → mở modal thay vì navigate sang listing page
+  if (notification.type === "listing_rejected" && listingId) {
+    return {
+      type: "rejected_listing_modal",
+      listingId,
+      reasonReject,
+    }
+  }
 
   if (
     orderId &&

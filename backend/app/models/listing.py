@@ -24,6 +24,8 @@ class Listing(SQLModel, table=True):
     is_negotiable: bool = Field(default=True)
     condition_grade: ConditionGrade = Field(sa_column=Column(String(50)))
     status: ListingStatus = Field(default=ListingStatus.PENDING, sa_column=Column(String(50)))
+    reason_reject: Optional[str] = Field(default=None, max_length=1000)
+    rejected_at: Optional[datetime] = Field(default=None)
 
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)

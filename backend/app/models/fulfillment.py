@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import Column, JSON
 from sqlmodel import Field, SQLModel
@@ -14,13 +14,15 @@ def _utc_now() -> datetime:
 
 
 class Fulfillment(SQLModel, table=True):
-    __tablename__ = "fulfillments"
+    __tablename__: ClassVar[str] = "fulfillments"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     order_id: uuid.UUID = Field(foreign_key="orders.id", ondelete="CASCADE", unique=True, index=True)
     buyer_id: uuid.UUID = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     seller_id: uuid.UUID = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
     status: FulfillmentStatus = Field(default=FulfillmentStatus.PENDING_SELLER_START, max_length=50)
+    seller_proof_image_urls: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    buyer_proof_image_urls: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)
 

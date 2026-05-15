@@ -31,8 +31,10 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "@/features/notifications/api/notifications.api";
-import { getNotificationDestination } from "@/features/notifications/utils/notificationNavigation";
-import { translateNotification } from "@/features/notifications/utils/notificationTranslation";
+import { getNotificationDestination } from "@/features/notifications/utils/notificationNavigation"
+import type { RejectedListingSignal } from "@/features/notifications/utils/notificationNavigation"
+import { translateNotification } from "@/features/notifications/utils/notificationTranslation"
+import { RejectedListingDetailModal } from "@/features/notifications/components/RejectedListingDetailModal"
 
 type ReadFilter = "all" | "unread" | "read";
 type TypeFilter = "all" | "offer" | "order" | "escrow" | "listing" | "review";
@@ -41,7 +43,7 @@ const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilter; label: string }> = [
   { value: "all", label: "Tất cả" },
   { value: "offer", label: "Đề xuất giá" },
   { value: "order", label: "Đơn hàng" },
-  { value: "escrow", label: "Giao dịch Escrow" },
+  { value: "escrow", label: "Giao dịch ví Rehub" },
   { value: "listing", label: "Tin đăng" },
   { value: "review", label: "Đánh giá" },
 ];
@@ -64,6 +66,10 @@ export function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [rejectedListingModal, setRejectedListingModal] = useState<{
+    listingId: string
+    reasonReject: string
+  } | null>(null)
 
   useEffect(() => {
     setPage(1);
@@ -160,6 +166,17 @@ export function NotificationsPage() {
     }
 
     const destination = getNotificationDestination(notification);
+
+    // Intercept listing_rejected — hiện modal chi tiết thay vì navigate
+    if ((destination as RejectedListingSignal).type === "rejected_listing_modal") {
+      const signal = destination as RejectedListingSignal
+      setRejectedListingModal({
+        listingId: signal.listingId,
+        reasonReject: signal.reasonReject,
+      })
+      return
+    }
+
     navigate(destination as never);
   };
 
@@ -514,6 +531,16 @@ export function NotificationsPage() {
           )}
         </Box>
       </Container>
+
+      {/* Modal chi tiết tin đăng bị từ chối */}
+      <RejectedListingDetailModal
+        open={!!rejectedListingModal}
+        onOpenChange={(open) => {
+          if (!open) setRejectedListingModal(null)
+        }}
+        listingId={rejectedListingModal?.listingId ?? null}
+        reasonReject={rejectedListingModal?.reasonReject}
+      />
     </Box>
   );
 }

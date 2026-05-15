@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     MINIO_SECURE: bool = True
     CHAT_MASTER_KEY: str = ""
     CHAT_MINIO_BUCKET_NAME: str = "rehub-chat"
+    PROOF_MINIO_BUCKET_NAME: str = "rehub-proof"
 
     # AI assistant
     AI_PROVIDER_NAME: str = "openai-compatible"
