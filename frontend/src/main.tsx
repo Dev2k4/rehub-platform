@@ -30,12 +30,28 @@ window.addEventListener("auth:token-changed", (event: Event) => {
   OpenAPI.TOKEN = async () => customEvent.detail.token || ""
 })
 
+const PROTECTED_PATH_PREFIXES = [
+  "/orders",
+  "/wallet",
+  "/chat",
+  "/notifications",
+  "/offers",
+  "/my-listings",
+  "/profile",
+  "/admin",
+]
+
+const isProtectedPath = (pathname: string) =>
+  PROTECTED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+
 const handleApiError = (error: Error) => {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403) {
       // Clear auth tokens and redirect to login
       clearTokens()
-      window.location.href = "/auth/login"
+      if (isProtectedPath(window.location.pathname)) {
+        window.location.href = "/auth/login"
+      }
     }
   }
 }
